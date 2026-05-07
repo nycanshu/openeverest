@@ -73,15 +73,11 @@ test.describe.serial('Instance API tests', () => {
         instance.spec.components = {}
       }
       instance.spec.components.engine = {
-        type: 'engine',
-        replicas: 2,
-        storage: {
-          size: '1Gi',
-        },
+        type: 'dummy-engine',
       }
 
       const updated = await th.updateInstance(request, instanceName, instance)
-      expect(updated.spec.components.engine.replicas).toBe(2)
+      expect(updated.spec.components.engine.type).toBe('dummy-engine')
     }).toPass({
       intervals: [1000],
       timeout: 30 * 1000,

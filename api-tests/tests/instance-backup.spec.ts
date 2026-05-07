@@ -31,6 +31,15 @@ test.describe.serial('Instance Backup API tests', () => {
   test.afterAll(async ({request}) => {
     try { await th.deleteBackup(request, backupName) } catch (_) {}
     try { await th.deleteInstance(request, instanceName) } catch (_) {}
+    try { await th.deleteBackupStorage(request, backupStorageName) } catch (_) {}
+  })
+
+  test('create backup storage', async ({request}) => {
+    const payload = th.getBackupStoragePayload(backupStorageName)
+    const bs = await th.generateBackupStorage(request, payload)
+
+    expect(bs).toBeTruthy()
+    expect(bs.metadata.name).toBe(backupStorageName)
   })
 
   test('create instance for backup tests', async ({request}) => {

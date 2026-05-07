@@ -8,5 +8,5 @@ spec:
     - dummy-provider
   job:
     jobSpec:
-      image: "dummy:1.0.0"
+      image: "dummy-class:1.0.0"
       command: ["echo", "backup"]

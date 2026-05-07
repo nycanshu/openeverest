@@ -4,21 +4,20 @@ metadata:
   name: dummy-provider
 spec:
   componentTypes:
-    engine:
+    dummy-engine:
       versions:
         - version: "1.0.0"
           image: "dummy-operator:1.0.0"
           default: true
   components:
     engine:
-      type: engine
+      type: dummy-engine
   topologies:
     standalone:
       components:
-        engine:
-          optional: false
+        engine: {}
   versions:
-    - name: "1.0.0"
-      default: true
-      components:
+    - components:
         engine: "1.0.0"
+      name: "1.0.0"
+      default: true
