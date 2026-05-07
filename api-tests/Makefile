@@ -178,4 +178,5 @@ test-sso:           ## Run SSO tests with Keycloak (requires deploy-keycloak fir
 	export CI_USER="everest_ci" ;\
 	export CI_PASSWORD="password" ;\
 	npx playwright test --config=./playwright.config.ts --project=sso $${FLAGS};\
+	$(EVERESTCTL) settings oidc configure --issuer-url="" --client-id="" ;\
 	}

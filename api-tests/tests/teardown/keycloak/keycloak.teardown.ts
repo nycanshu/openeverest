@@ -18,13 +18,6 @@ import {CliHelper} from '@helpers/cliHelper';
 teardown.describe.serial('Keycloak SSO teardown', () => {
   const cli = new CliHelper();
 
-  teardown('Reset Everest OIDC settings', async () => {
-    // Reset OIDC configuration by setting empty values
-    await cli.execute(
-      'everestctl settings oidc configure --issuer-url="" --client-id=""',
-    );
-  });
-
   teardown('Delete Keycloak deployment', async () => {
     await cli.execute(
       'kubectl delete -f manifests/keycloak.yaml --ignore-not-found',
