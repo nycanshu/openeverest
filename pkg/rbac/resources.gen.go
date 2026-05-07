@@ -22,6 +22,7 @@ var AllResources = []string{
 	"namespaces",
 	"pod-scheduling-policies",
 	"providers",
+	"restores",
 }
 
 // resourcePathMap maps API paths to their resource names.
@@ -29,11 +30,15 @@ var AllResources = []string{
 var resourcePathMap = map[string]string{
 	"/clusters/:cluster/backup-classes":                                              "backup-classes",
 	"/clusters/:cluster/backup-classes/:backupClass":                                 "backup-classes",
+	"/clusters/:cluster/namespaces/:namespace/backup-storages":                       "backup-storages",
+	"/clusters/:cluster/namespaces/:namespace/backup-storages/:name":                 "backup-storages",
 	"/clusters/:cluster/namespaces/:namespace/backups":                               "backups",
 	"/clusters/:cluster/namespaces/:namespace/backups/:backup":                       "backups",
 	"/clusters/:cluster/namespaces/:namespace/instances":                             "instances",
 	"/clusters/:cluster/namespaces/:namespace/instances/:instance":                   "instances",
+	"/clusters/:cluster/namespaces/:namespace/instances/:instance/backups":           "backups",
 	"/clusters/:cluster/namespaces/:namespace/instances/:instance/connection":        "instances",
+	"/clusters/:cluster/namespaces/:namespace/instances/:instance/restores":          "restores",
 	"/clusters/:cluster/namespaces/:namespace/monitoring-configs":                    "monitoring-configs",
 	"/clusters/:cluster/namespaces/:namespace/monitoring-configs/:name":              "monitoring-configs",
 	"/clusters/:cluster/providers":                                                   "providers",

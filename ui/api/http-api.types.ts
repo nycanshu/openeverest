@@ -1065,6 +1065,48 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/clusters/{cluster}/namespaces/{namespace}/instances/{instance}/backups": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List backups for an instance
+         * @description This API lists all backups for the instance specified by the `instance` name
+         *     in the specified `namespace` and `cluster`.
+         */
+        get: operations["listInstanceBackups"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clusters/{cluster}/namespaces/{namespace}/instances/{instance}/restores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List restores performed for an instance
+         * @description This API lists all restores performed for the instance specified by the `instance` name
+         *     in the specified `namespace` and `cluster`.
+         */
+        get: operations["listInstanceRestores"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/clusters/{cluster}/backup-classes": {
         parameters: {
             query?: never;
@@ -1144,6 +1186,58 @@ export interface paths {
          * @description This API deletes the backup specified by the `backup` name in the specified `namespace` and `cluster`.
          */
         delete: operations["deleteBackup"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clusters/{cluster}/namespaces/{namespace}/backup-storages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List backup storages
+         * @description This API lists all backup storages in the specified namespace and cluster.
+         */
+        get: operations["listBackupStorages"];
+        put?: never;
+        /**
+         * Create backup storage
+         * @description This API creates a new backup storage in the specified namespace and cluster.
+         */
+        post: operations["createBackupStorage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/clusters/{cluster}/namespaces/{namespace}/backup-storages/{name}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Get backup storage
+         * @description This API gets the backup storage specified by the `name` in the specified `namespace` and `cluster`.
+         */
+        get: operations["getBackupStorage"];
+        /**
+         * Update backup storage
+         * @description This API updates the backup storage specified by the `name` in the specified `namespace` and `cluster`.
+         */
+        put: operations["updateBackupStorage"];
+        post?: never;
+        /**
+         * Delete backup storage
+         * @description This API deletes the backup storage specified by the `name` in the specified `namespace` and `cluster`.
+         */
+        delete: operations["deleteBackupStorage"];
         options?: never;
         head?: never;
         patch?: never;
@@ -7158,61 +7252,10 @@ export interface components {
                      */
                     enabled: boolean;
                     /**
-                     * @description PITR enables and configures point-in-time recovery on the engine.
-                     *     Requires the BackupClass to advertise PITR support via
-                     *     .spec.providerManaged.
-                     */
-                    pitr?: {
-                        /**
-                         * @description Config holds provider-specific PITR options. The schema is defined by
-                         *     the BackupClass via .spec.providerManaged.
-                         */
-                        config?: Record<string, never>;
-                        /** @description Enabled toggles PITR. */
-                        enabled: boolean;
-                        /**
-                         * @description StorageName is the logical name of the storage (one of
-                         *     .spec.backup.storages[].name) that PITR should write to.
-                         */
-                        storageName?: string;
-                    };
-                    /**
-                     * @description Schedules registers recurring backup tasks on the engine. Schedules
-                     *     produce Backup CRs (via the provider's mirroring loop) using the
-                     *     operator-native scheduler — the runtime never spawns CronJobs for
-                     *     ProviderManaged BackupClasses.
-                     */
-                    schedules?: {
-                        /**
-                         * @description Cron is a standard 5-field cron expression. The provider may reject
-                         *     expressions the engine does not support.
-                         */
-                        cron: string;
-                        /**
-                         * @description Enabled toggles the schedule. A disabled schedule is removed from
-                         *     the engine without losing its definition on the Instance.
-                         */
-                        enabled: boolean;
-                        /**
-                         * @description Name uniquely identifies the schedule within the Instance. The
-                         *     provider uses it as the schedule key on the engine and as the value
-                         *     of Backup.spec.scheduleName on mirrored Backup CRs.
-                         */
-                        name: string;
-                        /**
-                         * Format: int32
-                         * @description RetentionCopies is the number of recent backups to keep for this
-                         *     schedule. Zero (or unset) means "keep all". Negative values are
-                         *     rejected.
-                         */
-                        retentionCopies?: number;
-                        /** @description StorageName references one of .spec.backup.storages[].name. Required. */
-                        storageName: string;
-                    }[];
-                    /**
                      * @description Storages registers BackupStorages on the engine. Each entry maps a
                      *     logical name (visible to the engine and reused by Backup CRs via
-                     *     .spec.storageName) to a BackupStorage resource.
+                     *     .spec.storageName) to a BackupStorage resource. Schedules and PITR are
+                     *     configured per storage via the nested .schedules and .pitr fields.
                      */
                     storages?: {
                         /**
@@ -7225,6 +7268,56 @@ export interface components {
                          *     the value that Backup CRs target via .spec.storageName.
                          */
                         name: string;
+                        /**
+                         * @description PITR enables and configures point-in-time recovery writing to this
+                         *     storage. Requires the BackupClass to advertise PITR support via
+                         *     .spec.providerManaged. Engines that support only a single PITR stream
+                         *     (e.g. PSMDB, PXC) require at most one storage on the Instance to set
+                         *     .pitr.enabled=true; this is enforced by the provider, not by the
+                         *     core schema (PG legitimately archives WAL to every configured repo).
+                         */
+                        pitr?: {
+                            /**
+                             * @description Config holds provider-specific PITR options. The schema is defined by
+                             *     the BackupClass via .spec.providerManaged.
+                             */
+                            config?: Record<string, never>;
+                            /** @description Enabled toggles PITR for this storage. */
+                            enabled: boolean;
+                        };
+                        /**
+                         * @description Schedules registers recurring backup tasks that write to this storage.
+                         *     Schedules produce Backup CRs (via the provider's mirroring loop) using
+                         *     the operator-native scheduler — the runtime never spawns CronJobs for
+                         *     ProviderManaged BackupClasses. Schedule names must be unique across
+                         *     all storages on the Instance.
+                         */
+                        schedules?: {
+                            /**
+                             * @description Cron is a standard 5-field cron expression. The provider may reject
+                             *     expressions the engine does not support.
+                             */
+                            cron: string;
+                            /**
+                             * @description Enabled toggles the schedule. A disabled schedule is removed from
+                             *     the engine without losing its definition on the Instance.
+                             */
+                            enabled: boolean;
+                            /**
+                             * @description Name uniquely identifies the schedule. The provider uses it as the
+                             *     schedule key on the engine and as the value of Backup.spec.scheduleName
+                             *     on mirrored Backup CRs. Names must be unique across all storages on
+                             *     the Instance.
+                             */
+                            name: string;
+                            /**
+                             * Format: int32
+                             * @description RetentionCopies is the number of recent backups to keep for this
+                             *     schedule. Zero (or unset) means "keep all". Negative values are
+                             *     rejected.
+                             */
+                            retentionCopies?: number;
+                        }[];
                         /** @description StorageRef references a BackupStorage in the same namespace. */
                         storageRef: {
                             /**
@@ -7517,6 +7610,353 @@ export interface components {
         } & {
             [key: string]: string;
         };
+        /** @description Backup is the Schema for the backups API. */
+        Backup: {
+            /**
+             * @description APIVersion defines the versioned schema of this representation of an object.
+             *     Servers should convert recognized schemas to the latest internal value, and
+             *     may reject unrecognized values.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+             */
+            apiVersion?: string;
+            /**
+             * @description Kind is a string value representing the REST resource this object represents.
+             *     Servers may infer this from the endpoint the client submits requests to.
+             *     Cannot be updated.
+             *     In CamelCase.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+             */
+            kind?: string;
+            metadata?: Record<string, never>;
+            /** @description BackupSpec defines the desired state of Backup. */
+            spec: {
+                /**
+                 * @description BackupClassName is the BackupClass that defines how this Backup is
+                 *     executed. The class's executionMode controls the runtime path: Job
+                 *     classes are reconciled by the in-cluster Backup job controller;
+                 *     ProviderManaged classes are reconciled by the provider's runtime.
+                 */
+                backupClassName: string;
+                /**
+                 * @description Config is the backup-time configuration validated against the
+                 *     BackupClass's .spec.config.openAPIV3Schema.
+                 */
+                config?: Record<string, never>;
+                /**
+                 * @description DeletionPolicy controls what happens to the underlying backup data
+                 *     (e.g., the object stored in S3) when this Backup CR is deleted.
+                 *     Delete (default) instructs the provider to remove both the
+                 *     engine-native backup resource and the data in the configured
+                 *     BackupStorage. Retain instructs the provider to remove the
+                 *     engine-native backup resource but to leave the underlying data in
+                 *     place, so it can be recovered later out-of-band.
+                 *
+                 *     The field is mutable on a live Backup but is frozen once deletion
+                 *     has started: switching policies after .metadata.deletionTimestamp
+                 *     has been set is rejected so the cleanup path cannot race with
+                 *     itself.
+                 * @default Delete
+                 */
+                deletionPolicy: string & (("Retain" | "Delete") & ("Retain" | "Delete"));
+                /**
+                 * @description InstanceName is the name of the Instance to back up. The Instance must
+                 *     live in the same namespace as this Backup.
+                 */
+                instanceName: string;
+                /**
+                 * @description ScheduleName, when set, identifies the InstanceBackupSchedule that
+                 *     produced this Backup. Backups created via the API or `kubectl apply`
+                 *     leave this field empty (on-demand). The provider's mirroring loop
+                 *     sets it when surfacing operator-produced scheduled backups as Backup
+                 *     CRs.
+                 */
+                scheduleName?: string;
+                /**
+                 * @description StorageName references a BackupStorage in the same namespace that
+                 *     defines where the backup data is written. For ProviderManaged classes
+                 *     the referenced storage must already be registered on the Instance via
+                 *     .spec.backup.storages so the engine can write to it.
+                 */
+                storageName: string;
+            };
+            /** @description BackupStatus defines the observed state of Backup. */
+            status?: {
+                /**
+                 * Format: date-time
+                 * @description CompletedAt is the time when the backup completed successfully.
+                 */
+                completedAt?: string;
+                conditions?: {
+                    /**
+                     * Format: date-time
+                     * @description lastTransitionTime is the last time the condition transitioned from one status to another.
+                     *     This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                     */
+                    lastTransitionTime: string;
+                    /**
+                     * @description message is a human readable message indicating details about the transition.
+                     *     This may be an empty string.
+                     */
+                    message: string;
+                    /**
+                     * Format: int64
+                     * @description observedGeneration represents the .metadata.generation that the condition was set based upon.
+                     *     For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                     *     with respect to the current state of the instance.
+                     */
+                    observedGeneration?: number;
+                    /**
+                     * @description reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                     *     Producers of specific condition types may define expected values and meanings for this field,
+                     *     and whether the values are considered a guaranteed API.
+                     *     The value should be a CamelCase string.
+                     *     This field may not be empty.
+                     */
+                    reason: string;
+                    /**
+                     * @description status of the condition, one of True, False, Unknown.
+                     * @enum {string}
+                     */
+                    status: "True" | "False" | "Unknown";
+                    /** @description type of condition in CamelCase or in foo.example.com/CamelCase. */
+                    type: string;
+                }[];
+                /**
+                 * @description ExecutionMode is the resolved execution mode at the time the Backup
+                 *     started. Recorded for observability.
+                 * @enum {string}
+                 */
+                executionMode?: "ProviderManaged" | "Job";
+                /**
+                 * @description JobName is the reference to the Job that is running the backup.
+                 *     Populated only for Job classes.
+                 */
+                jobName?: string;
+                /**
+                 * Format: int64
+                 * @description LastObservedGeneration is the last observed generation of the Backup CR.
+                 */
+                lastObservedGeneration?: number;
+                /** @description Message is a human-readable message about the current state. */
+                message?: string;
+                /**
+                 * @description OperatorBackupRef points at the operator-native backup resource the
+                 *     provider created (e.g., PerconaServerMongoDBBackup). Populated only
+                 *     for ProviderManaged classes.
+                 */
+                operatorBackupRef?: {
+                    /**
+                     * @description APIGroup is the group for the resource being referenced.
+                     *     If APIGroup is not specified, the specified Kind must be in the core API group.
+                     *     For any other third-party types, APIGroup is required.
+                     */
+                    apiGroup?: string;
+                    /** @description Kind is the type of resource being referenced */
+                    kind: string;
+                    /** @description Name is the name of resource being referenced */
+                    name: string;
+                };
+                /**
+                 * Format: date-time
+                 * @description StartedAt is the time when the backup started.
+                 */
+                startedAt?: string;
+                /** @description State is the current state of the backup. */
+                state?: string;
+            };
+        };
+        /** @description BackupList is an object that contains the list of the existing backups. */
+        BackupList: {
+            /** @description APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            items?: components["schemas"]["Backup"][];
+            /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                /** @description Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names */
+                name?: string;
+                /** @description Namespace defines the space within which each name must be unique. An empty namespace is equivalent to the "default" namespace, but "default" is the canonical representation. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces */
+                namespace?: string;
+            };
+        };
+        /** @description Restore is the Schema for the restores API. */
+        Restore: {
+            /**
+             * @description APIVersion defines the versioned schema of this representation of an object.
+             *     Servers should convert recognized schemas to the latest internal value, and
+             *     may reject unrecognized values.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+             */
+            apiVersion?: string;
+            /**
+             * @description Kind is a string value representing the REST resource this object represents.
+             *     Servers may infer this from the endpoint the client submits requests to.
+             *     Cannot be updated.
+             *     In CamelCase.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+             */
+            kind?: string;
+            metadata?: Record<string, never>;
+            /** @description RestoreSpec defines the desired state of Restore. */
+            spec: {
+                /**
+                 * @description Config is the restore-time configuration validated against the
+                 *     BackupClass's .spec.restoreConfig.openAPIV3Schema.
+                 */
+                config?: Record<string, never>;
+                /** @description DataSource defines where the backup data to restore from is located. */
+                dataSource: {
+                    /**
+                     * @description BackupName references an existing Backup CR in the same namespace to
+                     *     restore from. The BackupClass and storage are resolved from the
+                     *     referenced Backup.
+                     */
+                    backupName?: string;
+                    /**
+                     * @description External describes a backup that has no corresponding Backup CR in the
+                     *     cluster (e.g., a backup taken outside of OpenEverest).
+                     */
+                    external?: {
+                        /**
+                         * @description BackupClassName is the name of the BackupClass that defines how to
+                         *     restore this external backup.
+                         */
+                        backupClassName: string;
+                        /**
+                         * @description Config is forwarded to the BackupClass's restore configuration. It is
+                         *     validated against the same schema as Restore.spec.config.
+                         */
+                        config?: Record<string, never>;
+                        /**
+                         * @description StorageName references the BackupStorage in the same namespace that
+                         *     describes where the external backup data is located.
+                         */
+                        storageName: string;
+                    };
+                    /**
+                     * @description PITR defines point-in-time recovery options. Requires the resolved
+                     *     BackupClass to advertise PITR support via .spec.providerManaged.
+                     */
+                    pitr?: {
+                        /**
+                         * Format: date-time
+                         * @description Date is the target recovery point in time. Required when Type is "date".
+                         */
+                        date?: string;
+                        /**
+                         * @description Type is the type of point-in-time recovery: "date" or "latest".
+                         * @enum {string}
+                         */
+                        type: "date" | "latest";
+                    };
+                };
+                /**
+                 * @description InstanceName is the name of the Instance to restore into. The Instance
+                 *     must already exist in the same namespace and use a provider listed in
+                 *     the BackupClass's SupportedProviders.
+                 */
+                instanceName: string;
+            };
+            /** @description RestoreStatus defines the observed state of Restore. */
+            status?: {
+                /**
+                 * Format: date-time
+                 * @description CompletedAt is the time when the restore completed successfully.
+                 */
+                completedAt?: string;
+                conditions?: {
+                    /**
+                     * Format: date-time
+                     * @description lastTransitionTime is the last time the condition transitioned from one status to another.
+                     *     This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                     */
+                    lastTransitionTime: string;
+                    /**
+                     * @description message is a human readable message indicating details about the transition.
+                     *     This may be an empty string.
+                     */
+                    message: string;
+                    /**
+                     * Format: int64
+                     * @description observedGeneration represents the .metadata.generation that the condition was set based upon.
+                     *     For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                     *     with respect to the current state of the instance.
+                     */
+                    observedGeneration?: number;
+                    /**
+                     * @description reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                     *     Producers of specific condition types may define expected values and meanings for this field,
+                     *     and whether the values are considered a guaranteed API.
+                     *     The value should be a CamelCase string.
+                     *     This field may not be empty.
+                     */
+                    reason: string;
+                    /**
+                     * @description status of the condition, one of True, False, Unknown.
+                     * @enum {string}
+                     */
+                    status: "True" | "False" | "Unknown";
+                    /** @description type of condition in CamelCase or in foo.example.com/CamelCase. */
+                    type: string;
+                }[];
+                /**
+                 * @description ExecutionMode is the resolved execution mode at the time the Restore
+                 *     started. Recorded for observability.
+                 * @enum {string}
+                 */
+                executionMode?: "ProviderManaged" | "Job";
+                /**
+                 * @description JobName is the reference to the Job that is running the restore.
+                 *     Populated only for Job classes.
+                 */
+                jobName?: string;
+                /**
+                 * Format: int64
+                 * @description LastObservedGeneration is the last observed generation of the Restore CR.
+                 */
+                lastObservedGeneration?: number;
+                /** @description Message is a human-readable message about the current state. */
+                message?: string;
+                /**
+                 * @description OperatorRestoreRef points at the operator-native restore resource the
+                 *     provider created (e.g., PerconaServerMongoDBRestore). Populated only
+                 *     for ProviderManaged classes.
+                 */
+                operatorRestoreRef?: {
+                    /**
+                     * @description APIGroup is the group for the resource being referenced.
+                     *     If APIGroup is not specified, the specified Kind must be in the core API group.
+                     *     For any other third-party types, APIGroup is required.
+                     */
+                    apiGroup?: string;
+                    /** @description Kind is the type of resource being referenced */
+                    kind: string;
+                    /** @description Name is the name of resource being referenced */
+                    name: string;
+                };
+                /**
+                 * Format: date-time
+                 * @description StartedAt is the time when the restore started.
+                 */
+                startedAt?: string;
+                /** @description State is the current state of the restore. */
+                state?: string;
+            };
+        };
+        /** @description RestoreList is an object that contains the list of the existing restores. */
+        RestoreList: {
+            /** @description APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            items?: components["schemas"]["Restore"][];
+            /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                /** @description Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names */
+                name?: string;
+                /** @description Namespace defines the space within which each name must be unique. An empty namespace is equivalent to the "default" namespace, but "default" is the canonical representation. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces */
+                namespace?: string;
+            };
+        };
         /** @description BackupClass is the Schema for the backupclasses API */
         BackupClass: {
             /**
@@ -7787,8 +8227,8 @@ export interface components {
                 name?: string;
             };
         };
-        /** @description Backup is the Schema for the backups API. */
-        Backup: {
+        /** @description BackupStorage is the Schema for the backupstorages API. */
+        BackupStorage: {
             /**
              * @description APIVersion defines the versioned schema of this representation of an object.
              *     Servers should convert recognized schemas to the latest internal value, and
@@ -7805,141 +8245,81 @@ export interface components {
              */
             kind?: string;
             metadata?: Record<string, never>;
-            /** @description BackupSpec defines the desired state of Backup. */
+            /**
+             * @description BackupStorageSpec defines the desired state of a BackupStorage.
+             *
+             *     A BackupStorage is a reusable, namespaced reference to an object store
+             *     (today only S3-compatible) plus the credentials needed to talk to it.
+             *     It is referenced by name from:
+             *
+             *       - Instance.spec.backup.storages[].storageRef
+             *       - Backup.spec.storageName
+             *       - Restore.spec.dataSource.external.storageName
+             *
+             *     Decoupling storage from individual Backup CRs makes provider-managed
+             *     backups (e.g. PBM, pgBackRest) practical: the provider can register a
+             *     fixed set of storages on the engine without recomputing them from a
+             *     dynamic list of Backup CRs.
+             */
             spec: {
                 /**
-                 * @description BackupClassName is the BackupClass that defines how this Backup is
-                 *     executed. The class's executionMode controls the runtime path: Job
-                 *     classes are reconciled by the in-cluster Backup job controller;
-                 *     ProviderManaged classes are reconciled by the provider's runtime.
+                 * @description S3 contains S3-compatible storage configuration.
+                 *     Required when Type is "s3".
                  */
-                backupClassName: string;
-                /**
-                 * @description Config is the backup-time configuration validated against the
-                 *     BackupClass's .spec.config.openAPIV3Schema.
-                 */
-                config?: Record<string, never>;
-                /**
-                 * @description DeletionPolicy controls what happens to the underlying backup data
-                 *     (e.g., the object stored in S3) when this Backup CR is deleted.
-                 *     Delete (default) instructs the provider to remove both the
-                 *     engine-native backup resource and the data in the configured
-                 *     BackupStorage. Retain instructs the provider to remove the
-                 *     engine-native backup resource but to leave the underlying data in
-                 *     place, so it can be recovered later out-of-band.
-                 *
-                 *     The field is mutable on a live Backup but is frozen once deletion
-                 *     has started: switching policies after .metadata.deletionTimestamp
-                 *     has been set is rejected so the cleanup path cannot race with
-                 *     itself.
-                 * @default Delete
-                 */
-                deletionPolicy: string & (("Retain" | "Delete") & ("Retain" | "Delete"));
-                /**
-                 * @description InstanceName is the name of the Instance to back up. The Instance must
-                 *     live in the same namespace as this Backup.
-                 */
-                instanceName: string;
-                /**
-                 * @description ScheduleName, when set, identifies the InstanceBackupSchedule that
-                 *     produced this Backup. Backups created via the API or `kubectl apply`
-                 *     leave this field empty (on-demand). The provider's mirroring loop
-                 *     sets it when surfacing operator-produced scheduled backups as Backup
-                 *     CRs.
-                 */
-                scheduleName?: string;
-                /**
-                 * @description StorageName references a BackupStorage in the same namespace that
-                 *     defines where the backup data is written. For ProviderManaged classes
-                 *     the referenced storage must already be registered on the Instance via
-                 *     .spec.backup.storages so the engine can write to it.
-                 */
-                storageName: string;
-            };
-            /** @description BackupStatus defines the observed state of Backup. */
-            status?: {
-                /**
-                 * Format: date-time
-                 * @description CompletedAt is the time when the backup completed successfully.
-                 */
-                completedAt?: string;
-                conditions?: {
+                s3?: {
                     /**
-                     * Format: date-time
-                     * @description lastTransitionTime is the last time the condition transitioned from one status to another.
-                     *     This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                     * @description AccessKeyID is a write-only convenience input. When set, a webhook
+                     *     stores it in the Secret named by CredentialsSecretName and clears
+                     *     this field. It is never persisted on the BackupStorage object.
                      */
-                    lastTransitionTime: string;
+                    accessKeyId?: string;
+                    /** @description Bucket is the name of the S3 bucket. */
+                    bucket: string;
                     /**
-                     * @description message is a human readable message indicating details about the transition.
-                     *     This may be an empty string.
+                     * @description CredentialsSecretName is the name of the Secret in the same namespace
+                     *     that holds the AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY keys.
                      */
-                    message: string;
+                    credentialsSecretName: string;
+                    /** @description EndpointURL is the endpoint URL of the S3-compatible service. */
+                    endpointURL: string;
                     /**
-                     * Format: int64
-                     * @description observedGeneration represents the .metadata.generation that the condition was set based upon.
-                     *     For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
-                     *     with respect to the current state of the instance.
+                     * @description ForcePathStyle forces path-style URLs (bucket name in the path
+                     *     instead of the host). Defaults to false.
+                     * @default false
                      */
-                    observedGeneration?: number;
+                    forcePathStyle: boolean;
+                    /** @description Region is the region of the S3 bucket. */
+                    region: string;
+                    /** @description SecretAccessKey is a write-only convenience input. See AccessKeyID. */
+                    secretAccessKey?: string;
                     /**
-                     * @description reason contains a programmatic identifier indicating the reason for the condition's last transition.
-                     *     Producers of specific condition types may define expected values and meanings for this field,
-                     *     and whether the values are considered a guaranteed API.
-                     *     The value should be a CamelCase string.
-                     *     This field may not be empty.
+                     * @description VerifyTLS enables TLS certificate verification.
+                     *     Defaults to true.
+                     * @default true
                      */
-                    reason: string;
-                    /**
-                     * @description status of the condition, one of True, False, Unknown.
-                     * @enum {string}
-                     */
-                    status: "True" | "False" | "Unknown";
-                    /** @description type of condition in CamelCase or in foo.example.com/CamelCase. */
-                    type: string;
-                }[];
-                /**
-                 * @description ExecutionMode is the resolved execution mode at the time the Backup
-                 *     started. Recorded for observability.
-                 * @enum {string}
-                 */
-                executionMode?: "ProviderManaged" | "Job";
-                /**
-                 * @description JobName is the reference to the Job that is running the backup.
-                 *     Populated only for Job classes.
-                 */
-                jobName?: string;
-                /**
-                 * Format: int64
-                 * @description LastObservedGeneration is the last observed generation of the Backup CR.
-                 */
-                lastObservedGeneration?: number;
-                /** @description Message is a human-readable message about the current state. */
-                message?: string;
-                /**
-                 * @description OperatorBackupRef points at the operator-native backup resource the
-                 *     provider created (e.g., PerconaServerMongoDBBackup). Populated only
-                 *     for ProviderManaged classes.
-                 */
-                operatorBackupRef?: {
-                    /**
-                     * @description APIGroup is the group for the resource being referenced.
-                     *     If APIGroup is not specified, the specified Kind must be in the core API group.
-                     *     For any other third-party types, APIGroup is required.
-                     */
-                    apiGroup?: string;
-                    /** @description Kind is the type of resource being referenced */
-                    kind: string;
-                    /** @description Name is the name of resource being referenced */
-                    name: string;
+                    verifyTLS: boolean;
                 };
                 /**
-                 * Format: date-time
-                 * @description StartedAt is the time when the backup started.
+                 * @description Type is the object storage type. Today only "s3" is supported.
+                 * @enum {string}
                  */
-                startedAt?: string;
-                /** @description State is the current state of the backup. */
-                state?: string;
+                type: "s3";
+            };
+            /** @description BackupStorageStatus defines the observed state of a BackupStorage. */
+            status?: Record<string, never>;
+        };
+        /** @description BackupStorageList is an object that contains the list of the existing backupstorages. */
+        BackupStorageList: {
+            /** @description APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            items?: components["schemas"]["BackupStorage"][];
+            /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                /** @description Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names */
+                name?: string;
+                /** @description Namespace defines the space within which each name must be unique. An empty namespace is equivalent to the "default" namespace, but "default" is the canonical representation. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces */
+                namespace?: string;
             };
         };
         /** @description MonitoringConfig is the Schema for the monitoringconfigs API. */
@@ -11064,6 +11444,96 @@ export interface operations {
             };
         };
     };
+    listInstanceBackups: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The name of the cluster */
+                cluster: string;
+                /** @description The namespace where the instance is located */
+                namespace: string;
+                /** @description The name of the instance */
+                instance: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of backups for the instance */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupList"];
+                };
+            };
+            /** @description Unsuccessful operation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listInstanceRestores: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The name of the cluster */
+                cluster: string;
+                /** @description The namespace where the instance is located */
+                namespace: string;
+                /** @description The name of the instance */
+                instance: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description List of restores for the instance */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RestoreList"];
+                };
+            };
+            /** @description Unsuccessful operation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
     listBackupClasses: {
         parameters: {
             query?: never;
@@ -11257,6 +11727,244 @@ export interface operations {
             };
             /** @description Backup not found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    listBackupStorages: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The name of the cluster */
+                cluster: string;
+                /** @description The namespace of the backup storages */
+                namespace: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupStorageList"];
+                };
+            };
+            /** @description Unsuccessful operation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    createBackupStorage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The name of the cluster */
+                cluster: string;
+                /** @description The namespace where the backup storage will be created */
+                namespace: string;
+            };
+            cookie?: never;
+        };
+        /** @description The backup storage object to be created */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupStorage"];
+            };
+        };
+        responses: {
+            /** @description Successful operation */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupStorage"];
+                };
+            };
+            /** @description Unsuccessful operation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Internal server error */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    getBackupStorage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The name of the cluster */
+                cluster: string;
+                /** @description The namespace of the backup storage */
+                namespace: string;
+                /** @description The name of the backup storage */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupStorage"];
+                };
+            };
+            /** @description Backup storage not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    updateBackupStorage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The name of the cluster */
+                cluster: string;
+                /** @description The namespace of the backup storage */
+                namespace: string;
+                /** @description The name of the backup storage */
+                name: string;
+            };
+            cookie?: never;
+        };
+        /** @description The backup storage object to be updated */
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["BackupStorage"];
+            };
+        };
+        responses: {
+            /** @description Successful operation */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BackupStorage"];
+                };
+            };
+            /** @description Unsuccessful operation */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Backup storage not found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Error"];
+                };
+            };
+        };
+    };
+    deleteBackupStorage: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The name of the cluster */
+                cluster: string;
+                /** @description The namespace of the backup storage */
+                namespace: string;
+                /** @description The name of the backup storage */
+                name: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Backup storage deleted successfully */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unsuccessful operation */
+            400: {
                 headers: {
                     [name: string]: unknown;
                 };
