@@ -15,7 +15,7 @@
 // limitations under the License.
 
 import {expect} from '@playwright/test'
-import {EVEREST_CI_NAMESPACE, TIMEOUTS} from '@root/constants';
+import {EVEREST_CI_NAMESPACE, TIMEOUTS, CLUSTER_NAME} from '@root/constants';
 
 
 // --------------------- General helpers --------------------------------------------------
@@ -322,8 +322,6 @@ export const deleteBackupStorageRawV1 = async (request, name) => {
 }
 
 // --------------------- Backup Storage V2 helpers ------------------
-
-const CLUSTER_NAME = 'main'
 
 export const getBackupStoragePayload = (bsName: string) => {
   return {
@@ -756,7 +754,6 @@ export const deleteLoadBalancerConfigRaw = async (request, name) => {
 }
 
 // --------------------- Provider helpers -----------------------------------------------
-const CLUSTER_NAME = 'main'
 
 export const listProviders = async (request) => {
   const response = await listProvidersRaw(request)
@@ -778,7 +775,9 @@ export const getProviderRaw = async (request, name) => {
   return await request.get(`/v1/clusters/${CLUSTER_NAME}/providers/${name}`)
 }
 
-export const getInstanceDataSimple = (name: string, providerName: string) => {
+// --------------------- Instance helpers -----------------------------------------------
+
+export const getInstanceData = (name: string, providerName: string) => {
   const data = {
     apiVersion: 'core.openeverest.io/v1alpha1',
     kind: 'Instance',
@@ -791,8 +790,6 @@ export const getInstanceDataSimple = (name: string, providerName: string) => {
   }
   return JSON.parse(JSON.stringify(data))
 }
-
-// --------------------- Instance helpers -----------------------------------------------
 
 export const createInstance = async (request, data) => {
   const response = await createInstanceRaw(request, data)

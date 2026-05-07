@@ -15,6 +15,7 @@ export const EVEREST_CI_NAMESPACE = 'everest',
   ),
   API_CI_TOKEN = 'API_CI_TOKEN',
   API_TEST_TOKEN = 'API_TEST_TOKEN',
+  CLUSTER_NAME = 'main',
   MONITORING_CONFIG_1 = 'pmm-conf-1',
   MONITORING_CONFIG_2 = 'pmm-conf-2';
 

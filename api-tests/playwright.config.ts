@@ -144,6 +144,7 @@ export default defineConfig({
         'settings',
         'version',
         'instance',
+        'instance-backup',
         'pg',
         'psmdb',
         'pxc',
@@ -281,6 +282,18 @@ export default defineConfig({
       name: 'instance',
       testDir: 'tests',
       testMatch: /instance\.spec\.ts/,
+      dependencies: ['global:auth:ci:setup'],
+      use: {
+        extraHTTPHeaders: {
+          'Authorization': `Bearer ${process.env[API_CI_TOKEN]}`,
+        }
+      },
+    },
+    // instance-backup tests
+    {
+      name: 'instance-backup',
+      testDir: 'tests',
+      testMatch: /instance-backup\.spec\.ts/,
       dependencies: ['global:auth:ci:setup'],
       use: {
         extraHTTPHeaders: {
