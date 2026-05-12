@@ -88,8 +88,10 @@ type Topology struct {
 
 type TopologyComponent struct {
 	Optional bool `json:"optional,omitempty"`
-	// TODO: Do we need defaults?
-	// Defaults map[string]interface{} `json:"defaults,omitempty"`
+	// Defaults holds default values for this component.
+	// +optional
+	// +kubebuilder:pruning:PreserveUnknownFields
+	Defaults *runtime.RawExtension `json:"defaults,omitempty"`
 }
 
 // ProviderStatus defines the observed state of Provider.

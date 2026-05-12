@@ -78,6 +78,10 @@ spec:
                     components:
                       additionalProperties:
                         properties:
+                          defaults:
+                            description: Defaults holds default values for this component.
+                            type: object
+                            x-kubernetes-preserve-unknown-fields: true
                           optional:
                             type: boolean
                         type: object

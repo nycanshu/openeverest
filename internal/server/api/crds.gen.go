@@ -1252,7 +1252,9 @@ type Provider struct {
 		GlobalConfigSchema *map[string]interface{} `json:"globalConfigSchema,omitempty"`
 		Topologies         *map[string]struct {
 			Components *map[string]struct {
-				Optional *bool `json:"optional,omitempty"`
+				// Defaults Defaults holds default values for this component.
+				Defaults *map[string]interface{} `json:"defaults,omitempty"`
+				Optional *bool                   `json:"optional,omitempty"`
 			} `json:"components,omitempty"`
 
 			// ConfigSchema ConfigSchema holds the OpenAPI v3 schema for topology-specific configuration.

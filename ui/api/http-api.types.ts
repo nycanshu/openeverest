@@ -7166,6 +7166,8 @@ export interface components {
                     [key: string]: {
                         components?: {
                             [key: string]: {
+                                /** @description Defaults holds default values for this component. */
+                                defaults?: Record<string, never>;
                                 optional?: boolean;
                             };
                         };
