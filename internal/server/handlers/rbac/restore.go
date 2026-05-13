@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-package k8s
+package rbac
 
 import (
 	"context"
@@ -20,7 +20,17 @@ import (
 	backupv1alpha1 "github.com/openeverest/openeverest/v2/api/backup/v1alpha1"
 )
 
-// ListInstanceRestores returns list of restores for a specific instance.
-func (h *k8sHandler) ListInstanceRestores(ctx context.Context, namespace, instanceName string) (*backupv1alpha1.RestoreList, error) {
-	return h.kubeConnector.ListInstanceRestores(ctx, namespace, instanceName)
+// GetRestore returns a specific restore by namespace and name.
+func (h *rbacHandler) GetRestore(ctx context.Context, namespace, name string) (*backupv1alpha1.Restore, error) {
+	return h.next.GetRestore(ctx, namespace, name)
+}
+
+// CreateRestore creates a new restore.
+func (h *rbacHandler) CreateRestore(ctx context.Context, restore *backupv1alpha1.Restore) (*backupv1alpha1.Restore, error) {
+	return h.next.CreateRestore(ctx, restore)
+}
+
+// DeleteRestore deletes a restore by namespace and name.
+func (h *rbacHandler) DeleteRestore(ctx context.Context, namespace, name string) error {
+	return h.next.DeleteRestore(ctx, namespace, name)
 }
