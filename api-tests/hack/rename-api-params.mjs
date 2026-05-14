@@ -1,5 +1,6 @@
 /**
- * Orval fails to generate valid code if an API endpoint has a path parameter with the same name as a body parameter https://github.com/orval-labs/orval/issues/2491, e.g.:
+ * Orval fails to generate valid code if an API endpoint has a path parameter with
+ * the same name as a body parameter (https://github.com/orval-labs/orval/issues/2491), e.g.:
  * ```
  * POST /clusters/{clusters}/namespaces/{namespace}/instances/{instance}
  * body: { instance: Instance }

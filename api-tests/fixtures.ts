@@ -14,15 +14,10 @@
 // limitations under the License.
 import { test as base } from '@playwright/test'
 import { CliHelper } from '@helpers/cliHelper'
-import { setRequestContext } from '@helpers/playwright-fetcher'
 
 export const test = base.extend<{
   cli: CliHelper
 }>({
-  request: async ({ request }, use) => {
-    setRequestContext(request)
-    await use(request)
-  },
   cli: async ({}, use) => {
     const app = new CliHelper()
 

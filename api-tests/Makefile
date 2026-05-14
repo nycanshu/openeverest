@@ -19,7 +19,7 @@ init:     ## Install tests dependencies.
 # NOTE: API tests do not wait for DB clusters to be ready.
 # The only exception is pg-data-importer test, so that only PG images are pre-uploaded to K3D cluster.
 CI_INIT_DEPS := init deploy-monitoring create-test-users k3d-upload-images
-CI_INIT_DEPS += deploy-data-importer deploy-minio deploy-dummy-provider
+CI_INIT_DEPS += deploy-data-importer deploy-minio
 .PHONY: ci-init
 ci-init: $(CI_INIT_DEPS) 	## Prepare environment for running tests.
 
@@ -49,19 +49,6 @@ DATA_IMPORTER_RESOURCE=$(TEST_ROOT)/manifests/dataimporter.yaml
 deploy-data-importer:
 	$(info Deploying Data Importer to K3D cluster)
 	kubectl apply -f $(DATA_IMPORTER_RESOURCE)
-
-INSTANCE_PROVIDER_RESOURCE=$(TEST_ROOT)/manifests/dummy-provider.yaml
-INSTANCE_BACKUP_CLASS_RESOURCE=$(TEST_ROOT)/manifests/dummy-backup-class.yaml
-.PHONY: deploy-dummy-provider
-deploy-dummy-provider: ## Deploy Provider and BackupClass for the provider.
-	$(info Deploying instance test resources to K3D cluster)
-	kubectl apply -f $(INSTANCE_PROVIDER_RESOURCE)
-	kubectl apply -f $(INSTANCE_BACKUP_CLASS_RESOURCE)
-
-.PHONY: undeploy-dummy-provider
-undeploy-dummy-provider: ## Remove Provider and BackupClass for provider.
-	kubectl delete -f $(INSTANCE_BACKUP_CLASS_RESOURCE) --ignore-not-found
-	kubectl delete -f $(INSTANCE_PROVIDER_RESOURCE) --ignore-not-found
 
 MINIO_RESOURCE=$(TEST_ROOT)/manifests/minio.yaml
 .PHONY: deploy-minio
