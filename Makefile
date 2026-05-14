@@ -75,6 +75,7 @@ gen: gen-crds-deepcopy gen-crds-manifests gen-crds-openapi gen-openapi-ts-types 
 		client/crds.gen.go \
 		internal/server/handlers/mock_handler.go \
 		pkg/rbac/mocks/i_enforcer.go \
+		api-tests/generated/http-api.client.gen.ts \
 		ui/api/crds.gen.types.ts \
 		ui/api/http-api.types.ts \
 		ui/api/index.ts || true
