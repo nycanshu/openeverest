@@ -13,31 +13,39 @@
 // limitations under the License.
 
 import {test, expect} from '@fixtures'
-import * as th from '@tests/utils/api';
+import {
+  limitedSuffixedName,
+  getInstanceData,
+  createInstance,
+  getInstance,
+  listInstances,
+  updateInstance,
+  deleteInstance,
+} from '@tests/utils/api'
 
 const testPrefix = 'inst'
 
 test.describe.serial('Instance API tests', () => {
   test.describe.configure({timeout: 120 * 1000});
 
-  const instanceName = th.limitedSuffixedName(testPrefix)
+  const instanceName = limitedSuffixedName(testPrefix)
   // the provider deployed by api-tests/manifests/dummy-provider.yaml
   const providerName = 'dummy-provider'
 
   test.afterAll(async ({request}) => {
-    try { await th.deleteInstance(request, instanceName) } catch (_) {}
+    try { await deleteInstance(request, instanceName) } catch (_) {}
   })
 
   test('create instance', async ({request}) => {
-    const payload = th.getInstanceData(instanceName, providerName)
+    const payload = getInstanceData(instanceName, providerName)
 
-    const instance = await th.createInstance(request, payload)
+    const instance = await createInstance(request, payload)
 
     expect(instance).toBeTruthy()
     expect(instance.metadata.name).toBe(instanceName)
 
     await expect(async () => {
-      const fetched = await th.getInstance(request, instanceName)
+      const fetched = await getInstance(request, instanceName)
       expect(fetched.spec.provider).toBe(providerName)
     }).toPass({
       intervals: [1000],
@@ -46,7 +54,7 @@ test.describe.serial('Instance API tests', () => {
   })
 
   test('list instances', async ({request}) => {
-    const list = await th.listInstances(request)
+    const list = await listInstances(request)
 
     expect(list).toBeTruthy()
     expect(list.items).toBeTruthy()
@@ -57,7 +65,7 @@ test.describe.serial('Instance API tests', () => {
   })
 
   test('get instance', async ({request}) => {
-    const instance = await th.getInstance(request, instanceName)
+    const instance = await getInstance(request, instanceName)
 
     expect(instance).toBeTruthy()
     expect(instance.metadata.name).toBe(instanceName)
@@ -66,7 +74,7 @@ test.describe.serial('Instance API tests', () => {
 
   test('update instance', async ({request}) => {
     await expect(async () => {
-      const instance = await th.getInstance(request, instanceName)
+      const instance = await getInstance(request, instanceName)
 
       // Add a component to the instance
       if (!instance.spec.components) {
@@ -76,7 +84,7 @@ test.describe.serial('Instance API tests', () => {
         type: 'dummy-engine',
       }
 
-      const updated = await th.updateInstance(request, instanceName, instance)
+      const updated = await updateInstance(request, instanceName, instance)
       expect(updated.spec.components.engine.type).toBe('dummy-engine')
     }).toPass({
       intervals: [1000],
@@ -85,6 +93,6 @@ test.describe.serial('Instance API tests', () => {
   })
 
   test('delete instance', async ({request}) => {
-    await th.deleteInstance(request, instanceName)
+    await deleteInstance(request, instanceName)
   })
 });

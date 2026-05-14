@@ -165,3 +165,6 @@ test:               ## Run all tests.
 	done ;\
 	npx playwright test --config=./playwright.config.ts $${cmd_proj} $${FLAGS};\
 	}
+
+generate:
+	pnpm generate-client

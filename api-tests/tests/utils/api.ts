@@ -15,7 +15,10 @@
 // limitations under the License.
 
 import {expect} from '@playwright/test'
+import type {APIRequestContext} from '@playwright/test'
 import {EVEREST_CI_NAMESPACE, TIMEOUTS, CLUSTER_NAME} from '@root/constants';
+import * as client from '@root/generated/http-api.client.gen'
+import type {Instance, Backup} from '@root/generated/http-api.client.gen'
 
 
 // --------------------- General helpers --------------------------------------------------
@@ -769,44 +772,40 @@ export const getInstanceData = (name: string, providerName: string) => {
   return JSON.parse(JSON.stringify(data))
 }
 
-export const createInstance = async (request, data) => {
-  const response = await createInstanceRaw(request, data)
+export const createInstanceRaw = async (request: APIRequestContext, data: Instance) => {
+  return await client.createInstance(CLUSTER_NAME, EVEREST_CI_NAMESPACE, data) as any
+}
+export const createInstance = async (request: APIRequestContext, data: Instance) => {
+  const response = await client.createInstance(CLUSTER_NAME, EVEREST_CI_NAMESPACE, data) as any
   await checkError(response)
-  return (await response.json())
+  return await response.json()
 }
-
-export const createInstanceRaw = async (request, data) => {
-  return await request.post(`/v1/clusters/${CLUSTER_NAME}/namespaces/${EVEREST_CI_NAMESPACE}/instances`, {data})
+export const getInstanceRaw = async (request: APIRequestContext, name: string) => {
+  return await client.getInstance(CLUSTER_NAME, EVEREST_CI_NAMESPACE, name) as any
 }
-
-export const getInstance = async (request, name) => {
-  const response = await getInstanceRaw(request, name)
+export const getInstance = async (request: APIRequestContext, name: string) => {
+  const response = await client.getInstance(CLUSTER_NAME, EVEREST_CI_NAMESPACE, name) as any
   await checkError(response)
-  return (await response.json())
+  return await response.json()
 }
-
-export const getInstanceRaw = async (request, name) => {
-  return await request.get(`/v1/clusters/${CLUSTER_NAME}/namespaces/${EVEREST_CI_NAMESPACE}/instances/${name}`)
+export const listInstancesRaw = async (request: APIRequestContext) => {
+  return await client.listInstances(CLUSTER_NAME, EVEREST_CI_NAMESPACE) as any
 }
-
-export const listInstances = async (request) => {
-  const response = await listInstancesRaw(request)
+export const listInstances = async (request: APIRequestContext) => {
+  const response = await client.listInstances(CLUSTER_NAME, EVEREST_CI_NAMESPACE) as any
   await checkError(response)
-  return (await response.json())
+  return await response.json()
 }
-
-export const listInstancesRaw = async (request) => {
-  return await request.get(`/v1/clusters/${CLUSTER_NAME}/namespaces/${EVEREST_CI_NAMESPACE}/instances`)
+export const updateInstanceRaw = async (request: APIRequestContext, name: string, data: Instance) => {
+  return await client.updateInstance(CLUSTER_NAME, EVEREST_CI_NAMESPACE, name, data) as any
 }
-
-export const updateInstance = async (request, name, data) => {
-  const response = await updateInstanceRaw(request, name, data)
+export const updateInstance = async (request: APIRequestContext, name: string, data: Instance) => {
+  const response = await client.updateInstance(CLUSTER_NAME, EVEREST_CI_NAMESPACE, name, data) as any
   await checkError(response)
-  return (await response.json())
+  return await response.json()
 }
-
-export const updateInstanceRaw = async (request, name, data) => {
-  return await request.put(`/v1/clusters/${CLUSTER_NAME}/namespaces/${EVEREST_CI_NAMESPACE}/instances/${name}`, {data})
+export const deleteInstanceRaw = async (request: APIRequestContext, name: string) => {
+  return await client.deleteInstance(CLUSTER_NAME, EVEREST_CI_NAMESPACE, name) as any
 }
 
 export const deleteInstance = async (request, name) => {
@@ -820,11 +819,8 @@ export const deleteInstance = async (request, name) => {
   })
 }
 
-export const deleteInstanceRaw = async (request, name) => {
-  return await request.delete(`/v1/clusters/${CLUSTER_NAME}/namespaces/${EVEREST_CI_NAMESPACE}/instances/${name}`)
-}
-
 // --------------------- Backup (v2) helpers -----------------------------------------------
+
 export const getBackupData = (name: string, instanceName: string, backupClassName: string, storageName: string) => {
   const data = {
     apiVersion: 'core.openeverest.io/v1alpha1',
@@ -841,24 +837,24 @@ export const getBackupData = (name: string, instanceName: string, backupClassNam
   return JSON.parse(JSON.stringify(data))
 }
 
-export const createBackup = async (request, data) => {
-  const response = await createBackupRaw(request, data)
+export const createBackupRaw = async (request: APIRequestContext, data: Backup) => {
+  return await client.createBackup(CLUSTER_NAME, EVEREST_CI_NAMESPACE, data) as any
+}
+export const createBackup = async (request: APIRequestContext, data: Backup) => {
+  const response = await client.createBackup(CLUSTER_NAME, EVEREST_CI_NAMESPACE, data) as any
   await checkError(response)
-  return (await response.json())
+  return await response.json()
 }
-
-export const createBackupRaw = async (request, data) => {
-  return await request.post(`/v1/clusters/${CLUSTER_NAME}/namespaces/${EVEREST_CI_NAMESPACE}/backups`, {data})
+export const getBackupRaw = async (request: APIRequestContext, name: string) => {
+  return await client.getBackup(CLUSTER_NAME, EVEREST_CI_NAMESPACE, name) as any
 }
-
-export const getBackup = async (request, name) => {
-  const response = await getBackupRaw(request, name)
+export const getBackup = async (request: APIRequestContext, name: string) => {
+  const response = await client.getBackup(CLUSTER_NAME, EVEREST_CI_NAMESPACE, name) as any
   await checkError(response)
-  return (await response.json())
+  return await response.json()
 }
-
-export const getBackupRaw = async (request, name) => {
-  return await request.get(`/v1/clusters/${CLUSTER_NAME}/namespaces/${EVEREST_CI_NAMESPACE}/backups/${name}`)
+export const deleteBackupRaw = async (request: APIRequestContext, name: string) => {
+  return await client.deleteBackup(CLUSTER_NAME, EVEREST_CI_NAMESPACE, name) as any
 }
 
 export const deleteBackup = async (request, name) => {
@@ -872,18 +868,14 @@ export const deleteBackup = async (request, name) => {
   })
 }
 
-export const deleteBackupRaw = async (request, name) => {
-  return await request.delete(`/v1/clusters/${CLUSTER_NAME}/namespaces/${EVEREST_CI_NAMESPACE}/backups/${name}`)
-}
-
 // --------------------- Instance Backup helpers -----------------------------------------------
 
-export const listInstanceBackups = async (request, instanceName) => {
-  const response = await listInstanceBackupsRaw(request, instanceName)
+export const listInstanceBackupsRaw = async (request: APIRequestContext, instanceName: string) => {
+  return await client.listInstanceBackups(CLUSTER_NAME, EVEREST_CI_NAMESPACE, instanceName) as any
+}
+export const listInstanceBackups = async (request: APIRequestContext, instanceName: string) => {
+  const response = await client.listInstanceBackups(CLUSTER_NAME, EVEREST_CI_NAMESPACE, instanceName) as any
   await checkError(response)
-  return (await response.json())
+  return await response.json()
 }
 
-export const listInstanceBackupsRaw = async (request, instanceName) => {
-  return await request.get(`/v1/clusters/${CLUSTER_NAME}/namespaces/${EVEREST_CI_NAMESPACE}/instances/${instanceName}/backups`)
-}
