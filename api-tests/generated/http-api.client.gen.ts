@@ -12495,24 +12495,24 @@ export type getInstanceResponse = (getInstanceResponseSuccess | getInstanceRespo
 
 export const getGetInstanceUrl = (cluster: string,
     namespace: string,
-    instance: string,) => {
+    name: string,) => {
 
 
 
 
-  return `/clusters/${cluster}/namespaces/${namespace}/instances/${instance}`
+  return `/clusters/${cluster}/namespaces/${namespace}/instances/${name}`
 }
 
 /**
- * This API gets the database instance specified by the `instance` name in the specified `namespace` and `cluster`.
+ * This API gets the database instance specified by the `name` in the specified `namespace` and `cluster`.
 
  * @summary Get instance
  */
 export const getInstance = async (cluster: string,
     namespace: string,
-    instance: string, options?: RequestInit): Promise<getInstanceResponse> => {
+    name: string, options?: RequestInit): Promise<getInstanceResponse> => {
 
-  return playwrightFetcher<getInstanceResponse>(getGetInstanceUrl(cluster,namespace,instance),
+  return playwrightFetcher<getInstanceResponse>(getGetInstanceUrl(cluster,namespace,name),
   {
     ...options,
     method: 'GET'
@@ -12549,12 +12549,12 @@ export type updateInstanceResponse = (updateInstanceResponseSuccess | updateInst
 
 export const getUpdateInstanceUrl = (cluster: string,
     namespace: string,
-    instance: string,) => {
+    name: string,) => {
 
 
 
 
-  return `/clusters/${cluster}/namespaces/${namespace}/instances/${instance}`
+  return `/clusters/${cluster}/namespaces/${namespace}/instances/${name}`
 }
 
 /**
@@ -12564,10 +12564,10 @@ export const getUpdateInstanceUrl = (cluster: string,
  */
 export const updateInstance = async (cluster: string,
     namespace: string,
-    instanceName: string,
+    name: string,
     instance: Instance, options?: RequestInit): Promise<updateInstanceResponse> => {
 
-  return playwrightFetcher<updateInstanceResponse>(getUpdateInstanceUrl(cluster,namespace,instanceName),
+  return playwrightFetcher<updateInstanceResponse>(getUpdateInstanceUrl(cluster,namespace,name),
   {
     ...options,
     method: 'PUT',
@@ -12609,12 +12609,12 @@ export type deleteInstanceResponse = (deleteInstanceResponseSuccess | deleteInst
 
 export const getDeleteInstanceUrl = (cluster: string,
     namespace: string,
-    instance: string,) => {
+    name: string,) => {
 
 
 
 
-  return `/clusters/${cluster}/namespaces/${namespace}/instances/${instance}`
+  return `/clusters/${cluster}/namespaces/${namespace}/instances/${name}`
 }
 
 /**
@@ -12624,9 +12624,9 @@ export const getDeleteInstanceUrl = (cluster: string,
  */
 export const deleteInstance = async (cluster: string,
     namespace: string,
-    instance: string, options?: RequestInit): Promise<deleteInstanceResponse> => {
+    name: string, options?: RequestInit): Promise<deleteInstanceResponse> => {
 
-  return playwrightFetcher<deleteInstanceResponse>(getDeleteInstanceUrl(cluster,namespace,instance),
+  return playwrightFetcher<deleteInstanceResponse>(getDeleteInstanceUrl(cluster,namespace,name),
   {
     ...options,
     method: 'DELETE'
@@ -12720,12 +12720,12 @@ export type listInstanceBackupsResponse = (listInstanceBackupsResponseSuccess | 
 
 export const getListInstanceBackupsUrl = (cluster: string,
     namespace: string,
-    instance: string,) => {
+    name: string,) => {
 
 
 
 
-  return `/clusters/${cluster}/namespaces/${namespace}/instances/${instance}/backups`
+  return `/clusters/${cluster}/namespaces/${namespace}/instances/${name}/backups`
 }
 
 /**
@@ -12736,9 +12736,9 @@ in the specified `namespace` and `cluster`.
  */
 export const listInstanceBackups = async (cluster: string,
     namespace: string,
-    instance: string, options?: RequestInit): Promise<listInstanceBackupsResponse> => {
+    name: string, options?: RequestInit): Promise<listInstanceBackupsResponse> => {
 
-  return playwrightFetcher<listInstanceBackupsResponse>(getListInstanceBackupsUrl(cluster,namespace,instance),
+  return playwrightFetcher<listInstanceBackupsResponse>(getListInstanceBackupsUrl(cluster,namespace,name),
   {
     ...options,
     method: 'GET'
@@ -12775,25 +12775,25 @@ export type listInstanceRestoresResponse = (listInstanceRestoresResponseSuccess 
 
 export const getListInstanceRestoresUrl = (cluster: string,
     namespace: string,
-    instance: string,) => {
+    name: string,) => {
 
 
 
 
-  return `/clusters/${cluster}/namespaces/${namespace}/instances/${instance}/restores`
+  return `/clusters/${cluster}/namespaces/${namespace}/instances/${name}/restores`
 }
 
 /**
- * This API lists all restores performed for the instance specified by the `instance` name
+ * This API lists all restores performed for the instance specified by the `name`
 in the specified `namespace` and `cluster`.
 
  * @summary List restores performed for an instance
  */
 export const listInstanceRestores = async (cluster: string,
     namespace: string,
-    instance: string, options?: RequestInit): Promise<listInstanceRestoresResponse> => {
+    name: string, options?: RequestInit): Promise<listInstanceRestoresResponse> => {
 
-  return playwrightFetcher<listInstanceRestoresResponse>(getListInstanceRestoresUrl(cluster,namespace,instance),
+  return playwrightFetcher<listInstanceRestoresResponse>(getListInstanceRestoresUrl(cluster,namespace,name),
   {
     ...options,
     method: 'GET'

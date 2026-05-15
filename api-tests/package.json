@@ -11,7 +11,7 @@
     "typecheck": "tsc --noEmit",
     "report": "playwright show-report",
     "generate-types": "openapi-typescript ../api/openapi/http-api.yaml --output ./generated/types.ts",
-    "generate-client": "orval && node hack/rename-api-params.mjs"
+    "generate-client": "orval"
   },
   "prettier": "@percona/prettier-config",
   "keywords": [],

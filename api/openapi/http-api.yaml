@@ -2684,14 +2684,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  '/clusters/{cluster}/namespaces/{namespace}/instances/{instance}':
+  '/clusters/{cluster}/namespaces/{namespace}/instances/{name}':
     x-everest-resource-name: instances
     get:
       tags:
         - Instance
       summary: Get instance
       description: |
-        This API gets the database instance specified by the `instance` name in the specified `namespace` and `cluster`.
+        This API gets the database instance specified by the `name` in the specified `namespace` and `cluster`.
       operationId: getInstance
       parameters:
         - name: cluster
@@ -2706,7 +2706,7 @@ paths:
           description: The namespace where the instance is located
           schema:
             type: string
-        - name: instance
+        - name: name
           in: path
           required: true
           description: The name of the instance
@@ -2751,7 +2751,7 @@ paths:
           description: The namespace where the instance is located
           schema:
             type: string
-        - name: instance
+        - name: name
           in: path
           required: true
           description: The name of the instance
@@ -2803,7 +2803,7 @@ paths:
           description: The namespace where the instance is located
           schema:
             type: string
-        - name: instance
+        - name: name
           in: path
           required: true
           description: The name of the instance
@@ -2880,7 +2880,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  '/clusters/{cluster}/namespaces/{namespace}/instances/{instance}/backups':
+  '/clusters/{cluster}/namespaces/{namespace}/instances/{name}/backups':
     x-everest-resource-name: backups
     get:
       tags:
@@ -2903,7 +2903,7 @@ paths:
           description: The namespace where the instance is located
           schema:
             type: string
-        - name: instance
+        - name: name
           in: path
           required: true
           description: The name of the instance
@@ -2928,14 +2928,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  '/clusters/{cluster}/namespaces/{namespace}/instances/{instance}/restores':
+  '/clusters/{cluster}/namespaces/{namespace}/instances/{name}/restores':
     x-everest-resource-name: restores
     get:
       tags:
         - Restore
       summary: List restores performed for an instance
       description: |
-        This API lists all restores performed for the instance specified by the `instance` name
+        This API lists all restores performed for the instance specified by the `name`
         in the specified `namespace` and `cluster`.
       operationId: listInstanceRestores
       parameters:
@@ -2951,7 +2951,7 @@ paths:
           description: The namespace where the instance is located
           schema:
             type: string
-        - name: instance
+        - name: name
           in: path
           required: true
           description: The name of the instance
