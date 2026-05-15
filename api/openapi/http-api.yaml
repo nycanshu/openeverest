@@ -2830,14 +2830,14 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  '/clusters/{cluster}/namespaces/{namespace}/instances/{instance}/connection':
+  '/clusters/{cluster}/namespaces/{namespace}/instances/{name}/connection':
     x-everest-resource-name: instances
     get:
       tags:
         - Instance
       summary: Get instance connection details
       description: |
-        This API returns the connection details for the database instance specified by the `instance` name
+        This API returns the connection details for the database instance specified by the `name`
         in the specified `namespace` and `cluster`. The connection details include the host, port, username,
         password, and a pre-built connection URI. These details are populated by the provider once the instance
         is running and ready.
@@ -2855,7 +2855,7 @@ paths:
           description: The namespace where the instance is located
           schema:
             type: string
-        - name: instance
+        - name: name
           in: path
           required: true
           description: The name of the instance

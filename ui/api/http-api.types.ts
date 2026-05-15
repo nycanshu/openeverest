@@ -1042,7 +1042,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/clusters/{cluster}/namespaces/{namespace}/instances/{instance}/connection": {
+    "/clusters/{cluster}/namespaces/{namespace}/instances/{name}/connection": {
         parameters: {
             query?: never;
             header?: never;
@@ -1051,7 +1051,7 @@ export interface paths {
         };
         /**
          * Get instance connection details
-         * @description This API returns the connection details for the database instance specified by the `instance` name
+         * @description This API returns the connection details for the database instance specified by the `name`
          *     in the specified `namespace` and `cluster`. The connection details include the host, port, username,
          *     password, and a pre-built connection URI. These details are populated by the provider once the instance
          *     is running and ready.
@@ -11503,7 +11503,7 @@ export interface operations {
                 /** @description The namespace where the instance is located */
                 namespace: string;
                 /** @description The name of the instance */
-                instance: string;
+                name: string;
             };
             cookie?: never;
         };

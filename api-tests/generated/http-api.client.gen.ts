@@ -12735,16 +12735,16 @@ export type getInstanceConnectionResponse = (getInstanceConnectionResponseSucces
 
 export const getGetInstanceConnectionUrl = (cluster: string,
     namespace: string,
-    instance: string,) => {
+    name: string,) => {
 
 
 
 
-  return `/clusters/${cluster}/namespaces/${namespace}/instances/${instance}/connection`
+  return `/clusters/${cluster}/namespaces/${namespace}/instances/${name}/connection`
 }
 
 /**
- * This API returns the connection details for the database instance specified by the `instance` name
+ * This API returns the connection details for the database instance specified by the `name`
 in the specified `namespace` and `cluster`. The connection details include the host, port, username,
 password, and a pre-built connection URI. These details are populated by the provider once the instance
 is running and ready.
@@ -12753,9 +12753,9 @@ is running and ready.
  */
 export const getInstanceConnection = async (cluster: string,
     namespace: string,
-    instance: string, options?: RequestInit): Promise<getInstanceConnectionResponse> => {
+    name: string, options?: RequestInit): Promise<getInstanceConnectionResponse> => {
 
-  return playwrightFetcher<getInstanceConnectionResponse>(getGetInstanceConnectionUrl(cluster,namespace,instance),
+  return playwrightFetcher<getInstanceConnectionResponse>(getGetInstanceConnectionUrl(cluster,namespace,name),
   {
     ...options,
     method: 'GET'
