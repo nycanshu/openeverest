@@ -68,11 +68,11 @@ export const getSchedulesPayload = ({
   }
 
   if (mode === WizardMode.Edit) {
-    const newSchedulesArray = schedules && [...(schedules || [])];
-    const editedScheduleIndex = newSchedulesArray?.findIndex(
+    const newSchedulesArray = [...(schedules || [])];
+    const editedScheduleIndex = newSchedulesArray.findIndex(
       (item) => item.name === scheduleName
     );
-    if (newSchedulesArray && editedScheduleIndex !== undefined) {
+    if (editedScheduleIndex >= 0) {
       newSchedulesArray[editedScheduleIndex] = {
         enabled: true,
         name: scheduleName,
@@ -140,11 +140,11 @@ export const backupScheduleFormValuesToDbClusterPayload = (
   }
 
   if (mode === WizardMode.Edit) {
-    const schedulesArray = dbCluster?.spec?.backup?.schedules || [];
-    const editedScheduleIndex = schedulesArray?.findIndex(
+    const schedulesArray = [...(dbCluster?.spec?.backup?.schedules || [])];
+    const editedScheduleIndex = schedulesArray.findIndex(
       (item) => item.name === scheduleName
     );
-    if (schedulesArray && editedScheduleIndex !== undefined) {
+    if (editedScheduleIndex >= 0) {
       schedulesArray[editedScheduleIndex] = {
         enabled: true,
         name: scheduleName,
