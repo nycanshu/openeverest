@@ -41,7 +41,7 @@ describe('schedule-form.utils', () => {
         schedules,
       });
 
-      expect(result).toEqual([]);
+      expect(result).toEqual(schedules);
       expect(schedules).toEqual([
         {
           enabled: false,
@@ -105,7 +105,15 @@ describe('schedule-form.utils', () => {
         WizardMode.Edit
       );
 
-      expect(result.spec.backup?.schedules).toBeUndefined();
+      expect(result.spec.backup?.schedules).toEqual([
+        {
+          enabled: false,
+          name: 'existing-schedule',
+          backupStorageName: 'existing-storage',
+          retentionCopies: 1,
+          schedule: '0 * * * *',
+        },
+      ]);
       expect(dbCluster.spec.backup?.schedules).toEqual([
         {
           enabled: false,

@@ -68,7 +68,7 @@ export const getSchedulesPayload = ({
   }
 
   if (mode === WizardMode.Edit) {
-    const newSchedulesArray = [...(schedules || [])];
+    const newSchedulesArray = [...schedules];
     const editedScheduleIndex = newSchedulesArray.findIndex(
       (item) => item.name === scheduleName
     );
@@ -84,6 +84,8 @@ export const getSchedulesPayload = ({
         retentionCopies: parseInt(retentionCopies, 10),
       };
       schedulesPayload = newSchedulesArray;
+    } else {
+      schedulesPayload = schedules;
     }
   }
   return schedulesPayload;
@@ -155,8 +157,8 @@ export const backupScheduleFormValuesToDbClusterPayload = (
             : dbPayload.storageLocation!.name,
         schedule,
       };
-      schedulesPayload = schedulesArray;
     }
+    schedulesPayload = schedulesArray;
   }
 
   return {
