@@ -20,7 +20,5 @@ jobs:
       vs_branch: ${{ github.event.pull_request.head.ref }}
       helm_branch: ${{ github.event.pull_request.head.ref }}
       everest_branch: ${{ github.event.pull_request.head.ref }}
-      everest_operator_branch: ${{ github.event.pull_request.head.ref }}
-      everest_catalog_branch: ${{ github.event.pull_request.head.ref }}
       artifacts_retention_days: 30
     secrets: inherit

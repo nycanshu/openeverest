@@ -57,12 +57,6 @@ jobs:
       IMAGE_PREFIX: 'ghcr.io/openeverest'
       EVEREST_SERVER_IMAGE_NAME: 'openeverest'
       EVEREST_SERVER_DEV_IMAGE_NAME: 'openeverest-dev'
-      EVEREST_OPERATOR_IMAGE_NAME: 'openeverest-operator'
-      EVEREST_OPERATOR_DEV_IMAGE_NAME: 'openeverest-operator-dev'
-      EVEREST_OPERATOR_BUNDLE_IMAGE_NAME: 'openeverest-operator-bundle'
-      EVEREST_OPERATOR_BUNDLE_DEV_IMAGE_NAME: 'openeverest-operator-bundle-dev'
-      EVEREST_CATALOG_IMAGE_NAME: 'openeverest-catalog'
-      EVEREST_CATALOG_DEV_IMAGE_NAME: 'openeverest-catalog-dev'
       EVEREST_VERSION_SERVICE_DEV_IMAGE_NAME: 'version-service-dev'
       EVEREST_CTL_IMAGE_NAME: 'everestctl'
       EVEREST_CTL_DEV_IMAGE_NAME: 'everestctl-dev'
@@ -90,102 +84,6 @@ jobs:
           echo "ARCH=$(uname -m | sed 's/x86_64/amd64/;s/aarch64/arm64/')" >> $GITHUB_ENV
           echo "OS=$(uname | awk '{print tolower($0)}')" >> $GITHUB_ENV
 
-      - name: Operator - check out
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: openeverest/openeverest-operator
-          path: openeverest-operator
-          token: ${{ secrets.ROBOT_TOKEN }}
-
-      - name: Operator - create release branch
-        if: matrix.arch == 'amd64'
-        run: |
-          cd openeverest-operator
-          # Check if the branch already exists
-          git fetch
-          check_branch=$(git ls-remote --heads origin ${BRANCH_NAME})
-          if [[ -z ${check_branch} ]]; then
-            git checkout -b $BRANCH_NAME
-            git push origin $BRANCH_NAME
-          fi
-
-          git checkout $BRANCH_NAME
-
-          if git tag --list | grep -q "^$GH_TAG$"; then
-            echo "The tag is already present in github. Please create a different RC/Release"
-            exit 1
-          fi
-
-          make init
-
-          if [[ $IS_RC == 1 ]]; then 
-            IMAGE_TAG_BASE=${IMAGE_PREFIX}/${EVEREST_OPERATOR_DEV_IMAGE_NAME} make release
-          else
-            IMAGE_TAG_BASE=${IMAGE_PREFIX}/${EVEREST_OPERATOR_IMAGE_NAME} make release
-          fi 
-
-          # configure userdata for commits
-          git config --global user.email "everest-ci@percona.com"
-          git config --global user.name "Everest RC CI triggered by ${{ github.actor }}"
-
-          # commit and push the updated files
-          git commit -a -m "update version tag"
-          git push origin $BRANCH_NAME
-
-          git tag $GH_TAG
-          git push origin $GH_TAG
-
-      - name: Operator - install operator-sdk
-        run: |
-          mkdir -p $TOOLS_PATH
-          echo $TOOLS_PATH >> $GITHUB_PATH
-
-          export OPERATOR_SDK_DL_URL=https://github.com/operator-framework/operator-sdk/releases/download/v1.38.0
-          curl -LO ${OPERATOR_SDK_DL_URL}/operator-sdk_${OS}_${ARCH}
-
-          gpg --keyserver keyserver.ubuntu.com --recv-keys 052996E2A20B5C7E
-
-          curl -LO ${OPERATOR_SDK_DL_URL}/checksums.txt
-          curl -LO ${OPERATOR_SDK_DL_URL}/checksums.txt.asc
-          gpg -u "Operator SDK (release) <cncf-operator-sdk@cncf.io>" --verify checksums.txt.asc
-
-          grep operator-sdk_${OS}_${ARCH} checksums.txt | sha256sum -c -
-
-          chmod +x operator-sdk_${OS}_${ARCH}
-          mv operator-sdk_${OS}_${ARCH} $TOOLS_PATH/operator-sdk
-
-      - name: Operator - build and bundle
-        if: matrix.arch == 'amd64'
-        run: |
-          cd openeverest-operator
-          make build manifests bundle
-
-      - name: Operator - setup Docker meta for openeverest-operator
-        id: operator_meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
-        # docker/metadata-action action looks more elegant when being triggered by a GH tag,
-        # however this workflow can't be triggered by a GH tag since there are some changes need to be done
-        # in the codebase prior putting the tag, so the action uses the raw tags
-        with:
-          images: |
-            ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_OPERATOR_IMAGE_NAME }},enable=${{ env.IS_RC == 0 }}
-            ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_OPERATOR_DEV_IMAGE_NAME }}
-          tags: |
-            type=raw,value=${{ env.VERSION }}-${{ matrix.arch }}
-            type=raw,value=latest-${{ matrix.arch }}
-            type=raw,value=${{ env.FLOATING_TAG }}-${{ matrix.arch }},enable=${{ env.IS_RC == 0 }}
-
-      - name: Operator - setup Docker meta for openeverest-operator-bundle
-        id: bundle_meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
-        with:
-          images: |
-            ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_OPERATOR_BUNDLE_IMAGE_NAME }},enable=${{ env.IS_RC == 0 }}
-            ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_OPERATOR_BUNDLE_DEV_IMAGE_NAME }}
-          tags: |
-            type=raw,value=${{ env.VERSION }}-${{ matrix.arch }}
-            type=raw,value=${{ env.FLOATING_TAG }}-${{ matrix.arch }},enable=${{ env.IS_RC == 0 }}
-
       - name: Login to GitHub Container Registry
         uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3.7.0
         with:
@@ -195,162 +93,6 @@ jobs:
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@4d04d5d9486b7bd6fa91e7baf45bbb4f8b9deedd # v4.0.0
-
-      - name: Operator - build openeverest-operator image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: openeverest-operator
-          push: false
-          provenance: false
-          platforms: ${{ matrix.platform }}
-          tags: ${{ steps.operator_meta.outputs.tags }}
-
-
-      - name: Operator - push openeverest-operator image
-        id: operator_push
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: openeverest-operator
-          push: true
-          provenance: false
-          platforms: ${{ matrix.platform }}
-          tags: ${{ steps.operator_meta.outputs.tags }}
-          build-args: |
-            FLAGS= -X 'github.com/percona/everest-operator/internal/consts.Version=${{ env.VERSION }}'
-
-      - name: Operator - attest openeverest-operator image
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
-        with:
-          subject-name: ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_OPERATOR_DEV_IMAGE_NAME }}
-          subject-digest: ${{ steps.operator_push.outputs.digest }}
-          push-to-registry: true
-
-      - name: Operator - attest openeverest-operator prod image
-        if: env.IS_RC == 0
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
-        with:
-          subject-name: ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_OPERATOR_IMAGE_NAME }}
-          subject-digest: ${{ steps.operator_push.outputs.digest }}
-          push-to-registry: true
-
-      - name: Operator - build openeverest-operator-bundle image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: openeverest-operator
-          push: false
-          provenance: false
-          platforms: ${{ matrix.platform }}
-          tags: ${{ steps.bundle_meta.outputs.tags }}
-          file: openeverest-operator/bundle.Dockerfile
-
-
-      - name: Operator - push openeverest-operator-bundle image
-        id: bundle_push
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: openeverest-operator
-          push: true
-          provenance: false
-          platforms: ${{ matrix.platform }}
-          tags: ${{ steps.bundle_meta.outputs.tags }}
-          file: openeverest-operator/bundle.Dockerfile
-
-      - name: Operator - attest openeverest-operator-bundle image
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
-        with:
-          subject-name: ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_OPERATOR_BUNDLE_DEV_IMAGE_NAME }}
-          subject-digest: ${{ steps.bundle_push.outputs.digest }}
-          push-to-registry: true
-
-      - name: Operator - attest openeverest-operator-bundle prod image
-        if: env.IS_RC == 0
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
-        with:
-          subject-name: ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_OPERATOR_BUNDLE_IMAGE_NAME }}
-          subject-digest: ${{ steps.bundle_push.outputs.digest }}
-          push-to-registry: true
-
-      - name: Catalog - checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
-        with:
-          repository: openeverest/openeverest-catalog
-          path: openeverest-catalog
-          token: ${{ secrets.ROBOT_TOKEN }}
-
-      - name: Catalog - create release branch
-        if: matrix.arch == 'amd64'
-        run: |
-          cd openeverest-catalog
-          # Check if the branch already exists
-          git fetch
-          check_branch=$(git ls-remote --heads origin ${BRANCH_NAME})
-
-          if [[ -z ${check_branch} ]]; then
-            git checkout -b $BRANCH_NAME
-            git push origin $BRANCH_NAME
-          fi
-          git checkout $BRANCH_NAME
-
-          # if the tag doesn't exist yet, create it
-          if git tag --list | grep -q "^$GH_TAG$"; then
-            echo "The tag is already present in github. Please create a different RC/Release"
-            exit 1
-          fi
-
-          # configure userdata for commits
-          git config --global user.email "everest-ci@percona.com"
-          git config --global user.name "Everest RC CI triggered by ${{ github.actor }}"
-
-          git tag $GH_TAG
-          git push origin $GH_TAG
-
-      - name: Catalog - docker meta
-        id: catalog_meta
-        uses: docker/metadata-action@c299e40c65443455700f0fdfc63efafe5b349051 # v5.10.0
-        with:
-          images: |
-            ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_CATALOG_IMAGE_NAME }},enable=${{ env.IS_RC == 0 }}
-            ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_CATALOG_DEV_IMAGE_NAME }}
-          tags: |
-            type=raw,value=${{ env.VERSION }}-${{ matrix.arch }}
-            type=raw,value=${{ env.FLOATING_TAG }}-${{ matrix.arch }},enable=${{ env.IS_RC == 0 }}
-
-      - name: Catalog - build image
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: openeverest-catalog
-          push: false
-          provenance: false
-          platforms: ${{ matrix.platform }}
-          tags: ${{ steps.catalog_meta.outputs.tags }}
-          file: openeverest-catalog/everest-catalog.Dockerfile
-
-
-      - name: Catalog - push image
-        id: catalog_push
-        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6.19.2
-        with:
-          context: openeverest-catalog
-          push: true
-          provenance: false
-          platforms: ${{ matrix.platform }}
-          tags: ${{ steps.catalog_meta.outputs.tags }}
-          file: openeverest-catalog/everest-catalog.Dockerfile
-
-      - name: Catalog - attest image
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
-        with:
-          subject-name: ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_CATALOG_DEV_IMAGE_NAME }}
-          subject-digest: ${{ steps.catalog_push.outputs.digest }}
-          push-to-registry: true
-
-      - name: Catalog - attest prod image
-        if: env.IS_RC == 0
-        uses: actions/attest-build-provenance@a2bbfa25375fe432b6a289bc6b6cd05ecd0c4c32 # v4.1.0
-        with:
-          subject-name: ${{ env.IMAGE_PREFIX }}/${{ env.EVEREST_CATALOG_IMAGE_NAME }}
-          subject-digest: ${{ steps.catalog_push.outputs.digest }}
-          push-to-registry: true
 
       - name: Everest - check out
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
@@ -375,10 +117,6 @@ jobs:
             git push origin $BRANCH_NAME
           fi
           git checkout $BRANCH_NAME
-
-          # Update the operator go module to reference the version tag
-          go get github.com/percona/everest-operator@$GH_TAG
-          go mod tidy
 
           # Change version in Makefile
           sed -i "s/RELEASE_VERSION ?=.*/RELEASE_VERSION ?= v$VERSION/g" Makefile
@@ -566,58 +304,11 @@ jobs:
         run: |
           # Determine image names based on RC or Release
           if [[ "$IS_RC" == "true" ]]; then
-            OPERATOR_IMAGE="openeverest-operator-dev"
-            BUNDLE_IMAGE="openeverest-operator-bundle-dev"
-            CATALOG_IMAGE="openeverest-catalog-dev"
             EVEREST_IMAGE="openeverest-dev"
             EVERESTCTL_IMAGE="everestctl-dev"
           else
-            OPERATOR_IMAGE="openeverest-operator"
-            BUNDLE_IMAGE="openeverest-operator-bundle"
-            CATALOG_IMAGE="openeverest-catalog"
             EVEREST_IMAGE="openeverest"
             EVERESTCTL_IMAGE="everestctl"
-          fi
-          
-          # Operator - version tag
-          docker buildx imagetools create -t $IMAGE_PREFIX/$OPERATOR_IMAGE:$VERSION \
-            $IMAGE_PREFIX/$OPERATOR_IMAGE:$VERSION-amd64 \
-            $IMAGE_PREFIX/$OPERATOR_IMAGE:$VERSION-arm64
-          
-          # Operator - latest tag
-          docker buildx imagetools create -t $IMAGE_PREFIX/$OPERATOR_IMAGE:latest \
-            $IMAGE_PREFIX/$OPERATOR_IMAGE:latest-amd64 \
-            $IMAGE_PREFIX/$OPERATOR_IMAGE:latest-arm64
-          
-          # Operator - floating tag (only for releases)
-          if [[ "$IS_RC" != "true" ]]; then
-            docker buildx imagetools create -t $IMAGE_PREFIX/$OPERATOR_IMAGE:$FLOATING_TAG \
-              $IMAGE_PREFIX/$OPERATOR_IMAGE:$FLOATING_TAG-amd64 \
-              $IMAGE_PREFIX/$OPERATOR_IMAGE:$FLOATING_TAG-arm64
-          fi
-          
-          # Operator Bundle - version tag
-          docker buildx imagetools create -t $IMAGE_PREFIX/$BUNDLE_IMAGE:$VERSION \
-            $IMAGE_PREFIX/$BUNDLE_IMAGE:$VERSION-amd64 \
-            $IMAGE_PREFIX/$BUNDLE_IMAGE:$VERSION-arm64
-          
-          # Operator Bundle - floating tag (only for releases)
-          if [[ "$IS_RC" != "true" ]]; then
-            docker buildx imagetools create -t $IMAGE_PREFIX/$BUNDLE_IMAGE:$FLOATING_TAG \
-              $IMAGE_PREFIX/$BUNDLE_IMAGE:$FLOATING_TAG-amd64 \
-              $IMAGE_PREFIX/$BUNDLE_IMAGE:$FLOATING_TAG-arm64
-          fi
-          
-          # Catalog - version tag
-          docker buildx imagetools create -t $IMAGE_PREFIX/$CATALOG_IMAGE:$VERSION \
-            $IMAGE_PREFIX/$CATALOG_IMAGE:$VERSION-amd64 \
-            $IMAGE_PREFIX/$CATALOG_IMAGE:$VERSION-arm64
-          
-          # Catalog - floating tag (only for releases)
-          if [[ "$IS_RC" != "true" ]]; then
-            docker buildx imagetools create -t $IMAGE_PREFIX/$CATALOG_IMAGE:$FLOATING_TAG \
-              $IMAGE_PREFIX/$CATALOG_IMAGE:$FLOATING_TAG-amd64 \
-              $IMAGE_PREFIX/$CATALOG_IMAGE:$FLOATING_TAG-arm64
           fi
           
           # Everest - version tag
