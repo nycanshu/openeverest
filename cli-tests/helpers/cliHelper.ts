@@ -1,5 +1,6 @@
 // everest
 // Copyright (C) 2023 Percona LLC
+// Copyright (C) 2026 The OpenEverest Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -72,22 +73,15 @@ export class CliHelper {
    */
   async everestExecSkipWizard(command: string) {
 
-    return test.step(`Run "${command}" command with --skip-wizard`, async () => {
-      return this.execute(`${this.pathToBinary} ${command} --disable-telemetry --skip-wizard --version 0.0.0 --version-metadata-url https://check-dev.percona.com`);
+    return test.step(`Run "${command}" command`, async () => {
+      return this.execute(`${this.pathToBinary} ${command} --disable-telemetry --version 0.0.0 --version-metadata-url https://check-dev.percona.com`);
     });
   }
 
   async everestExecSkipWizardWithEnv(command, env: string) {
 
     return test.step(`Run "${command}" command with env variables`, async () => {
-      return this.execute(`${env} ${this.pathToBinary} ${command} --disable-telemetry --skip-wizard --version 0.0.0 --version-metadata-url https://check-dev.percona.com`);
-    });
-  }
-
-  async everestExecNamespacesSkipWizard(command: string) {
-
-    return test.step(`Run "namespaces ${command}" command with --skip-wizard`, async () => {
-      return this.execute(`${this.pathToBinary} namespaces ${command} --skip-wizard`);
+      return this.execute(`${env} ${this.pathToBinary} ${command} --disable-telemetry --version 0.0.0 --version-metadata-url https://check-dev.percona.com`);
     });
   }
 

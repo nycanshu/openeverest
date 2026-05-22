@@ -16,44 +16,31 @@
 import { test } from '@fixtures';
 
 test.describe('Everest CLI install', async () => {
-  test('install all operators', async ({ page, cli, request }) => {
-    const verifyClusterResources = async () => {
-      await test.step('verify installed operators in k8s', async () => {
-        const perconaEverestPodsOut = await cli.exec('kubectl get pods --namespace=everest-system');
+  test('install with namespace provisioning', async ({ page, cli, request }) => {
+    const verifyNamespaceProvisioned = async (namespace: string) => {
+      await test.step(`verify namespace '${namespace}' is managed by Everest`, async () => {
+        const out = await cli.exec(`kubectl get namespace ${namespace} -o jsonpath='{.metadata.labels.app\.kubernetes\.io/managed-by}'`);
 
-        await perconaEverestPodsOut.outContainsNormalizedMany([
-          'everest-operator',
-        ]);
-
-        const out = await cli.exec('kubectl get pods --namespace=everest-all');
-
-        await out.outContainsNormalizedMany([
-          'percona-xtradb-cluster-operator',
-          'percona-server-mongodb-operator',
-          'percona-postgresql-operator',
-        ]);
+        await out.outContainsNormalizedMany([namespace]);
       });
     };
 
     await test.step('run everest install command (pretty))', async () => {
       const out = await cli.everestExecSkipWizard(
-        `install --namespaces=everest-all --version 0.0.0 --helm.set server.image=ghcr.io/openeverest/openeverest-dev --helm.set operator.image=ghcr.io/openeverest/openeverest-operator-dev --helm.set olm.catalogSourceImage=ghcr.io/openeverest/openeverest-catalog-dev`,
+        `install --namespaces=everest-all --version 0.0.0 --helm.set server.image=ghcr.io/openeverest/openeverest-dev`,
       );
 
       await out.assertSuccess();
       await out.outContainsNormalizedMany([
         '✅ Installing Everest Helm chart',
         '✅ Ensuring Everest API deployment is ready',
-        '✅ Ensuring Everest operator deployment is ready',
-        '✅ Ensuring OLM components are ready',
-        '✅ Ensuring Everest CatalogSource is ready',
         '✅ Ensuring monitoring stack is ready',
-        '✅ Provisioning database namespace \'everest-all\'',
+        `✅ Provisioning namespace 'everest-all'`,
         'Thank you for installing Everest',
       ]);
     });
     await page.waitForTimeout(10_000);
-    await verifyClusterResources();
+    await verifyNamespaceProvisioned('everest-all');
 
     await test.step('uninstall Everest', async () => {
       let out = await cli.everestExec(
@@ -61,16 +48,14 @@ test.describe('Everest CLI install', async () => {
       );
 
       await out.assertSuccess();
-      // check that the namespace does not exist
-      out = await cli.exec('kubectl get ns everest-system everest-monitoring everest-olm everest-all');
+      // check that the namespaces do not exist
+      out = await cli.exec('kubectl get ns everest-system everest-monitoring everest-all');
 
       await out.outErrContainsNormalizedMany([
         'Error from server (NotFound): namespaces "everest-system" not found',
         'Error from server (NotFound): namespaces "everest-monitoring" not found',
-        'Error from server (NotFound): namespaces "everest-olm" not found',
         'Error from server (NotFound): namespaces "everest-all" not found',
       ]);
-
     });
 
   });

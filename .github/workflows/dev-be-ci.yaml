@@ -310,10 +310,7 @@ jobs:
       fail-fast: false
       matrix:
         make_target: [
-          'test-all-operators',
-          'test-mongo-operator',
-          'test-pg-operator',
-          'test-pxc-operator',
+          'test-install',
           'test-namespaces'
         ]
     name: CLI tests
