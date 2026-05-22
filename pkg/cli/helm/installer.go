@@ -48,9 +48,6 @@ const (
 	DefaultHelmRepoURL = "https://openeverest.github.io/helm-charts/"
 	// EverestChartName is the name of the Everest Helm chart that installs the Everest operator.
 	EverestChartName = "openeverest"
-	// EverestDBNamespaceChartName is the name of the Everest Helm chart that is installed
-	// into DB namespaces managed by Everest.
-	EverestDBNamespaceChartName = "everest-db-namespace"
 	// EverestCRDChartName is the name of the Everest Helm chart that installs the Everest CRDs.
 	EverestCRDChartName = "everest-crds"
 )

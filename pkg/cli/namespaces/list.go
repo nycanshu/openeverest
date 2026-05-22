@@ -19,16 +19,10 @@ package namespaces
 
 import (
 	"context"
-	"fmt"
 	"slices"
-	"strings"
 
-	goversion "github.com/hashicorp/go-version"
-	everestOperator "github.com/percona/everest-operator/api/everest/v1alpha1"
 	"go.uber.org/zap"
 	corev1 "k8s.io/api/core/v1"
-	v1 "k8s.io/api/core/v1"
-	"k8s.io/apimachinery/pkg/types"
 	"sigs.k8s.io/controller-runtime/pkg/client"
 
 	cliutils "github.com/openeverest/openeverest/v2/pkg/cli/utils"
@@ -48,7 +42,6 @@ func getSkipNamespaces(systemNamespace string) []string {
 		// Everest core namespaces.
 		systemNamespace,
 		common.MonitoringNamespace,
-		kubernetes.OLMNamespace,
 
 		// GKE namespaces.
 		"gke-managed-cim",
@@ -76,8 +69,8 @@ type (
 	NamespaceInfo struct {
 		// Name is the namespace name.
 		Name string
-		// InstalledOperators is a list of installed Percona operators in the namespace.
-		InstalledOperators []string
+		// ManagedByEverest indicates whether the namespace is managed by Everest.
+		ManagedByEverest bool
 	}
 
 	// NamespaceLister is the CLI operation to list namespaces.
@@ -135,58 +128,10 @@ func (nsL *NamespaceLister) Run(ctx context.Context) ([]NamespaceInfo, error) {
 
 	var toReturn []NamespaceInfo
 	for _, ns := range nsList.Items {
-		nsInfo := NamespaceInfo{Name: ns.GetName()}
-		if nsInfo.InstalledOperators, err = nsL.getNamespaceOperators(ctx, &ns); err != nil {
-			return nil, fmt.Errorf("cannot get namespace subscriptions: %w", err)
-		}
-		slices.Sort(nsInfo.InstalledOperators)
-		toReturn = append(toReturn, nsInfo)
+		toReturn = append(toReturn, NamespaceInfo{
+			Name:             ns.GetName(),
+			ManagedByEverest: isManagedByEverest(&ns),
+		})
 	}
 	return toReturn, nil
-}
-
-// getNamespaceOperators returns a list of installed operators in the namespace.
-// It returns an empty list if the namespace is not managed by Everest.
-func (nsL *NamespaceLister) getNamespaceOperators(ctx context.Context, ns *v1.Namespace) ([]string, error) {
-	var toReturn []string
-	if isManagedByEverest(ns) {
-		// no need to look for installed operators from namespaces not managed by Everest.
-		subList, err := nsL.kubeClient.ListInstalledOperators(ctx, client.InNamespace(ns.GetName()))
-		if err != nil && client.IgnoreNotFound(err) != nil {
-			return []string{}, fmt.Errorf("cannot list installed operators in namespace='%s': %w", ns.GetName(), err)
-		}
-
-		for _, sub := range subList.Items {
-			csv, csvErr := nsL.kubeClient.GetClusterServiceVersion(ctx, types.NamespacedName{
-				Namespace: ns.GetName(),
-				Name:      sub.Status.InstalledCSV,
-			})
-			if csvErr != nil && client.IgnoreNotFound(csvErr) != nil {
-				return []string{}, fmt.Errorf("cannot list installed operators in namespace='%s': %w", ns.GetName(), csvErr)
-			}
-			v, err := goversion.NewVersion(csv.Spec.Version.FinalizeVersion())
-			if err != nil {
-				return []string{}, fmt.Errorf("cannot parse operator='%s' version in namespace='%s': %w",
-					sub.Spec.CatalogSourceNamespace,
-					ns.GetName(),
-					err,
-				)
-			}
-			toReturn = append(toReturn, fmt.Sprintf("%s(v%s)", convertDbOperatorName(sub.GetName()), v.String()))
-		}
-	}
-	return toReturn, nil
-}
-
-func convertDbOperatorName(name string) string {
-	switch strings.ToLower(name) {
-	case common.MongoDBOperatorName:
-		return string(everestOperator.DatabaseEnginePSMDB)
-	case common.MySQLOperatorName:
-		return string(everestOperator.DatabaseEnginePXC)
-	case common.PostgreSQLOperatorName:
-		return string(everestOperator.DatabaseEnginePostgresql)
-	default:
-		return name
-	}
 }

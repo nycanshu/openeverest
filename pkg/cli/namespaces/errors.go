@@ -1,5 +1,6 @@
 // everest
 // Copyright (C) 2025 Percona LLC
+// Copyright (C) 2026 The OpenEverest Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -62,15 +63,6 @@ var (
 		return fmt.Errorf("'%s' namespace is reserved for Everest internals. Please specify another namespace", ns)
 	}
 
-	// ErrOperatorsNotSelected appears when no operators are selected for installation.
-	ErrOperatorsNotSelected = errors.New("no operators selected for installation. Minimum one operator must be selected")
-
-	// ErrCannotRemoveOperators appears when user tries to delete operator from namespace.
-	ErrCannotRemoveOperators = errors.New("cannot remove operators")
-
 	// ErrNamespaceNotEmpty is returned when the namespace is not empty.
 	ErrNamespaceNotEmpty = errors.New("cannot remove namespace with running database clusters")
-
-	// ErrInteractiveModeDisabled is returned when interactive mode is disabled.
-	ErrInteractiveModeDisabled = errors.New("interactive mode is disabled")
 )

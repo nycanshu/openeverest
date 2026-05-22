@@ -1,3 +1,17 @@
+// Copyright (C) 2026 The OpenEverest Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package helm
 
 import (
@@ -7,8 +21,6 @@ import (
 	"strings"
 
 	"helm.sh/helm/v3/pkg/releaseutil"
-	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
-	"sigs.k8s.io/yaml"
 )
 
 // RenderedTemplate represents a Helm template that has been rendered using RenderTemplate().
@@ -30,23 +42,6 @@ func (t *RenderedTemplate) Strings() []string {
 // GetCRDs returns the CRDs in the RenderedTemplate.
 func (t *RenderedTemplate) GetCRDs() ([]string, error) {
 	return t.filter("crds")
-}
-
-// GetEverestCatalogNamespace gets the name of the namespace where the Everest catalog is installed.
-func (t *RenderedTemplate) GetEverestCatalogNamespace() (string, error) {
-	objs, err := t.filter("everest-catalogsource.yaml")
-	if err != nil {
-		return "", err
-	}
-	if len(objs) == 0 {
-		return "", fmt.Errorf("object not found")
-	}
-	m := make(map[string]interface{})
-	if err := yaml.Unmarshal([]byte(objs[0]), &m); err != nil {
-		return "", err
-	}
-	cs := &unstructured.Unstructured{Object: m}
-	return cs.GetNamespace(), nil
 }
 
 // GetUninstallManifests returns the uninstall manifests in the RenderedTemplate.

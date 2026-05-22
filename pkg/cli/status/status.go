@@ -18,7 +18,6 @@ package status
 import (
 	"context"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -127,9 +126,6 @@ func (s *Status) Run(ctx context.Context) error {
 	// Check monitoring components.
 	s.checkMonitoringComponents(ctx, result)
 
-	// Check database operators.
-	s.checkDatabaseOperators(ctx, result)
-
 	// Get managed namespaces.
 	s.getManagedNamespaces(ctx, result)
 
@@ -193,51 +189,6 @@ func (s *Status) checkMonitoringComponents(ctx context.Context, result *OverallS
 		result.Components = append(result.Components, cs)
 		if !cs.Ready {
 			result.Healthy = false
-		}
-	}
-}
-
-func (s *Status) checkDatabaseOperators(ctx context.Context, result *OverallStatus) {
-	operators := []struct {
-		product string
-		name    string
-	}{
-		{common.MySQLProductName, common.MySQLOperatorName},
-		{common.MongoDBProductName, common.MongoDBOperatorName},
-		{common.PostgreSQLProductName, common.PostgreSQLOperatorName},
-	}
-
-	// Get all DB namespaces to check for operators.
-	dbNamespaces, err := s.kubeClient.GetDBNamespaces(ctx)
-	if err != nil {
-		s.l.Debugf("Failed to get DB namespaces: %v", err)
-		return
-	}
-
-	for _, ns := range dbNamespaces.Items {
-		for _, op := range operators {
-			os := OperatorStatus{
-				Name:      fmt.Sprintf("%s (%s)", op.name, op.product),
-				Namespace: ns.GetName(),
-				Ready:     true,
-			}
-
-			v, err := s.kubeClient.GetInstalledOperatorVersion(ctx, types.NamespacedName{
-				Name:      op.name,
-				Namespace: ns.GetName(),
-			})
-			if err != nil {
-				if errors.Is(err, kubernetes.ErrOperatorNotInstalled) {
-					continue // Not installed in this namespace, skip.
-				}
-				os.Ready = false
-				os.Message = fmt.Sprintf("error: %v", err)
-				result.Healthy = false
-			} else {
-				os.Version = fmt.Sprintf("v%s", v.String())
-			}
-
-			result.Operators = append(result.Operators, os)
 		}
 	}
 }

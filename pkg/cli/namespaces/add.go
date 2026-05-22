@@ -19,71 +19,34 @@ package namespaces
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"os"
 
 	"go.uber.org/zap"
-	"helm.sh/helm/v3/pkg/cli/values"
-	"sigs.k8s.io/controller-runtime/pkg/client"
+	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
+	"k8s.io/apimachinery/pkg/types"
 
-	"github.com/openeverest/openeverest/v2/pkg/cli/helm"
-	helmutils "github.com/openeverest/openeverest/v2/pkg/cli/helm/utils"
 	"github.com/openeverest/openeverest/v2/pkg/cli/steps"
-	"github.com/openeverest/openeverest/v2/pkg/cli/tui"
 	cliutils "github.com/openeverest/openeverest/v2/pkg/cli/utils"
 	"github.com/openeverest/openeverest/v2/pkg/common"
 	"github.com/openeverest/openeverest/v2/pkg/kubernetes"
-	"github.com/openeverest/openeverest/v2/pkg/output"
-	. "github.com/openeverest/openeverest/v2/pkg/utils/must" //nolint:revive,stylecheck
-	"github.com/openeverest/openeverest/v2/pkg/version"
 )
 
 type (
-	// OperatorConfig identifies which operators shall be installed.
-	OperatorConfig struct {
-		PG    bool // is set if PostgresSQL shall be installed.
-		PSMDB bool // is set if MongoDB shall be installed.
-		PXC   bool // is set if XtraDB Cluster shall be installed.
-	}
-
 	// NamespaceAddConfig is the configuration for adding namespaces.
 	NamespaceAddConfig struct {
-		// NamespaceList is a list of namespaces to be managed by Everest and install operators.
+		// NamespaceList is a list of namespaces to be managed by Everest.
 		// The property shall be set in case the namespaces are parsed and validated using ValidateNamespaces func.
-		// Otherwise, use Populate function to asked user to provide the namespaces in interactive mode.
 		NamespaceList []string
-		// SkipWizard is set if the wizard should be skipped.
-		SkipWizard bool
 		// KubeconfigPath is the path to the kubeconfig file.
 		KubeconfigPath string
 		// SystemNamespace is the namespace where OpenEverest is installed.
 		// Required during install (when Helm discovery is not available).
 		SystemNamespace string
-		// DisableTelemetry is set if telemetry should be disabled.
-		DisableTelemetry bool
 		// TakeOwnership make an existing namespace managed by Everest.
 		TakeOwnership bool
-		// ClusterType is the type of the Kubernetes environment.
-		// If it is not set, the environment will be detected.
-		ClusterType kubernetes.ClusterType
-		// SkipEnvDetection skips detecting the Kubernetes environment.
-		// If it is set, the environment will not be detected.
-		// Set ClusterType if the environment is known and set this flag to avoid detection duplication.
-		SkipEnvDetection bool
-		// AskOperators is set in case it is needed to use interactive mode and
-		// ask user to provide DB operators to be installed into namespaces managed by Everest.
-		// AskOperators bool
-		// Operators configurations for the operators to be installed into namespaces managed by Everest.
-		Operators OperatorConfig
 		// Pretty if set print the output in pretty mode.
 		Pretty bool
-		// Update is set if the existing namespace needs to be updated.
-		// This flag is set internally only, so that the add functionality may
-		// be re-used for updating the namespace as well.
-		Update bool
-		// Helm related options
-		HelmConfig helm.CLIOptions
 	}
 
 	// NamespaceAdder provides the functionality to add namespaces.
@@ -99,104 +62,22 @@ type (
 // NewNamespaceAddConfig returns a new NamespaceAddConfig.
 func NewNamespaceAddConfig() NamespaceAddConfig {
 	return NamespaceAddConfig{
-		ClusterType: kubernetes.ClusterTypeUnknown,
-		Pretty:      true,
+		Pretty: true,
 	}
-}
-
-// PopulateNamespaces function to fill the configuration with the required NamespaceList.
-// This function shall be called only in cases when there is no other way to obtain values for NamespaceList.
-// User will be asked to provide the namespaces in interactive mode (if it is enabled).
-// Provided by user namespaces will be parsed, validated and stored in the NamespaceList property.
-// Note: in case NamespaceList is not empty - it will be overwritten by user's input.
-func (cfg *NamespaceAddConfig) PopulateNamespaces(ctx context.Context) error {
-	if cfg.SkipWizard {
-		return errors.Join(fmt.Errorf("can't ask user for namespaces to install"), ErrInteractiveModeDisabled)
-	}
-
-	var err error
-	var ns string
-	// Ask user to provide namespaces in interactive mode.
-	if ns, err = tui.NewInput(ctx,
-		"Provide database namespaces to be managed by Everest",
-		tui.WithInputDefaultValue(common.DefaultDBNamespaceName),
-		tui.WithInputHint("Namespaces can be provided in comma-separated form: ns-1,ns-2"),
-	).Run(); err != nil {
-		return err
-	}
-
-	nsList := ParseNamespaceNames(ns)
-	if err = cfg.ValidateNamespaces(ctx, nsList); err != nil {
-		return err
-	}
-
-	cfg.NamespaceList = nsList
-	return nil
-}
-
-// PopulateOperators function to fill the configuration with the required Operators.
-// This function shall be called only in cases when there is no other way to obtain values for Operators.
-// User will be asked to provide the operators in interactive mode (if it is enabled).
-// Provided by user operators will be stored in the Operators property.
-// Note: Operators property will be overwritten by user's input.
-func (cfg *NamespaceAddConfig) PopulateOperators(ctx context.Context) error {
-	if cfg.SkipWizard {
-		return fmt.Errorf("can't ask user for operators to install: %w", ErrInteractiveModeDisabled)
-	}
-
-	// By default, all operators are selected.
-	defaultOpts := []tui.MultiSelectOption{
-		{Text: common.MySQLProductName, Selected: true},
-		{Text: common.MongoDBProductName, Selected: true},
-		{Text: common.PostgreSQLProductName, Selected: true},
-	}
-
-	var selectedOpts []tui.MultiSelectOption
-	var err error
-	if selectedOpts, err = tui.NewMultiSelect(
-		ctx,
-		"Which operators do you want to install?",
-		defaultOpts,
-	).Run(); err != nil {
-		return err
-	}
-
-	// Copy user's choice to config.
-	for _, op := range selectedOpts {
-		switch op.Text {
-		case common.MySQLProductName:
-			cfg.Operators.PXC = op.Selected
-		case common.MongoDBProductName:
-			cfg.Operators.PSMDB = op.Selected
-		case common.PostgreSQLProductName:
-			cfg.Operators.PG = op.Selected
-		}
-	}
-
-	if !(cfg.Operators.PXC || cfg.Operators.PG || cfg.Operators.PSMDB) {
-		// need to select at least one operator to install
-		return ErrOperatorsNotSelected
-	}
-
-	return nil
 }
 
 // ValidateNamespaces validates the provided list of namespaces.
-// It validates:
-// - namespace names
-// - namespace ownership
+// It validates namespace names and namespace ownership.
 func (cfg *NamespaceAddConfig) ValidateNamespaces(ctx context.Context, nsList []string) error {
-	var k kubernetes.KubernetesConnector
-	var err error
-	// SystemNamespace is set upon `everestctl install --system-namespace`.
-	// During install, no Helm release exists yet, so we cannot discover the
-	// namespace and must pass the flag value directly.
-	if cfg.Update {
-		k, err = cliutils.NewKubeConnector(zap.NewNop().Sugar(), cfg.KubeconfigPath)
-	} else {
+	var (
+		k   kubernetes.KubernetesConnector
+		err error
+	)
+	if cfg.SystemNamespace != "" {
 		k, err = kubernetes.New(cfg.KubeconfigPath, zap.NewNop().Sugar(), cfg.SystemNamespace)
+	} else {
+		k, err = cliutils.NewKubeConnector(zap.NewNop().Sugar(), cfg.KubeconfigPath)
 	}
-
 	if err != nil {
 		return err
 	}
@@ -224,18 +105,6 @@ func (cfg *NamespaceAddConfig) validateNamespaceOwnership(
 		return err
 	}
 
-	if cfg.Update {
-		if !ownedByEverest {
-			return NewErrNamespaceNotManagedByEverest(namespace)
-		}
-
-		if !nsExists {
-			return NewErrNamespaceNotExist(namespace)
-		}
-
-		return nil
-	}
-
 	if nsExists && ownedByEverest {
 		return NewErrNamespaceAlreadyManagedByEverest(namespace)
 	}
@@ -247,44 +116,12 @@ func (cfg *NamespaceAddConfig) validateNamespaceOwnership(
 	return nil
 }
 
-// detectKubernetesEnv detects the Kubernetes environment where Everest is installed.
-func (cfg *NamespaceAddConfig) detectKubernetesEnv(ctx context.Context, l *zap.SugaredLogger) error {
-	if cfg.SkipEnvDetection {
-		return nil
-	}
-
-	client, err := cliutils.NewKubeConnector(l, cfg.KubeconfigPath)
-	if err != nil {
-		return fmt.Errorf("failed to create kubernetes client: %w", err)
-	}
-
-	t, err := client.GetClusterType(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to detect cluster type: %w", err)
-	}
-
-	cfg.ClusterType = t
-	// Skip detecting Kubernetes environment in the future.
-	cfg.SkipEnvDetection = true
-	l.Infof("Detected Kubernetes environment: %s", t)
-	return nil
-}
-
 // --- NewNamespaceAdd functions
 
 // NewNamespaceAdd returns a new CLI operation to add namespaces.
 func NewNamespaceAdd(c NamespaceAddConfig, l *zap.SugaredLogger) (*NamespaceAdder, error) {
-	{
-		// validate the provided configuration
-		if len(c.NamespaceList) == 0 {
-			// need to provide at least one namespace to install
-			return nil, ErrNamespaceListEmpty
-		}
-
-		if !(c.Operators.PXC || c.Operators.PG || c.Operators.PSMDB) {
-			// need to select at least one operator to install
-			return nil, ErrOperatorsNotSelected
-		}
+	if len(c.NamespaceList) == 0 {
+		return nil, ErrNamespaceListEmpty
 	}
 
 	n := &NamespaceAdder{
@@ -295,17 +132,15 @@ func NewNamespaceAdd(c NamespaceAddConfig, l *zap.SugaredLogger) (*NamespaceAdde
 		n.l = zap.NewNop().Sugar()
 	}
 
-	var k kubernetes.KubernetesConnector
-	var err error
-	// SystemNamespace is set upon `everestctl install --system-namespace`.
-	// During install, no Helm release exists yet, so we cannot discover the
-	// namespace and must pass the flag value directly.
+	var (
+		k   kubernetes.KubernetesConnector
+		err error
+	)
 	if c.SystemNamespace != "" {
 		k, err = kubernetes.New(c.KubeconfigPath, n.l, c.SystemNamespace)
 	} else {
 		k, err = cliutils.NewKubeConnector(n.l, c.KubeconfigPath)
 	}
-
 	if err != nil {
 		return nil, err
 	}
@@ -315,127 +150,55 @@ func NewNamespaceAdd(c NamespaceAddConfig, l *zap.SugaredLogger) (*NamespaceAdde
 
 // Run namespace add operation.
 func (n *NamespaceAdder) Run(ctx context.Context) error {
-	// This command expects a Helm based installation (>= 1.4.0)
-	dbNSChartVersion, err := cliutils.CheckHelmInstallation(ctx, n.kubeClient)
-	if err != nil {
+	if _, err := cliutils.CheckHelmInstallation(ctx, n.kubeClient); err != nil {
 		return err
 	}
-
-	if version.IsDev(dbNSChartVersion) && n.cfg.HelmConfig.ChartDir == "" {
-		// Note: new value will be set to n.cfg.ChartDir inside SetupEverestDevChart
-		cleanup, err := helmutils.SetupEverestDevChart(n.l, &n.cfg.HelmConfig.ChartDir)
-		if err != nil {
-			return err
-		}
-		defer cleanup()
-	}
-
-	if err := n.cfg.detectKubernetesEnv(ctx, n.l); err != nil {
-		return fmt.Errorf("failed to detect Kubernetes environment: %w", err)
-	}
-
-	installSteps, err := n.GetNamespaceInstallSteps(ctx, dbNSChartVersion)
-	if err != nil {
-		return err
-	}
-
-	if err := steps.RunStepsWithSpinner(ctx, n.l, installSteps, n.cfg.Pretty); err != nil {
-		return err
-	}
-	return nil
+	return steps.RunStepsWithSpinner(ctx, n.l, n.GetNamespaceInstallSteps(), n.cfg.Pretty)
 }
 
-// GetNamespaceInstallSteps returns the steps to install namespaces.
-func (n *NamespaceAdder) GetNamespaceInstallSteps(ctx context.Context, dbNSChartVersion string) ([]steps.Step, error) {
-	if n.cfg.Update {
-		// validate operators updated list for each namespace.
-		for _, namespace := range n.cfg.NamespaceList {
-			err := n.validateNamespaceUpdate(ctx, namespace)
-			if errors.Is(err, ErrCannotRemoveOperators) {
-				msg := "Removal of an installed operator is not supported. Proceeding without removal."
-				_, _ = fmt.Fprint(os.Stdout, output.Warn("%s", msg))
-				n.l.Warn(msg)
-				break
-			} else if err != nil {
-				return nil, fmt.Errorf("namespace validation error: %w", err)
-			}
-		}
-	}
-
+// GetNamespaceInstallSteps returns the steps to provision namespaces.
+func (n *NamespaceAdder) GetNamespaceInstallSteps() []steps.Step {
 	var installSteps []steps.Step
 	for _, namespace := range n.cfg.NamespaceList {
-		installSteps = append(installSteps,
-			n.newStepInstallNamespace(dbNSChartVersion, namespace),
-		)
+		installSteps = append(installSteps, n.newStepProvisionNamespace(namespace))
 	}
-
-	return installSteps, nil
+	return installSteps
 }
 
-func (n *NamespaceAdder) getValues() values.Options {
-	var v []string
-	v = append(v, "cleanupOnUninstall=false") // uninstall command will do the clean-up on its own.
-	v = append(v, fmt.Sprintf("pxc=%t", n.cfg.Operators.PXC))
-	v = append(v, fmt.Sprintf("postgresql=%t", n.cfg.Operators.PG))
-	v = append(v, fmt.Sprintf("psmdb=%t", n.cfg.Operators.PSMDB))
-	v = append(v, fmt.Sprintf("telemetry=%t", !n.cfg.DisableTelemetry))
-
-	if n.cfg.ClusterType == kubernetes.ClusterTypeOpenShift {
-		v = append(v, "compatibility.openshift=true")
-	}
-	return values.Options{Values: v}
-}
-
-func (n *NamespaceAdder) newStepInstallNamespace(version, namespace string) steps.Step {
-	action := "Provisioning"
-	if n.cfg.Update {
-		action = "Updating"
-	}
+func (n *NamespaceAdder) newStepProvisionNamespace(namespace string) steps.Step {
 	return steps.Step{
-		Desc: fmt.Sprintf("%s database namespace '%s'", action, namespace),
+		Desc: fmt.Sprintf("Provisioning namespace '%s'", namespace),
 		F: func(ctx context.Context) error {
-			return n.provisionDBNamespace(ctx, version, namespace)
+			return n.provisionNamespace(ctx, namespace)
 		},
 	}
 }
 
-func (n *NamespaceAdder) provisionDBNamespace(
-	ctx context.Context,
-	version string,
-	namespace string,
-) error {
+func (n *NamespaceAdder) provisionNamespace(ctx context.Context, namespace string) error {
 	nsExists, _, err := namespaceExists(ctx, n.kubeClient, namespace)
 	if err != nil {
 		return err
 	}
-	values := Must(helmutils.MergeVals(n.getValues(), nil))
-	installer := helm.Installer{
-		ReleaseName:            namespace,
-		ReleaseNamespace:       namespace,
-		Values:                 values,
-		CreateReleaseNamespace: !nsExists,
+	if !nsExists {
+		ns := &corev1.Namespace{
+			ObjectMeta: metav1.ObjectMeta{
+				Name:   namespace,
+				Labels: map[string]string{common.KubernetesManagedByLabel: common.Everest},
+			},
+		}
+		_, err = n.kubeClient.CreateNamespace(ctx, ns)
+		return err
 	}
-	if err := installer.Init(n.cfg.KubeconfigPath, helm.ChartOptions{
-		Directory: cliutils.DBNamespaceSubChartPath(n.cfg.HelmConfig.ChartDir),
-		URL:       n.cfg.HelmConfig.RepoURL,
-		Name:      helm.EverestDBNamespaceChartName,
-		Version:   version,
-	}); err != nil {
-		return fmt.Errorf("could not initialize Helm installer: %w", err)
-	}
-	n.l.Info("Installing DB namespace Helm chart in namespace ", namespace)
-	return installer.Install(ctx)
-}
-
-func (n *NamespaceAdder) validateNamespaceUpdate(ctx context.Context, namespace string) error {
-	subscriptions, err := n.kubeClient.ListSubscriptions(ctx, client.InNamespace(namespace))
+	ns, err := n.kubeClient.GetNamespace(ctx, types.NamespacedName{Name: namespace})
 	if err != nil {
-		return fmt.Errorf("cannot list subscriptions: %w", err)
+		return err
 	}
-	if !ensureNoOperatorsRemoved(subscriptions.Items,
-		n.cfg.Operators.PG, n.cfg.Operators.PXC, n.cfg.Operators.PSMDB,
-	) {
-		return ErrCannotRemoveOperators
+	labels := ns.GetLabels()
+	if labels == nil {
+		labels = make(map[string]string)
 	}
-	return nil
+	labels[common.KubernetesManagedByLabel] = common.Everest
+	ns.SetLabels(labels)
+	_, err = n.kubeClient.UpdateNamespace(ctx, ns)
+	return err
 }

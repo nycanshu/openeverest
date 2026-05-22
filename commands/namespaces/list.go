@@ -1,5 +1,6 @@
 // everest
 // Copyright (C) 2025 Percona LLC
+// Copyright (C) 2026 The OpenEverest Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -82,14 +83,12 @@ const (
 	columnName = "namespace"
 	// columnManagedByEverest is the column name for the namespace managed by Everest.
 	columnManagedByEverest = "managed"
-	// columnOperators is the column name for the installed Everest operators.
-	columnOperators = "operators"
 )
 
 // Print namespaces to console.
 func printNamespacesTable(nsList []namespaces.NamespaceInfo) error {
 	// Prepare table headings.
-	headings := []interface{}{columnName, columnManagedByEverest, columnOperators}
+	headings := []interface{}{columnName, columnManagedByEverest}
 	// Prepare table header.
 	tbl := table.New(headings...)
 	tbl.WithHeaderFormatter(func(format string, vals ...interface{}) string {
@@ -105,9 +104,7 @@ func printNamespacesTable(nsList []namespaces.NamespaceInfo) error {
 			case columnName:
 				row = append(row, ns.Name)
 			case columnManagedByEverest:
-				row = append(row, len(ns.InstalledOperators) > 0)
-			case columnOperators:
-				row = append(row, strings.Join(ns.InstalledOperators, ", "))
+				row = append(row, ns.ManagedByEverest)
 			}
 		}
 		return row

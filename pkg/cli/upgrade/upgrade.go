@@ -30,7 +30,6 @@ import (
 	goversion "github.com/hashicorp/go-version"
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap"
-	"k8s.io/apimachinery/pkg/types"
 
 	"github.com/openeverest/openeverest/v2/pkg/cli/helm"
 	helmutils "github.com/openeverest/openeverest/v2/pkg/cli/helm/utils"
@@ -260,8 +259,6 @@ func (u *Upgrade) newUpgradeSteps() []steps.Step {
 		u.newStepUpgradeCRDs(),
 		u.newStepUpgradeHelmChart(),
 		u.newStepEnsureEverestAPI(),
-		u.newStepEnsureEverestOperator(),
-		u.newStepEnsureCatalogSource(),
 	}
 }
 
@@ -448,49 +445,6 @@ func (u *Upgrade) checkRequirements(ctx context.Context, supVer *common.Supporte
 
 	if err := cliutils.VerifyCLIVersion(supVer); err != nil {
 		return err
-	}
-	// Operator version check.
-	if err := u.checkOperatorRequirements(ctx, supVer); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (u *Upgrade) checkOperatorRequirements(ctx context.Context, supVer *common.SupportedVersion) error {
-	nss, err := u.kubeConnector.GetDBNamespaces(ctx)
-	if err != nil {
-		return err
-	}
-
-	cfg := []requirementsCheck{
-		{common.MySQLOperatorName, supVer.PXCOperator},
-		{common.PostgreSQLOperatorName, supVer.PGOperator},
-		{common.MongoDBOperatorName, supVer.PSMBDOperator},
-	}
-	for _, ns := range nss.Items {
-		u.l.Infof("Checking operator requirements in namespace %s", ns)
-
-		for _, c := range cfg {
-			v, err := u.kubeConnector.GetInstalledOperatorVersion(ctx, types.NamespacedName{Namespace: ns.GetName(), Name: c.operatorName})
-			if err != nil && !errors.Is(err, kubernetes.ErrOperatorNotInstalled) {
-				return err
-			}
-
-			if v == nil {
-				u.l.Debugf("Operator %s not found", c.operatorName)
-				continue
-			}
-
-			u.l.Debugf("Found operator %s version %s. Checking contraints %q", c.operatorName, v, c.constraints.String())
-			if !c.constraints.Check(v) {
-				return fmt.Errorf(
-					"%s version %q does not meet minimum requirements of %q",
-					c.operatorName, v, supVer.PXCOperator.String(),
-				)
-			}
-			u.l.Debugf("Finished requirements check for operator %s", c.operatorName)
-		}
 	}
 	return nil
 }

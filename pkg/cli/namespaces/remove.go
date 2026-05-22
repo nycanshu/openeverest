@@ -31,7 +31,6 @@ import (
 	"k8s.io/apimachinery/pkg/util/wait"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	"github.com/openeverest/openeverest/v2/pkg/cli/helm"
 	"github.com/openeverest/openeverest/v2/pkg/cli/steps"
 	cliutils "github.com/openeverest/openeverest/v2/pkg/cli/utils"
 	"github.com/openeverest/openeverest/v2/pkg/common"
@@ -85,12 +84,13 @@ func (cfg *NamespaceRemoveConfig) ValidateNamespaces(ctx context.Context, nsList
 		if err := cfg.validateNamespaceOwnership(ctx, k, ns); err != nil {
 			return err
 		}
-		// if --force flag is passed - it doesn't matter if there are DB clusters in the namespace.
 		if !cfg.Force {
-			// Check that there are no DB clusters left in namespaces.
-			if dbsExist, err := k.DatabasesExist(ctx, ctrlclient.InNamespace(ns)); err != nil {
+			// Check that there are no Instances left in namespaces.
+			instances, err := k.ListInstances(ctx, ctrlclient.InNamespace(ns))
+			if err != nil {
 				return errors.Join(err, fmt.Errorf("failed to check if databases exist in namespace='%s'", ns))
-			} else if dbsExist {
+			}
+			if len(instances.Items) > 0 {
 				return ErrNamespaceNotEmpty
 			}
 		}
@@ -159,21 +159,48 @@ func (r *NamespaceRemover) Run(ctx context.Context) error {
 func NewRemoveNamespaceSteps(namespace string, keepNs bool, k kubernetes.KubernetesConnector) []steps.Step {
 	removeSteps := []steps.Step{
 		{
-			Desc: fmt.Sprintf("Deleting database clusters in namespace '%s'", namespace),
+			Desc: fmt.Sprintf("Deleting instances in namespace '%s'", namespace),
 			F: func(ctx context.Context) error {
-				return k.DeleteDatabaseClusters(ctx, ctrlclient.InNamespace(namespace))
+				list, err := k.ListInstances(ctx, ctrlclient.InNamespace(namespace))
+				if err != nil {
+					return err
+				}
+				for i := range list.Items {
+					if err := k.DeleteInstance(ctx, &list.Items[i]); ctrlclient.IgnoreNotFound(err) != nil {
+						return err
+					}
+				}
+				return nil
 			},
 		},
 		{
 			Desc: fmt.Sprintf("Deleting backup storages in namespace '%s'", namespace),
 			F: func(ctx context.Context) error {
-				return k.DeleteBackupStoragesV1(ctx, ctrlclient.InNamespace(namespace))
+				list, err := k.ListBackupStorages(ctx, ctrlclient.InNamespace(namespace))
+				if err != nil {
+					return err
+				}
+				for i := range list.Items {
+					if err := k.DeleteBackupStorage(ctx, &list.Items[i]); ctrlclient.IgnoreNotFound(err) != nil {
+						return err
+					}
+				}
+				return nil
 			},
 		},
 		{
-			Desc: fmt.Sprintf("Deleting monitoring instances in namespace '%s'", namespace),
+			Desc: fmt.Sprintf("Deleting monitoring configs in namespace '%s'", namespace),
 			F: func(ctx context.Context) error {
-				return k.DeleteMonitoringConfigs(ctx, ctrlclient.InNamespace(namespace))
+				list, err := k.ListMonitoringConfigsV2(ctx, ctrlclient.InNamespace(namespace))
+				if err != nil {
+					return err
+				}
+				for i := range list.Items {
+					if err := k.DeleteMonitoringConfigV2(ctx, &list.Items[i]); ctrlclient.IgnoreNotFound(err) != nil {
+						return err
+					}
+				}
+				return nil
 			},
 		},
 	}
@@ -184,13 +211,6 @@ func NewRemoveNamespaceSteps(namespace string, keepNs bool, k kubernetes.Kuberne
 	removeSteps = append(removeSteps, steps.Step{
 		Desc: nsStepDesc,
 		F: func(ctx context.Context) error {
-			u, err := helm.NewUninstaller(namespace, namespace, k.Kubeconfig())
-			if err != nil {
-				return errors.Join(err, errors.New("failed to create helm uninstaller"))
-			}
-			if _, err := u.Uninstall(false); err != nil {
-				return errors.Join(err, errors.New("failed to uninstall helm chart"))
-			}
 			if keepNs {
 				// keep the namespace, but remove the Everest label
 				return removeEverestLabelFromNamespace(ctx, k, namespace)

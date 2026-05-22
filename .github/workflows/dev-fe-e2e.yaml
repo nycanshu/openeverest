@@ -129,8 +129,6 @@ jobs:
           --disable-telemetry \
           --version 0.0.0 \
           --version-metadata-url https://check-dev.percona.com \
-          --skip-wizard \
-          --skip-db-namespace \
           --helm.set server.image=localhost:5000/openeverest/openeverest-dev \
           --helm.set server.apiRequestsRateLimit=200 \
           --helm.set versionMetadataURL=https://check-dev.percona.com
@@ -138,38 +136,22 @@ jobs:
       - name: Add everest-ui namespace
         shell: bash
         run: |
-          ./bin/everestctl namespaces add everest-ui -v \
-          --operator.mongodb=true \
-          --operator.postgresql=true \
-          --operator.mysql=true \
-          --skip-wizard
+          ./bin/everestctl namespaces add everest-ui -v
 
       - name: Adding psmdb namespace
         shell: bash
         run: |
-          ./bin/everestctl namespaces add psmdb-only -v \
-          --operator.mongodb=true \
-          --operator.postgresql=false \
-          --operator.mysql=false \
-          --skip-wizard
+          ./bin/everestctl namespaces add psmdb-only -v
 
       - name: Adding pxc namespace
         shell: bash
         run: |
-          ./bin/everestctl namespaces add pxc-only -v \
-          --operator.mongodb=false \
-          --operator.postgresql=false \
-          --operator.mysql=true \
-          --skip-wizard
+          ./bin/everestctl namespaces add pxc-only -v
 
       - name: Adding pg namespace
         shell: bash
         run: |
-          ./bin/everestctl namespaces add pg-only -v \
-          --operator.mongodb=false \
-          --operator.postgresql=true \
-          --operator.mysql=false \
-          --skip-wizard
+          ./bin/everestctl namespaces add pg-only -v
 
       - name: Get Everest admin password
         shell: bash

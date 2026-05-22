@@ -149,11 +149,6 @@ func TestValidateNamespaces(t *testing.T) {
 			error: ErrNamespaceReserved("everest-monitoring"),
 		},
 		{
-			name:  "reserved olm ns",
-			input: []string{"everest-olm"},
-			error: ErrNamespaceReserved("everest-olm"),
-		},
-		{
 			name:  "duplicated ns",
 			input: []string{"aaa", "bbb", "aaa"},
 			error: nil,

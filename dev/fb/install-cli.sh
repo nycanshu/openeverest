@@ -36,10 +36,6 @@ echo "Installing Percona Everest version $(cat version.txt)..."
   --chart-dir "./helm-chart" \
   --version "$(cat version.txt)" \
   --version-metadata-url "http://localhost:${vs_local_port}"  \
-  --operator.mysql=true \
-  --operator.mongodb=true \
-  --operator.postgresql=true \
-  --skip-wizard \
   --namespaces everest \
   --helm.set "versionMetadataURL=http://percona-version-service.default.svc.cluster.local" \
   "$@"

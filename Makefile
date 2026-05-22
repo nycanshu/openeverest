@@ -334,10 +334,6 @@ deploy:  ## Deploy Everest to K8S cluster using Everest CLI.
 	--disable-telemetry \
 	--version=$(IMAGE_TAG) \
 	--version-metadata-url=https://check-dev.percona.com \
-	--operator.mongodb=true \
-	--operator.postgresql=true \
-	--operator.mysql=true \
-	--skip-wizard \
 	--namespaces $(DB_NAMESPACES) \
 	--helm.set server.image=$(IMAGE_PREFIX)/$(EVEREST_SERVER_DEV_IMAGE_NAME) \
 	--helm.set server.apiRequestsRateLimit=500 \
@@ -363,29 +359,17 @@ undeploy: build-cli-debug ## Undeploy Everest from K8S cluster using Everest CLI
 .PHONY: add-pg-namespaces
 add-pg-namespaces: ## Add PostgreSQL namespace to Everest using Everest CLI(usage: DB_NAMESPACES=ns-1,ns-2 make add-pg-namespaces).
 	$(info Adding PostgreSQL namespaces=${DB_NAMESPACE} to Everest using everestctl)
-	$(LOCALBIN)/everestctl namespaces add $(DB_NAMESPACES) -v \
-	--operator.mongodb=false \
-	--operator.postgresql=true \
-	--operator.mysql=false \
-	--skip-wizard
+	$(LOCALBIN)/everestctl namespaces add $(DB_NAMESPACES) -v
 
 .PHONY: add-psmdb-namespaces
 add-psmdb-namespaces: ## Add PSMDB namespace to Everest using Everest CLI(usage: DB_NAMESPACES=ns-1,ns-2 make add-psmdb-namespaces).
 	$(info Adding PSMDB namespaces=${DB_NAMESPACE} to Everest using everestctl)
-	$(LOCALBIN)/everestctl namespaces add $(DB_NAMESPACES) -v \
-	--operator.mongodb=true \
-	--operator.postgresql=false \
-	--operator.mysql=false \
-	--skip-wizard
+	$(LOCALBIN)/everestctl namespaces add $(DB_NAMESPACES) -v
 
 .PHONY: add-pxc-namespaces
 add-pxc-namespaces: ## Add PXC namespace to Everest using Everest CLI(usage: DB_NAMESPACES=ns-1,ns-2 make add-pxc-namespaces).
 	$(info Adding PXC namespaces=${DB_NAMESPACE} to Everest using everestctl)
-	$(LOCALBIN)/everestctl namespaces add $(DB_NAMESPACES) -v \
-	--operator.mongodb=false \
-	--operator.postgresql=false \
-	--operator.mysql=true \
-	--skip-wizard
+	$(LOCALBIN)/everestctl namespaces add $(DB_NAMESPACES) -v
 
 .PHONY: expose
 expose:

@@ -74,11 +74,9 @@ type (
 		SkipEnvDetection bool
 		// Pretty if set print the output in pretty mode.
 		Pretty bool
-		// SkipDBNamespace is set if the installation should skip provisioning database.
-		SkipDBNamespace bool
 		// Options related to Helm.
 		HelmConfig helm.CLIOptions
-		// NamespaceAddConfig is the configuration for the namespace add operation.
+		// NamespaceAddConfig holds the configuration for provisioning namespaces after install.
 		NamespaceAddConfig namespaces.NamespaceAddConfig
 	}
 
@@ -121,11 +119,9 @@ func (cfg *InstallConfig) detectKubernetesEnv(ctx context.Context, l *zap.Sugare
 		return fmt.Errorf("failed to detect cluster type: %w", err)
 	}
 	cfg.ClusterType = t
-	cfg.NamespaceAddConfig.ClusterType = t
 
 	// Skip detecting Kubernetes environment in the future.
 	cfg.SkipEnvDetection = true
-	cfg.NamespaceAddConfig.SkipEnvDetection = true
 	l.Infof("Detected Kubernetes environment: %s", t)
 	return nil
 }
@@ -141,13 +137,10 @@ func NewInstall(c InstallConfig, l *zap.SugaredLogger) (*Installer, error) {
 		cli.l = zap.NewNop().Sugar()
 	}
 
-	c.NamespaceAddConfig.Pretty = c.Pretty
-	c.NamespaceAddConfig.HelmConfig = c.HelmConfig
-	c.NamespaceAddConfig.KubeconfigPath = c.KubeconfigPath
-	c.NamespaceAddConfig.DisableTelemetry = c.DisableTelemetry
-	c.NamespaceAddConfig.SkipEnvDetection = c.SkipEnvDetection
-	c.NamespaceAddConfig.SystemNamespace = c.Namespace
 	cli.cfg = c
+	cli.cfg.NamespaceAddConfig.KubeconfigPath = c.KubeconfigPath
+	cli.cfg.NamespaceAddConfig.SystemNamespace = c.Namespace
+	cli.cfg.NamespaceAddConfig.Pretty = c.Pretty
 
 	var err error
 	cli.kubeClient, err = kubernetes.New(c.KubeconfigPath, cli.l, c.Namespace)
@@ -175,7 +168,6 @@ func (o *Installer) Run(ctx context.Context) error {
 		if err != nil {
 			return err
 		}
-		o.cfg.NamespaceAddConfig.HelmConfig = o.cfg.HelmConfig
 		defer cleanup()
 	}
 
@@ -184,13 +176,13 @@ func (o *Installer) Run(ctx context.Context) error {
 	}
 
 	installSteps := o.newInstallSteps()
-	if !o.cfg.SkipDBNamespace {
-		// DB namespaces creation is required.
-		if dbInstallSteps, err := o.getDBNamespacesInstallSteps(ctx); err != nil {
-			return fmt.Errorf("could not create db install step: %w", err)
-		} else if dbInstallSteps != nil {
-			installSteps = append(installSteps, dbInstallSteps...)
+
+	if len(o.cfg.NamespaceAddConfig.NamespaceList) > 0 {
+		nsAdder, err := namespaces.NewNamespaceAdd(o.cfg.NamespaceAddConfig, o.l)
+		if err != nil {
+			return fmt.Errorf("could not create namespace provisioner: %w", err)
 		}
+		installSteps = append(installSteps, nsAdder.GetNamespaceInstallSteps()...)
 	}
 
 	var out io.Writer = os.Stdout
@@ -206,19 +198,6 @@ func (o *Installer) Run(ctx context.Context) error {
 	o.l.Infof("Everest '%s' has been successfully installed", o.installVersion)
 	o.printPostInstallMessage(out)
 	return nil
-}
-
-// getDBNamespacesInstallSteps returns the steps to install the database namespaces.
-// It returns nil if the namespaces are already installed.
-// Note: o.cfg.NamespaceAddConfig.NamespaceList and o.cfg.NamespaceAddConfig.Operators
-// must be set before calling this function.
-func (o *Installer) getDBNamespacesInstallSteps(ctx context.Context) ([]steps.Step, error) {
-	i, err := namespaces.NewNamespaceAdd(o.cfg.NamespaceAddConfig, o.l)
-	if err != nil {
-		return nil, err
-	}
-
-	return i.GetNamespaceInstallSteps(ctx, o.installVersion)
 }
 
 //nolint:gochecknoglobals
@@ -334,9 +313,6 @@ func (o *Installer) newInstallSteps() []steps.Step {
 	return []steps.Step{
 		o.newStepInstallEverestHelmChart(),
 		o.newStepEnsureEverestAPI(),
-		o.newStepEnsureEverestOperator(),
-		o.newStepEnsureEverestOLM(),
-		o.newStepEnsureCatalogSource(),
 		o.newStepEnsureEverestMonitoring(),
 	}
 }

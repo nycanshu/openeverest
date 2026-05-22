@@ -33,14 +33,8 @@ import (
 )
 
 const (
-	dbNamespaceSubChartPath = "/charts/everest-db-namespace"
-	crdSubChartPath         = "/charts/everest-crds"
+	crdSubChartPath = "/charts/everest-crds"
 )
-
-// DBNamespaceSubChartPath returns the path to the everest-db-namespace sub-chart.
-func DBNamespaceSubChartPath(dir string) string {
-	return getSubChartPath(dir, dbNamespaceSubChartPath)
-}
 
 // CRDSubChartPath returns the path to the everest-crds sub-chart.
 func CRDSubChartPath(dir string) string {

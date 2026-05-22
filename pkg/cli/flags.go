@@ -29,30 +29,18 @@ const (
 
 	// `install` flags
 
-	// FlagOperatorPostgresql represents the pg operator flag.
-	FlagOperatorPostgresql = "operator.postgresql"
-	// FlagOperatorXtraDBCluster represents the pxc operator flag.
-	FlagOperatorXtraDBCluster = "operator.xtradb-cluster"
-	// FlagOperatorMySQL represents the MySQL operator flag.
-	FlagOperatorMySQL = "operator.mysql"
-	// FlagOperatorMongoDB represents the psmdb operator flag.
-	FlagOperatorMongoDB = "operator.mongodb"
 	// FlagNamespaces represents the namespaces flag.
 	FlagNamespaces = "namespaces"
 	// FlagVersionMetadataURL represents the version service url flag.
 	FlagVersionMetadataURL = "version-metadata-url"
 	// FlagVersion represents the version flag.
 	FlagVersion = "version"
-	// FlagSkipWizard represents the flag to skip the installation wizard.
-	FlagSkipWizard = "skip-wizard"
 	// FlagSkipEnvDetection is the name of the skip env detection flag.
 	FlagSkipEnvDetection = "skip-env-detection"
 	// FlagDisableTelemetry disables telemetry.
 	FlagDisableTelemetry = "disable-telemetry"
 	// FlagInstallSystemNamespace is the name of the system-namespace flag for install.
 	FlagInstallSystemNamespace = "system-namespace"
-	// FlagInstallSkipDBNamespace is the name of the skip-db-namespace flag.
-	FlagInstallSkipDBNamespace = "skip-db-namespace"
 
 	// `namespaces` flags
 

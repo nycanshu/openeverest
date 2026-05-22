@@ -19,7 +19,6 @@ package uninstall
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -104,14 +103,14 @@ func (u *Uninstall) Run(ctx context.Context) error {
 		return fmt.Errorf("failed to detect Kubernetes environment: %w", err)
 	}
 
-	dbsExist, err := u.kubeConnector.DatabasesExist(ctx)
+	instances, err := u.kubeConnector.ListInstances(ctx)
 	if err != nil {
-		return errors.Join(err, errors.New("failed to check if databases exist"))
+		return fmt.Errorf("failed to check if instances exist: %w", err)
 	}
 
-	if dbsExist && !u.config.Force {
-		// there are still DB clusters managed by Everest.
-		// Need to ask user for DB clusters deletion confirmation.
+	if len(instances.Items) > 0 && !u.config.Force {
+		// there are still instances managed by OpenEverest.
+		// Need to ask user for instance deletion confirmation.
 		if force, err := u.confirmForce(ctx); err != nil {
 			return err
 		} else if !force {

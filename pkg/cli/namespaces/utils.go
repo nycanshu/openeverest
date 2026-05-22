@@ -21,7 +21,6 @@ import (
 	"fmt"
 	"strings"
 
-	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
 	operatorUtils "github.com/percona/everest-operator/utils"
 	v1 "k8s.io/api/core/v1"
 	k8serrors "k8s.io/apimachinery/pkg/api/errors"
@@ -63,8 +62,7 @@ func validateNamespaceNames(nsList []string, systemNamespace string) error {
 
 	for _, ns := range nsList {
 		if ns == systemNamespace ||
-			ns == common.MonitoringNamespace ||
-			ns == kubernetes.OLMNamespace {
+			ns == common.MonitoringNamespace {
 			return ErrNamespaceReserved(ns)
 		}
 
@@ -95,29 +93,4 @@ func namespaceExists(
 		return false, false, fmt.Errorf("cannot check if namesapce exists: %w", err)
 	}
 	return true, isManagedByEverest(ns), nil
-}
-
-func ensureNoOperatorsRemoved(
-	subscriptions []olmv1alpha1.Subscription,
-	installPG, installPXC, installPSMDB bool,
-) bool {
-	for _, subscription := range subscriptions {
-		switch subscription.GetName() {
-		case common.PostgreSQLOperatorName:
-			if !installPG {
-				return false
-			}
-		case common.MongoDBOperatorName:
-			if !installPSMDB {
-				return false
-			}
-		case common.MySQLOperatorName:
-			if !installPXC {
-				return false
-			}
-		default:
-			continue
-		}
-	}
-	return true
 }
