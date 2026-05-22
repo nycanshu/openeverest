@@ -233,7 +233,6 @@ func (e *EverestServer) initHTTPServer(ctx context.Context) error {
 	}
 	apiGroup.Use(blocklistMW)
 
-	apiGroup.Use(e.checkOperatorUpgradeState)
 	api.RegisterHandlers(apiGroup, e)
 
 	return nil

@@ -1,5 +1,6 @@
 // everest
 // Copyright (C) 2023 Percona LLC
+// Copyright (C) 2026 The OpenEverest Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -18,17 +19,11 @@ package server
 import (
 	"net/http"
 	"net/url"
-	"slices"
-	"strings"
 
-	"github.com/AlekSi/pointer"
 	"github.com/labstack/echo/v4"
-	everestv1alpha1 "github.com/percona/everest-operator/api/everest/v1alpha1"
 	"github.com/unrolled/secure"
 	"github.com/unrolled/secure/cspbuilder"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
-	api "github.com/openeverest/openeverest/v2/internal/server/api"
 	"github.com/openeverest/openeverest/v2/pkg/oidc"
 )
 
@@ -37,64 +32,6 @@ const (
 	CSPNone           = "'none'"
 	PermissionsPolicy = "accelerometer=(), autoplay=(), camera=(), cross-origin-isolated=(), display-capture=(), encrypted-media=(), fullscreen=(), geolocation=(), gyroscope=(), keyboard-map=(), magnetometer=(), microphone=(), midi=(), payment=(), picture-in-picture=(), publickey-credentials-get=(), screen-wake-lock=(), sync-xhr=(self), usb=(), web-share=(), xr-spatial-tracking=(), clipboard-read=(self), clipboard-write=(self), gamepad=(), hid=(), idle-detection=(), interest-cohort=(), serial=(), unload=()"
 )
-
-func (e *EverestServer) shouldAllowRequestDuringEngineUpgrade(c echo.Context) (bool, error) {
-	// We allow read-only requests.
-	if c.Request().Method == http.MethodGet {
-		return true, nil
-	}
-
-	// List of resources that should not be modified during an upgrade.
-	targetResources := []string{
-		"database-clusters",
-		"database-engines",
-		"database-cluster-restores",
-		"database-cluster-backups",
-	}
-
-	// Check the request path for the target resources.
-	resourceMatch := slices.ContainsFunc(targetResources, func(targetResource string) bool {
-		return strings.Contains(c.Request().URL.Path, targetResource)
-	})
-	if !resourceMatch {
-		return true, nil
-	}
-
-	namespace := c.Param("namespace")
-	if namespace == "" {
-		// We cannot infer the namespace, so we will allow.
-		return true, nil
-	}
-
-	// Check if there's an engine in this namespace that is upgrading the operator?
-	engines, err := e.kubeConnector.ListDatabaseEngines(c.Request().Context(), ctrlclient.InNamespace(namespace))
-	if err != nil {
-		e.l.Error(err)
-		return false, err
-	}
-	locked := slices.ContainsFunc(engines.Items, func(engine everestv1alpha1.DatabaseEngine) bool {
-		annotations := engine.GetAnnotations()
-		_, found := annotations[everestv1alpha1.DatabaseOperatorUpgradeLockAnnotation]
-		return found
-	})
-	return !locked, nil
-}
-
-// checkOperatorUpgradeState is a middleware that checks if the operator is upgrading,
-// and denies requests accordingly.
-func (e *EverestServer) checkOperatorUpgradeState(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		if allow, err := e.shouldAllowRequestDuringEngineUpgrade(c); err != nil {
-			e.l.Error(err)
-			return err
-		} else if !allow {
-			return c.JSON(http.StatusPreconditionFailed, api.Error{
-				Message: pointer.ToString("Cannot perform this operation while the operator is upgrading"),
-			})
-		}
-		return next(c)
-	}
-}
 
 func (e *EverestServer) securityHeaders() echo.MiddlewareFunc {
 	oidcProvider := e.oidcProvider

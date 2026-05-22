@@ -1,3 +1,17 @@
+// Copyright (C) 2026 The OpenEverest Contributors
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+// http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 package server
 
 import (
@@ -7,11 +21,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/google/uuid"
-	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	"github.com/openeverest/openeverest/v2/cmd/config"
 	"github.com/openeverest/openeverest/v2/pkg/version"
@@ -111,36 +123,12 @@ func (e *EverestServer) collectMetrics(ctx context.Context, config config.Everes
 		return err
 	}
 
-	namespaces, err := e.kubeConnector.GetDBNamespaces(ctx)
-	if err != nil {
-		e.l.Error(errors.Join(err, errors.New("failed to get watched namespaces")))
-		return err
-	}
-
-	types := make(map[string]int, numEngineTypes)
 	metrics := make([]Metric, 0, numEngineTypes+1)
 	// Everest version.
 	metrics = append(metrics, Metric{
 		Key:   telemetryVersionKey,
 		Value: version.Version,
 	})
-
-	for _, ns := range namespaces.Items {
-		clusters, err := e.kubeConnector.ListDatabaseClusters(ctx, ctrlclient.InNamespace(ns.GetName()))
-		if err != nil {
-			e.l.Error(errors.Join(err, errors.New("failed to list database clusters")))
-			return err
-		}
-
-		for _, cl := range clusters.Items {
-			types[string(cl.Spec.Engine.Type)]++
-		}
-	}
-
-	for key, val := range types {
-		// Number of DBs per DB engine.
-		metrics = append(metrics, Metric{key, strconv.Itoa(val)})
-	}
 
 	report := Telemetry{
 		[]Report{

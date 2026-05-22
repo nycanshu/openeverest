@@ -5,10 +5,6 @@ package kubernetes
 import (
 	"context"
 
-	goversion "github.com/hashicorp/go-version"
-	olmv1alpha1 "github.com/operator-framework/api/pkg/operators/v1alpha1"
-	enginefeaturesv1alpha1 "github.com/percona/everest-operator/api/enginefeatures.everest/v1alpha1"
-	everestv1alpha1 "github.com/percona/everest-operator/api/everest/v1alpha1"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
@@ -30,22 +26,6 @@ type KubernetesConnector interface {
 	// Accounts returns an implementation of the accounts interface that
 	// manages everest accounts directly via ConfigMaps.
 	Accounts() accounts.Interface
-	// ListBackupStoragesV1 returns list of managed backup storages in a given namespace.
-	// This method returns a list of full objects (meta and spec).
-	ListBackupStoragesV1(ctx context.Context, opts ...ctrlclient.ListOption) (*everestv1alpha1.BackupStorageList, error)
-	// GetBackupStorageV1 returns backup storages(full object) by provided name and namespace.
-	GetBackupStorageV1(ctx context.Context, key ctrlclient.ObjectKey) (*everestv1alpha1.BackupStorage, error)
-	// GetBackupStorageMetaV1 returns backup storages(metadata only) by provided name and namespace.
-	GetBackupStorageMetaV1(ctx context.Context, key ctrlclient.ObjectKey) (*metav1.PartialObjectMetadata, error)
-	// CreateBackupStorageV1 creates backup storages by provided object.
-	CreateBackupStorageV1(ctx context.Context, storage *everestv1alpha1.BackupStorage) (*everestv1alpha1.BackupStorage, error)
-	// UpdateBackupStorageV1 updates backup storages by provided new object.
-	UpdateBackupStorageV1(ctx context.Context, storage *everestv1alpha1.BackupStorage) (*everestv1alpha1.BackupStorage, error)
-	// DeleteBackupStorageV1 deletes backup storage by provided name and namespace.
-	DeleteBackupStorageV1(ctx context.Context, obj *everestv1alpha1.BackupStorage) error
-	// DeleteBackupStoragesV1 deletes all backup storages in provided namespace.
-	// This function will wait until all storages are deleted.
-	DeleteBackupStoragesV1(ctx context.Context, opts ...ctrlclient.ListOption) error
 	// ListBackupStorages returns list of backup storages in a given namespace.
 	ListBackupStorages(ctx context.Context, opts ...ctrlclient.ListOption) (*backupv1alpha1.BackupStorageList, error)
 	// GetBackupStorage returns a backup storage by name and namespace.
@@ -68,83 +48,16 @@ type KubernetesConnector interface {
 	ListBackupClasses(ctx context.Context, opts ...ctrlclient.ListOption) (*backupv1alpha1.BackupClassList, error)
 	// GetBackupClass returns backup class that matches the criteria.
 	GetBackupClass(ctx context.Context, key ctrlclient.ObjectKey) (*backupv1alpha1.BackupClass, error)
-	// GetCatalogSource returns catalog source that matches the criteria.
-	GetCatalogSource(ctx context.Context, key ctrlclient.ObjectKey) (*olmv1alpha1.CatalogSource, error)
-	// DeleteCatalogSource deletes catalog source that matches the criteria.
-	DeleteCatalogSource(ctx context.Context, obj *olmv1alpha1.CatalogSource) error
 	// GetConfigMap returns k8s configmap that matches the criteria.
 	GetConfigMap(ctx context.Context, key ctrlclient.ObjectKey) (*corev1.ConfigMap, error)
 	// CreateConfigMap creates k8s configmap.
 	CreateConfigMap(ctx context.Context, config *corev1.ConfigMap) (*corev1.ConfigMap, error)
 	// UpdateConfigMap updates k8s configmap.
 	UpdateConfigMap(ctx context.Context, config *corev1.ConfigMap) (*corev1.ConfigMap, error)
-	// GetClusterServiceVersion retrieves a ClusterServiceVersion that matches the criteria.
-	GetClusterServiceVersion(ctx context.Context, key ctrlclient.ObjectKey) (*olmv1alpha1.ClusterServiceVersion, error)
-	// ListClusterServiceVersion list all CSVs that match the criteria.
-	// This method returns a list of full objects (meta and spec).
-	ListClusterServiceVersion(ctx context.Context, opts ...ctrlclient.ListOption) (*olmv1alpha1.ClusterServiceVersionList, error)
-	// DeleteClusterServiceVersion deletes a ClusterServiceVersion that matches the criteria.
-	DeleteClusterServiceVersion(ctx context.Context, obj *olmv1alpha1.ClusterServiceVersion) error
-	// DeleteClusterServiceVersions deletes all ClusterServiceVersion that match the criteria.
-	// This function will wait until all ClusterServiceVersion are deleted.
-	DeleteClusterServiceVersions(ctx context.Context, opts ...ctrlclient.ListOption) error
 	// ListCRDs lists all CRDs that match the criteria.
 	ListCRDs(ctx context.Context, opts ...ctrlclient.ListOption) (*apiextv1.CustomResourceDefinitionList, error)
 	// DeleteCRD deletes a CRD that matches the criteria.
 	DeleteCRD(ctx context.Context, obj *apiextv1.CustomResourceDefinition) error
-	// ListDatabaseClusters returns list of managed database clusters that match the criteria.
-	// This method returns a list of full objects (meta and spec).
-	ListDatabaseClusters(ctx context.Context, opts ...ctrlclient.ListOption) (*everestv1alpha1.DatabaseClusterList, error)
-	// GetDatabaseCluster returns database cluster that matches the criteria.
-	GetDatabaseCluster(ctx context.Context, key ctrlclient.ObjectKey) (*everestv1alpha1.DatabaseCluster, error)
-	// DeleteDatabaseCluster deletes database cluster that matches the criteria.
-	DeleteDatabaseCluster(ctx context.Context, obj *everestv1alpha1.DatabaseCluster) error
-	// CreateDatabaseCluster creates database cluster.
-	CreateDatabaseCluster(ctx context.Context, cluster *everestv1alpha1.DatabaseCluster) (*everestv1alpha1.DatabaseCluster, error)
-	// UpdateDatabaseCluster updates database cluster.
-	UpdateDatabaseCluster(ctx context.Context, cluster *everestv1alpha1.DatabaseCluster) (*everestv1alpha1.DatabaseCluster, error)
-	// DeleteDatabaseClusters deletes all database clusters that match the criteria.
-	// This function will wait until all clusters are deleted.
-	DeleteDatabaseClusters(ctx context.Context, opts ...ctrlclient.ListOption) error
-	// DatabasesExist checks if there are databases that match criteria exist.
-	DatabasesExist(ctx context.Context, opts ...ctrlclient.ListOption) (bool, error)
-	// GetDatabaseClusterBackup returns database cluster backup that matches the criteria.
-	// This method returns a list of full objects (meta and spec).
-	GetDatabaseClusterBackup(ctx context.Context, key ctrlclient.ObjectKey) (*everestv1alpha1.DatabaseClusterBackup, error)
-	// ListDatabaseClusterBackups returns database cluster backups that match the criteria.
-	// This method returns a list of full objects (meta and spec).
-	ListDatabaseClusterBackups(ctx context.Context, opts ...ctrlclient.ListOption) (*everestv1alpha1.DatabaseClusterBackupList, error)
-	// UpdateDatabaseClusterBackup updates database cluster backup.
-	UpdateDatabaseClusterBackup(ctx context.Context, backup *everestv1alpha1.DatabaseClusterBackup) (*everestv1alpha1.DatabaseClusterBackup, error)
-	// DeleteDatabaseClusterBackup deletes database cluster backup that matches the criteria.
-	DeleteDatabaseClusterBackup(ctx context.Context, obj *everestv1alpha1.DatabaseClusterBackup) error
-	// CreateDatabaseClusterBackup creates database cluster backup.
-	CreateDatabaseClusterBackup(ctx context.Context, backup *everestv1alpha1.DatabaseClusterBackup) (*everestv1alpha1.DatabaseClusterBackup, error)
-	// GetDatabaseClusterRestore returns database cluster restore that matches the criteria.
-	GetDatabaseClusterRestore(ctx context.Context, key ctrlclient.ObjectKey) (*everestv1alpha1.DatabaseClusterRestore, error)
-	// ListDatabaseClusterRestores returns database cluster restores that match the criteria.
-	// This method returns a list of full objects (meta and spec).
-	ListDatabaseClusterRestores(ctx context.Context, opts ...ctrlclient.ListOption) (*everestv1alpha1.DatabaseClusterRestoreList, error)
-	// UpdateDatabaseClusterRestore updates database cluster restore.
-	UpdateDatabaseClusterRestore(ctx context.Context, restore *everestv1alpha1.DatabaseClusterRestore) (*everestv1alpha1.DatabaseClusterRestore, error)
-	// DeleteDatabaseClusterRestore deletes database cluster restore that matches the criteria.
-	DeleteDatabaseClusterRestore(ctx context.Context, obj *everestv1alpha1.DatabaseClusterRestore) error
-	// CreateDatabaseClusterRestore creates database cluster restore.
-	CreateDatabaseClusterRestore(ctx context.Context, restore *everestv1alpha1.DatabaseClusterRestore) (*everestv1alpha1.DatabaseClusterRestore, error)
-	// ListDatabaseEngines returns list of managed database engines that match the criteria.
-	// This method returns a list of full objects (meta and spec).
-	ListDatabaseEngines(ctx context.Context, opts ...ctrlclient.ListOption) (*everestv1alpha1.DatabaseEngineList, error)
-	// GetDatabaseEngine returns database engine that matches the criteria.
-	GetDatabaseEngine(ctx context.Context, key ctrlclient.ObjectKey) (*everestv1alpha1.DatabaseEngine, error)
-	// UpdateDatabaseEngine updates the provided database engine.
-	UpdateDatabaseEngine(ctx context.Context, engine *everestv1alpha1.DatabaseEngine) (*everestv1alpha1.DatabaseEngine, error)
-	// SetDatabaseEngineLock sets the lock on the database engine that matches the criteria.
-	// The lock is automatically set to false once everest-operator completes its upgrade.
-	SetDatabaseEngineLock(ctx context.Context, key ctrlclient.ObjectKey, locked bool) error
-	// ListDataImporters lists all DataImporters in the cluster.
-	ListDataImporters(ctx context.Context, opts ...ctrlclient.ListOption) (*everestv1alpha1.DataImporterList, error)
-	// ListDataImportJobs lists all DataImportJobs for the specified database cluster.
-	ListDataImportJobs(ctx context.Context, namespace, dbName string, opts ...ctrlclient.ListOption) (*everestv1alpha1.DataImportJobList, error)
 	// GetDeployment returns k8s deployment that matches the criteria.
 	GetDeployment(ctx context.Context, key ctrlclient.ObjectKey) (*appsv1.Deployment, error)
 	// UpdateDeployment updates a deployment and returns the updated object.
@@ -168,12 +81,6 @@ type KubernetesConnector interface {
 	CreateRestore(ctx context.Context, restore *backupv1alpha1.Restore) (*backupv1alpha1.Restore, error)
 	// DeleteRestore deletes a restore.
 	DeleteRestore(ctx context.Context, obj *backupv1alpha1.Restore) error
-	// GetInstallPlan retrieves an OLM install plan that matches the criteria.
-	GetInstallPlan(ctx context.Context, key ctrlclient.ObjectKey) (*olmv1alpha1.InstallPlan, error)
-	// UpdateInstallPlan updates OLM install plan.
-	UpdateInstallPlan(ctx context.Context, installPlan *olmv1alpha1.InstallPlan) (*olmv1alpha1.InstallPlan, error)
-	// ApproveInstallPlan approves OLM install plan that matches the criteria.
-	ApproveInstallPlan(ctx context.Context, key ctrlclient.ObjectKey) (bool, error)
 	// Kubeconfig returns the path to the kubeconfig.
 	// This value is available only if the client was created with New() function.
 	Kubeconfig() string
@@ -187,22 +94,6 @@ type KubernetesConnector interface {
 	GetEverestID(ctx context.Context) (string, error)
 	// GetClusterType tries to guess the underlying kubernetes cluster based on storage class.
 	GetClusterType(ctx context.Context) (ClusterType, error)
-	// ListMonitoringConfigs returns list of managed monitoring configs that match the criteria.
-	// This method returns a list of full objects (meta and spec).
-	ListMonitoringConfigs(ctx context.Context, opts ...ctrlclient.ListOption) (*everestv1alpha1.MonitoringConfigList, error)
-	// GetMonitoringConfig returns monitoring config(full object) that matches the criteria.
-	GetMonitoringConfig(ctx context.Context, key ctrlclient.ObjectKey) (*everestv1alpha1.MonitoringConfig, error)
-	// GetMonitoringConfigMeta returns monitoring config(metadata only) that matches the criteria.
-	GetMonitoringConfigMeta(ctx context.Context, key ctrlclient.ObjectKey) (*metav1.PartialObjectMetadata, error)
-	// CreateMonitoringConfig creates monitoring config.
-	CreateMonitoringConfig(ctx context.Context, config *everestv1alpha1.MonitoringConfig) (*everestv1alpha1.MonitoringConfig, error)
-	// UpdateMonitoringConfig updates monitoring config.
-	UpdateMonitoringConfig(ctx context.Context, config *everestv1alpha1.MonitoringConfig) (*everestv1alpha1.MonitoringConfig, error)
-	// DeleteMonitoringConfig deletes monitoring config that matches the criteria.
-	DeleteMonitoringConfig(ctx context.Context, obj *everestv1alpha1.MonitoringConfig) error
-	// DeleteMonitoringConfigs deletes monitoring configs that matches the criteria.
-	// This function will wait until all configs are deleted.
-	DeleteMonitoringConfigs(ctx context.Context, opts ...ctrlclient.ListOption) error
 	// ListMonitoringConfigsV2 returns list of managed monitoring configs that match the criteria.
 	// This method returns a list of full objects (meta and spec).
 	//
@@ -246,40 +137,12 @@ type KubernetesConnector interface {
 	ApplyManifestFile(ctx context.Context, fileBytes []byte, namespace string, ignoreObjects ...ctrlclient.Object) error
 	// ApplyObject applies object.
 	ApplyObject(obj runtime.Object) error
-	// GetInstalledOperatorVersion returns the version of installed operator that matches the criteria.
-	GetInstalledOperatorVersion(ctx context.Context, key ctrlclient.ObjectKey) (*goversion.Version, error)
-	// ListInstalledOperators returns the list of installed operators that match the criteria.
-	ListInstalledOperators(ctx context.Context, opts ...ctrlclient.ListOption) (*olmv1alpha1.SubscriptionList, error)
 	// CreateRSAKeyPair creates a new RSA key pair and stores it in a secret.
 	CreateRSAKeyPair(ctx context.Context) error
 	// UpdateEverestSettings accepts the full list of Everest settings and updates the settings.
 	UpdateEverestSettings(ctx context.Context, settings common.EverestSettings) error
 	// GetEverestSettings returns Everest settings.
 	GetEverestSettings(ctx context.Context) (common.EverestSettings, error)
-	// ListPodSchedulingPolicies returns a list of pod scheduling policy that matches the criteria.
-	// This method returns a list of full objects (meta and spec).
-	ListPodSchedulingPolicies(ctx context.Context, opts ...ctrlclient.ListOption) (*everestv1alpha1.PodSchedulingPolicyList, error)
-	// GetPodSchedulingPolicy returns pod scheduling policy(full object) that matches the criteria.
-	GetPodSchedulingPolicy(ctx context.Context, key ctrlclient.ObjectKey) (*everestv1alpha1.PodSchedulingPolicy, error)
-	// GetPodSchedulingPolicyMeta returns pod scheduling policy(metadata only) that matches the criteria.
-	GetPodSchedulingPolicyMeta(ctx context.Context, key ctrlclient.ObjectKey) (*metav1.PartialObjectMetadata, error)
-	// DeletePodSchedulingPolicy deletes pod scheduling policy that matches the criteria.
-	DeletePodSchedulingPolicy(ctx context.Context, obj *everestv1alpha1.PodSchedulingPolicy) error
-	// CreatePodSchedulingPolicy creates pod scheduling policy.
-	CreatePodSchedulingPolicy(ctx context.Context, psp *everestv1alpha1.PodSchedulingPolicy) (*everestv1alpha1.PodSchedulingPolicy, error)
-	// UpdatePodSchedulingPolicy updates pod scheduling policy.
-	UpdatePodSchedulingPolicy(ctx context.Context, psp *everestv1alpha1.PodSchedulingPolicy) (*everestv1alpha1.PodSchedulingPolicy, error)
-	// ListLoadBalancerConfigs returns a list of load balancer config that matches the criteria.
-	// This method returns a list of full objects (meta and spec).
-	ListLoadBalancerConfigs(ctx context.Context, opts ...ctrlclient.ListOption) (*everestv1alpha1.LoadBalancerConfigList, error)
-	// GetLoadBalancerConfig returns load balancer config(full object) that matches the criteria.
-	GetLoadBalancerConfig(ctx context.Context, key ctrlclient.ObjectKey) (*everestv1alpha1.LoadBalancerConfig, error)
-	// DeleteLoadBalancerConfig deletes load balancer config that matches the criteria.
-	DeleteLoadBalancerConfig(ctx context.Context, obj *everestv1alpha1.LoadBalancerConfig) error
-	// CreateLoadBalancerConfig creates load balancer config.
-	CreateLoadBalancerConfig(ctx context.Context, lbc *everestv1alpha1.LoadBalancerConfig) (*everestv1alpha1.LoadBalancerConfig, error)
-	// UpdateLoadBalancerConfig updates load balancer config.
-	UpdateLoadBalancerConfig(ctx context.Context, lbc *everestv1alpha1.LoadBalancerConfig) (*everestv1alpha1.LoadBalancerConfig, error)
 	// GetAllClusterResources goes through all cluster nodes and sums their allocatable resources.
 	GetAllClusterResources(ctx context.Context, clusterType ClusterType, volumes *corev1.PersistentVolumeList) (uint64, uint64, uint64, error)
 	// GetConsumedCPUAndMemory returns consumed CPU and Memory in given namespace. If namespace
@@ -306,23 +169,6 @@ type KubernetesConnector interface {
 	// ListStorageClasses returns list of storage classes that match the criteria.
 	// This method returns a list of full objects (meta and spec).
 	ListStorageClasses(ctx context.Context, opts ...ctrlclient.ListOption) (*storagev1.StorageClassList, error)
-	// CreateSplitHorizonDNSConfig creates a SplitHorizonDNSConfig resource in Kubernetes.
-	CreateSplitHorizonDNSConfig(ctx context.Context, shdc *enginefeaturesv1alpha1.SplitHorizonDNSConfig) (*enginefeaturesv1alpha1.SplitHorizonDNSConfig, error)
-	// UpdateSplitHorizonDNSConfig updates an existing SplitHorizonDNSConfig resource in Kubernetes.
-	UpdateSplitHorizonDNSConfig(ctx context.Context, shdc *enginefeaturesv1alpha1.SplitHorizonDNSConfig) (*enginefeaturesv1alpha1.SplitHorizonDNSConfig, error)
-	// ListSplitHorizonDNSConfigs lists all SplitHorizonDNSConfig resources in Kubernetes that match the provided options.
-	ListSplitHorizonDNSConfigs(ctx context.Context, opts ...ctrlclient.ListOption) (*enginefeaturesv1alpha1.SplitHorizonDNSConfigList, error)
-	// DeleteSplitHorizonDNSConfig deletes a SplitHorizonDNSConfig resource in Kubernetes.
-	DeleteSplitHorizonDNSConfig(ctx context.Context, shdc *enginefeaturesv1alpha1.SplitHorizonDNSConfig) error
-	// GetSplitHorizonDNSConfig retrieves a SplitHorizonDNSConfig resource from Kubernetes by its namespaced name.
-	GetSplitHorizonDNSConfig(ctx context.Context, key ctrlclient.ObjectKey) (*enginefeaturesv1alpha1.SplitHorizonDNSConfig, error)
-	// GetSubscription returns OLM subscription that matches the criteria.
-	GetSubscription(ctx context.Context, key ctrlclient.ObjectKey) (*olmv1alpha1.Subscription, error)
-	// ListSubscriptions lists OLM subscriptions that match the criteria.
-	// This method returns a list of full objects (meta and spec).
-	ListSubscriptions(ctx context.Context, opts ...ctrlclient.ListOption) (*olmv1alpha1.SubscriptionList, error)
-	// DeleteSubscription deletes OLM subscription that matches the criteria.
-	DeleteSubscription(ctx context.Context, obj *olmv1alpha1.Subscription) error
 	// ListPods returns list of pods that match the criteria.
 	// This method returns a list of full objects (meta and spec).
 	ListPods(ctx context.Context, opts ...ctrlclient.ListOption) (*corev1.PodList, error)
