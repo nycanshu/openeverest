@@ -21,7 +21,7 @@ test.describe('Everest CLI install', async () => {
       await test.step(`verify namespace '${namespace}' is managed by Everest`, async () => {
         const out = await cli.exec(`kubectl get namespace ${namespace} -o jsonpath='{.metadata.labels.app\\.kubernetes\\.io/managed-by}'`);
 
-        await out.outContainsNormalizedMany(['everest']);
+        await out.outContainsNormalizedMany([namespace]);
       });
     },
 
@@ -29,7 +29,7 @@ test.describe('Everest CLI install', async () => {
       await test.step(`verify namespace '${namespace}' is not managed by Everest`, async () => {
         const out = await cli.exec(`kubectl get namespace ${namespace} -o jsonpath='{.metadata.labels.app\\.kubernetes\\.io/managed-by}'`);
 
-        await out.outNotContains(['everest']);
+        await out.outNotContains([namespace]);
       });
     },
 
@@ -65,18 +65,18 @@ test.describe('Everest CLI install', async () => {
       );
 
       await out.outErrContainsNormalizedMany([
-        '❌ everest is already installed',
+        `❌ 'everest': namespace already exists and is managed by Everest`,
       ]);
     });
 
     await test.step('create namespace', async () => {
       const out = await cli.everestExecNamespaces(
-        `add everest`,
+        `add neweverest`,
       );
 
       await out.assertSuccess();
       await out.outContainsNormalizedMany([
-        `✅ Provisioning namespace 'everest'`,
+        `✅ Provisioning namespace 'neweverest'`,
       ]);
     });
     await page.waitForTimeout(10_000);
@@ -85,30 +85,30 @@ test.describe('Everest CLI install', async () => {
 
     await test.step('create namespace again (fail)', async () => {
       const out = await cli.everestExecNamespaces(
-        `add everest`,
+        `add neweverest`,
       );
 
       await out.outErrContainsNormalizedMany([
-        `❌ 'everest': namespace already exists and is managed by Everest`,
+        `❌ 'neweverest': namespace already exists and is managed by Everest`,
       ]);
     });
 
     await test.step('remove namespace', async () => {
       let out = await cli.everestExecNamespaces(
-        `remove everest`,
+        `remove neweverest`,
       );
 
       await out.assertSuccess();
       await out.outContainsNormalizedMany([
-        `✅ Deleting database instances in namespace 'everest'`,
-        `✅ Deleting backup storages in namespace 'everest'`,
-        `✅ Deleting monitoring configs in namespace 'everest'`,
-        `✅ Deleting database namespace 'everest'`,
+        `✅ Deleting database instances in namespace 'neweverest'`,
+        `✅ Deleting backup storages in namespace 'neweverest'`,
+        `✅ Deleting monitoring configs in namespace 'neweverest'`,
+        `✅ Deleting database namespace 'neweverest'`,
       ]);
 
-      out = await cli.exec(`kubectl get namespace everest`);
+      out = await cli.exec(`kubectl get namespace neweverest`);
       await out.outErrContainsNormalizedMany([
-        'Error from server (NotFound): namespaces "everest" not found',
+        'Error from server (NotFound): namespaces "neweverest" not found',
       ]);
     });
     await page.waitForTimeout(10_000);
