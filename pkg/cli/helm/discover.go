@@ -22,53 +22,25 @@ import (
 	"helm.sh/helm/v3/pkg/release"
 )
 
-// DiscoverOpenEverestNamespace returns the namespace where OpenEverest is installed.
-// It scans all deployed Helm releases for the OpenEverest chart because the
-// namespace is user-chosen at install time and not stored in a fixed location.
-func DiscoverOpenEverestNamespace(kubeconfigPath string) (string, error) {
+// DiscoverNamespaces returns the system namespace where OpenEverest is
+// installed and the monitoring namespace. It lists Helm releases and
+// finds the OpenEverest release to determine the namespaces.
+func DiscoverNamespaces(kubeconfigPath string) (systemNS, monitoringNS string, err error) {
 	cfg, err := newActionsCfg("", kubeconfigPath)
 	if err != nil {
-		return "", fmt.Errorf("failed to create Helm configuration: %w", err)
+		return "", "", fmt.Errorf("failed to create Helm configuration: %w", err)
 	}
 
 	rel, err := findEverestRelease(cfg)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
-	return rel.Namespace, nil
-}
 
-// DiscoverMonitoringNamespace returns the namespace where OpenEverest monitoring stack
-// is installed. It reads monitoring.namespaceOverride from the deployed
-// OpenEverest Helm release, preferring user-supplied overrides over chart defaults.
-func DiscoverMonitoringNamespace(kubeconfigPath string) (string, error) {
-	cfg, err := newActionsCfg("", kubeconfigPath)
+	monitoringNS, err = monitoringNamespaceFromRelease(rel)
 	if err != nil {
-		return "", fmt.Errorf("failed to create Helm configuration: %w", err)
+		return "", "", err
 	}
-
-	return discoverMonitoringNamespace(cfg)
-}
-
-// discoverMonitoringNamespace reads monitoring.namespaceOverride from the
-// deployed OpenEverest Helm release. User-supplied config values take priority
-// over chart default values.
-func discoverMonitoringNamespace(cfg *action.Configuration) (string, error) {
-	rel, err := findEverestRelease(cfg)
-	if err != nil {
-		return "", err
-	}
-
-	// User-supplied overrides take priority over chart defaults.
-	for _, vals := range []map[string]interface{}{rel.Config, rel.Chart.Values} {
-		if monitoring, ok := vals["monitoring"].(map[string]interface{}); ok {
-			if ns, ok := monitoring["namespaceOverride"].(string); ok && ns != "" {
-				return ns, nil
-			}
-		}
-	}
-
-	return "", errors.New("monitoring.namespaceOverride not found in OpenEverest Helm release values")
+	return rel.Namespace, monitoringNS, nil
 }
 
 // findEverestRelease lists all deployed Helm releases and returns the one
@@ -90,4 +62,17 @@ func findEverestRelease(cfg *action.Configuration) (*release.Release, error) {
 	}
 
 	return nil, errors.New("no OpenEverest Helm release found; is OpenEverest installed?")
+}
+
+// monitoringNamespaceFromRelease extracts monitoring.namespaceOverride from a
+// release. User-supplied rel.Config overrides take priority over chart defaults.
+func monitoringNamespaceFromRelease(rel *release.Release) (string, error) {
+	for _, vals := range []map[string]interface{}{rel.Config, rel.Chart.Values} {
+		if monitoring, ok := vals["monitoring"].(map[string]interface{}); ok {
+			if ns, ok := monitoring["namespaceOverride"].(string); ok && ns != "" {
+				return ns, nil
+			}
+		}
+	}
+	return "", errors.New("monitoring.namespaceOverride not found in OpenEverest Helm release values")
 }

@@ -499,9 +499,9 @@ func trimWebhookErrorText(fullText string) string {
 }
 
 // createSessionManagerClient creates a k8s client for a session manager.
-func createSessionManagerClient(ctx context.Context, l *zap.SugaredLogger, namespace, monitoringNS string) (accounts.Interface, error) {
+func createSessionManagerClient(ctx context.Context, l *zap.SugaredLogger, namespace, monitoringNs string) (accounts.Interface, error) {
 	sessionMgrClientCacheOptions := session.ClientCacheOptions(namespace)
-	sessionMgrClient, err := kubernetes.NewInCluster(l, ctx, sessionMgrClientCacheOptions, namespace, monitoringNS)
+	sessionMgrClient, err := kubernetes.NewInCluster(l, ctx, sessionMgrClientCacheOptions, namespace, monitoringNs)
 	if err != nil {
 		return nil, err
 	}

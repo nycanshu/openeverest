@@ -89,90 +89,69 @@ func TestFindEverestRelease(t *testing.T) {
 	})
 }
 
-func TestDiscoverMonitoringNamespace(t *testing.T) {
+func TestMonitoringNamespaceFromRelease(t *testing.T) {
 	t.Parallel()
 
-	t.Run("reads from chart defaults", func(t *testing.T) {
+	t.Run("reads from user config", func(t *testing.T) {
 		t.Parallel()
-		cfg := newTestActionCfg(t, "everest-system")
-
-		storeRelease(t, cfg, &release.Release{
-			Name:      "everest",
-			Namespace: "everest-system",
-			Version:   1,
-			Info:      &release.Info{Status: release.StatusDeployed},
-			Chart: &chart.Chart{
-				Metadata: &chart.Metadata{Name: EverestChartName},
-			},
-			Config: map[string]interface{}{
-				"monitoring": map[string]interface{}{"namespaceOverride": "everest-monitoring"},
-			},
-		})
-
-		ns, err := discoverMonitoringNamespace(cfg)
+		rel := &release.Release{
+			Chart:  &chart.Chart{Metadata: &chart.Metadata{Name: EverestChartName}},
+			Config: map[string]interface{}{"monitoring": map[string]interface{}{"namespaceOverride": "everest-monitoring"}},
+		}
+		ns, err := monitoringNamespaceFromRelease(rel)
 		require.NoError(t, err)
 		assert.Equal(t, "everest-monitoring", ns)
 	})
 
-	t.Run("user override wins over chart default", func(t *testing.T) {
+	t.Run("user config wins over chart defaults", func(t *testing.T) {
 		t.Parallel()
-		cfg := newTestActionCfg(t, "everest-system")
-
-		storeRelease(t, cfg, &release.Release{
-			Name:      "everest",
-			Namespace: "everest-system",
-			Version:   1,
-			Info:      &release.Info{Status: release.StatusDeployed},
+		rel := &release.Release{
 			Chart: &chart.Chart{
 				Metadata: &chart.Metadata{Name: EverestChartName},
-				Values: map[string]interface{}{
-					"monitoring": map[string]interface{}{"namespaceOverride": "everest-monitoring"},
-				},
+				Values:   map[string]interface{}{"monitoring": map[string]interface{}{"namespaceOverride": "everest-monitoring"}},
 			},
-			Config: map[string]interface{}{
-				"monitoring": map[string]interface{}{"namespaceOverride": "custom-monitoring"},
-			},
-		})
-
-		ns, err := discoverMonitoringNamespace(cfg)
+			Config: map[string]interface{}{"monitoring": map[string]interface{}{"namespaceOverride": "custom-monitoring"}},
+		}
+		ns, err := monitoringNamespaceFromRelease(rel)
 		require.NoError(t, err)
 		assert.Equal(t, "custom-monitoring", ns)
 	})
 
-	t.Run("no matching release", func(t *testing.T) {
+	t.Run("falls back to chart defaults when config missing", func(t *testing.T) {
 		t.Parallel()
-		cfg := newTestActionCfg(t, "default")
-		storeRelease(t, cfg, &release.Release{
-			Name:      "other-app",
-			Namespace: "default",
-			Version:   1,
-			Info:      &release.Info{Status: release.StatusDeployed},
-			Chart:     &chart.Chart{Metadata: &chart.Metadata{Name: "other-chart"}},
-		})
-
-		_, err := discoverMonitoringNamespace(cfg)
-		require.Error(t, err)
-		assert.Contains(t, err.Error(), "no OpenEverest Helm release found")
-	})
-
-	t.Run("value missing from release", func(t *testing.T) {
-		t.Parallel()
-		cfg := newTestActionCfg(t, "everest-system")
-		storeRelease(t, cfg, &release.Release{
-			Name:      "everest",
-			Namespace: "everest-system",
-			Version:   1,
-			Info:      &release.Info{Status: release.StatusDeployed},
+		rel := &release.Release{
 			Chart: &chart.Chart{
 				Metadata: &chart.Metadata{Name: EverestChartName},
-				Values: map[string]interface{}{
-					"monitoring": map[string]interface{}{},
-				},
+				Values:   map[string]interface{}{"monitoring": map[string]interface{}{"namespaceOverride": "everest-monitoring"}},
 			},
 			Config: nil,
-		})
+		}
+		ns, err := monitoringNamespaceFromRelease(rel)
+		require.NoError(t, err)
+		assert.Equal(t, "everest-monitoring", ns)
+	})
 
-		_, err := discoverMonitoringNamespace(cfg)
+	t.Run("error when value missing from both config and chart defaults", func(t *testing.T) {
+		t.Parallel()
+		rel := &release.Release{
+			Chart: &chart.Chart{
+				Metadata: &chart.Metadata{Name: EverestChartName},
+				Values:   map[string]interface{}{"monitoring": map[string]interface{}{}},
+			},
+			Config: nil,
+		}
+		_, err := monitoringNamespaceFromRelease(rel)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "monitoring.namespaceOverride not found")
+	})
+
+	t.Run("error when monitoring key absent", func(t *testing.T) {
+		t.Parallel()
+		rel := &release.Release{
+			Chart:  &chart.Chart{Metadata: &chart.Metadata{Name: EverestChartName}, Values: map[string]interface{}{}},
+			Config: nil,
+		}
+		_, err := monitoringNamespaceFromRelease(rel)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "monitoring.namespaceOverride not found")
 	})

@@ -58,9 +58,9 @@ func init() {
 
 	// local command flags
 	installCmd.Flags().StringVar(&installCfg.Namespace, cli.FlagInstallSystemNamespace, "everest-system", "Namespace where OpenEverest system components will be installed")
-	installCmd.Flags().StringVar(&installCfg.MonitoringNamespace, cli.FlagMonitoringNamespace, "everest-monitoring", "Namespace where OpenEverest monitoring stack will be installed")
+	installCmd.Flags().StringVar(&installCfg.MonitoringNamespace, cli.FlagInstallMonitoringNamespace, "everest-monitoring", "Namespace where OpenEverest monitoring stack will be installed")
 	_ = installCmd.Flags().MarkHidden(cli.FlagInstallSystemNamespace)
-	_ = installCmd.Flags().MarkHidden(cli.FlagMonitoringNamespace)
+	_ = installCmd.Flags().MarkHidden(cli.FlagInstallMonitoringNamespace)
 	installCmd.Flags().StringVar(&namespacesToAdd, cli.FlagNamespaces, common.DefaultDBNamespaceName, "Comma-separated namespaces list Percona Everest can manage")
 	installCmd.Flags().BoolVar(&installCfg.NamespaceAddConfig.SkipWizard, cli.FlagSkipWizard, false, "Skip installation wizard")
 	installCmd.Flags().StringVar(&installCfg.VersionMetadataURL, cli.FlagVersionMetadataURL, "https://check.percona.com", "URL to retrieve version metadata information from")

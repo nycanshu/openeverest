@@ -100,17 +100,12 @@ func settingsRBACCanRun(cmd *cobra.Command, args []string) {
 			l = logger.GetLogger().With("component", "rbac")
 		}
 
-		ns, err := helm.DiscoverOpenEverestNamespace(rbacCanKubeconfigPath)
+		ns, monitoringNs, err := helm.DiscoverNamespaces(rbacCanKubeconfigPath)
 		if err != nil {
 			output.PrintError(err, logger.GetLogger(), rbacCanPretty)
 			os.Exit(1)
 		}
-		monitoringNS, err := helm.DiscoverMonitoringNamespace(rbacCanKubeconfigPath)
-		if err != nil {
-			output.PrintError(err, logger.GetLogger(), rbacCanPretty)
-			os.Exit(1)
-		}
-		client, err := kubernetes.New(rbacCanKubeconfigPath, l, ns, monitoringNS)
+		client, err := kubernetes.New(rbacCanKubeconfigPath, l, ns, monitoringNs)
 		if err != nil {
 			output.PrintError(err, logger.GetLogger(), rbacCanPretty)
 			os.Exit(1)

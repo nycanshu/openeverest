@@ -78,14 +78,9 @@ func CheckHelmInstallation(ctx context.Context, kubeConnector kubernetes.Kuberne
 // NewKubeConnector creates a new Kubernetes client.
 // It auto-discovers the namespace OpenEverest is installed from the Helm release.
 func NewKubeConnector(l *zap.SugaredLogger, kubeconfigPath string) (kubernetes.KubernetesConnector, error) {
-	namespace, err := helm.DiscoverOpenEverestNamespace(kubeconfigPath)
+	namespace, monitoringNS, err := helm.DiscoverNamespaces(kubeconfigPath)
 	if err != nil {
-		return nil, fmt.Errorf("could not discover OpenEverest namespace: %w", err)
-	}
-
-	monitoringNS, err := helm.DiscoverMonitoringNamespace(kubeconfigPath)
-	if err != nil {
-		return nil, fmt.Errorf("could not discover monitoring namespace: %w", err)
+		return nil, fmt.Errorf("could not discover OpenEverest namespaces: %w", err)
 	}
 
 	k, err := kubernetes.New(kubeconfigPath, l, namespace, monitoringNS)
