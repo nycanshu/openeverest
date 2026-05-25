@@ -38,7 +38,7 @@ import (
 
 // getSkipNamespaces returns a list of namespaces that cannot be added to Everest management.
 // It contains Kubernetes system, reserved by Everest core and cloud providers specific namespaces.
-func getSkipNamespaces(systemNamespace string) []string {
+func getSkipNamespaces(systemNamespace, monitoringNamespace string) []string {
 	return []string{
 		// Kubernetes native system namespaces.
 		"kube-system",
@@ -47,7 +47,7 @@ func getSkipNamespaces(systemNamespace string) []string {
 
 		// Everest core namespaces.
 		systemNamespace,
-		common.MonitoringNamespace,
+		monitoringNamespace,
 		kubernetes.OLMNamespace,
 
 		// GKE namespaces.
@@ -128,7 +128,7 @@ func (nsL *NamespaceLister) Run(ctx context.Context) ([]NamespaceInfo, error) {
 	}
 
 	// filter out namespaces that are listed in skipNamespaces and non-active namespaces.
-	skip := getSkipNamespaces(nsL.kubeClient.Namespace())
+	skip := getSkipNamespaces(nsL.kubeClient.Namespace(), nsL.kubeClient.MonitoringNamespace())
 	nsList.Items = slices.DeleteFunc(nsList.Items, func(ns corev1.Namespace) bool {
 		return slices.Contains(skip, ns.Name)
 	})

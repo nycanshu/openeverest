@@ -191,7 +191,7 @@ func TestUpgrade_canUpgrade(t *testing.T) {
 
 			mockClient := fakeclient.NewClientBuilder().
 				WithScheme(kubernetes.CreateScheme())
-			k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns").WithKubernetesClient(mockClient.Build())
+			k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns", "monitoring-ns").WithKubernetesClient(mockClient.Build())
 
 			u := &Upgrade{
 				l: zap.NewNop().Sugar(),

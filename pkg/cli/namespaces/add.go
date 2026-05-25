@@ -60,6 +60,8 @@ type (
 		// SystemNamespace is the namespace where OpenEverest is installed.
 		// Required during install (when Helm discovery is not available).
 		SystemNamespace string
+		// MonitoringNamespace is the namespace where OpenEverest monitoring stack is installed.
+		MonitoringNamespace string
 		// DisableTelemetry is set if telemetry should be disabled.
 		DisableTelemetry bool
 		// TakeOwnership make an existing namespace managed by Everest.
@@ -188,20 +190,21 @@ func (cfg *NamespaceAddConfig) PopulateOperators(ctx context.Context) error {
 func (cfg *NamespaceAddConfig) ValidateNamespaces(ctx context.Context, nsList []string) error {
 	var k kubernetes.KubernetesConnector
 	var err error
-	// SystemNamespace is set upon `everestctl install --system-namespace`.
-	// During install, no Helm release exists yet, so we cannot discover the
-	// namespace and must pass the flag value directly.
 	if cfg.Update {
 		k, err = cliutils.NewKubeConnector(zap.NewNop().Sugar(), cfg.KubeconfigPath)
 	} else {
-		k, err = kubernetes.New(cfg.KubeconfigPath, zap.NewNop().Sugar(), cfg.SystemNamespace)
+		// SystemNamespace and MonitoringNamespace are set upon
+		// `everestctl install --system-namespace <ns> --monitoring-namespace <monitoring-ns>`.
+		// During install, no Helm release exists yet, so we cannot discover the
+		// namespace and must pass the flag value directly.
+		k, err = kubernetes.New(cfg.KubeconfigPath, zap.NewNop().Sugar(), cfg.SystemNamespace, cfg.MonitoringNamespace)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	if err := validateNamespaceNames(nsList, k.Namespace()); err != nil {
+	if err := validateNamespaceNames(nsList, k.Namespace(), k.MonitoringNamespace()); err != nil {
 		return err
 	}
 
@@ -297,13 +300,15 @@ func NewNamespaceAdd(c NamespaceAddConfig, l *zap.SugaredLogger) (*NamespaceAdde
 
 	var k kubernetes.KubernetesConnector
 	var err error
-	// SystemNamespace is set upon `everestctl install --system-namespace`.
-	// During install, no Helm release exists yet, so we cannot discover the
-	// namespace and must pass the flag value directly.
-	if c.SystemNamespace != "" {
-		k, err = kubernetes.New(c.KubeconfigPath, n.l, c.SystemNamespace)
-	} else {
+
+	if c.Update {
 		k, err = cliutils.NewKubeConnector(n.l, c.KubeconfigPath)
+	} else {
+		// SystemNamespace and MonitoringNamespace are set upon
+		// `everestctl install --system-namespace <ns> --monitoring-namespace <monitoring-ns>`.
+		// During install, no Helm release exists yet, so we cannot discover the
+		// namespace and must pass the flag value directly.
+		k, err = kubernetes.New(c.KubeconfigPath, n.l, c.SystemNamespace, c.MonitoringNamespace)
 	}
 
 	if err != nil {

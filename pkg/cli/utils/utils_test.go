@@ -65,7 +65,7 @@ func TestCheckHelmInstallation(t *testing.T) {
 		mockClient := fakeclient.NewClientBuilder().
 			WithScheme(kubernetes.CreateScheme()).
 			WithObjects(tc.getDpFunc(tc.everestVersion))
-		k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns").WithKubernetesClient(mockClient.Build())
+		k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns", "monitoring-ns").WithKubernetesClient(mockClient.Build())
 
 		v, err := CheckHelmInstallation(ctx, k)
 		if tc.wantErr {

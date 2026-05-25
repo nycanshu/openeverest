@@ -58,7 +58,9 @@ func init() {
 
 	// local command flags
 	installCmd.Flags().StringVar(&installCfg.Namespace, cli.FlagInstallSystemNamespace, "everest-system", "Namespace where OpenEverest system components will be installed")
+	installCmd.Flags().StringVar(&installCfg.MonitoringNamespace, cli.FlagMonitoringNamespace, "everest-monitoring", "Namespace where OpenEverest monitoring stack will be installed")
 	_ = installCmd.Flags().MarkHidden(cli.FlagInstallSystemNamespace)
+	_ = installCmd.Flags().MarkHidden(cli.FlagMonitoringNamespace)
 	installCmd.Flags().StringVar(&namespacesToAdd, cli.FlagNamespaces, common.DefaultDBNamespaceName, "Comma-separated namespaces list Percona Everest can manage")
 	installCmd.Flags().BoolVar(&installCfg.NamespaceAddConfig.SkipWizard, cli.FlagSkipWizard, false, "Skip installation wizard")
 	installCmd.Flags().StringVar(&installCfg.VersionMetadataURL, cli.FlagVersionMetadataURL, "https://check.percona.com", "URL to retrieve version metadata information from")
@@ -94,7 +96,7 @@ func installPreRun(cmd *cobra.Command, _ []string) { //nolint:revive
 	installCfg.NamespaceAddConfig.SystemNamespace = installCfg.Namespace
 
 	// Check if Everest is already installed.
-	if err := install.CheckEverestAlreadyInstalled(cmd.Context(), logger.GetLogger(), installCfg.KubeconfigPath, installCfg.Namespace); err != nil {
+	if err := install.CheckEverestAlreadyInstalled(cmd.Context(), logger.GetLogger(), installCfg.KubeconfigPath, installCfg.Namespace, installCfg.MonitoringNamespace); err != nil {
 		output.PrintError(err, logger.GetLogger(), installCfg.Pretty)
 		os.Exit(1)
 	}

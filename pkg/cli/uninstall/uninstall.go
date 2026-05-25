@@ -32,7 +32,6 @@ import (
 	"github.com/openeverest/openeverest/v2/pkg/cli/steps"
 	"github.com/openeverest/openeverest/v2/pkg/cli/tui"
 	cliutils "github.com/openeverest/openeverest/v2/pkg/cli/utils"
-	"github.com/openeverest/openeverest/v2/pkg/common"
 	"github.com/openeverest/openeverest/v2/pkg/kubernetes"
 )
 
@@ -163,7 +162,7 @@ func (u *Uninstall) newUninstallSteps(nsList *corev1.NamespaceList) []steps.Step
 	}
 
 	uninstallSteps = append(uninstallSteps, u.newStepUninstallHelmChart())
-	uninstallSteps = append(uninstallSteps, u.newStepDeleteNamespace(common.MonitoringNamespace))
+	uninstallSteps = append(uninstallSteps, u.newStepDeleteNamespace(u.kubeConnector.MonitoringNamespace()))
 	uninstallSteps = append(uninstallSteps, u.newStepDeleteNamespace(u.kubeConnector.Namespace()))
 	uninstallSteps = append(uninstallSteps, u.newStepDeleteCRDs())
 	return uninstallSteps

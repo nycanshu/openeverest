@@ -44,7 +44,7 @@ func storeRelease(t *testing.T, cfg *action.Configuration, rel *release.Release)
 	require.NoError(t, cfg.Releases.Create(rel))
 }
 
-func TestDiscoverOpenEverestNamespace(t *testing.T) {
+func TestFindEverestRelease(t *testing.T) {
 	t.Parallel()
 
 	t.Run("finds everest release", func(t *testing.T) {
@@ -58,9 +58,9 @@ func TestDiscoverOpenEverestNamespace(t *testing.T) {
 			Chart:     &chart.Chart{Metadata: &chart.Metadata{Name: EverestChartName}},
 		})
 
-		ns, err := discoverOpenEverestNamespace(cfg)
+		rel, err := findEverestRelease(cfg)
 		require.NoError(t, err)
-		assert.Equal(t, "custom-everest", ns)
+		assert.Equal(t, "custom-everest", rel.Namespace)
 	})
 
 	t.Run("no matching release", func(t *testing.T) {
@@ -74,7 +74,7 @@ func TestDiscoverOpenEverestNamespace(t *testing.T) {
 			Chart:     &chart.Chart{Metadata: &chart.Metadata{Name: "other-chart"}},
 		})
 
-		_, err := discoverOpenEverestNamespace(cfg)
+		_, err := findEverestRelease(cfg)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "no OpenEverest Helm release found")
 	})
@@ -83,8 +83,97 @@ func TestDiscoverOpenEverestNamespace(t *testing.T) {
 		t.Parallel()
 		cfg := newTestActionCfg(t, "")
 
-		_, err := discoverOpenEverestNamespace(cfg)
+		_, err := findEverestRelease(cfg)
 		require.Error(t, err)
 		assert.Contains(t, err.Error(), "no OpenEverest Helm release found")
+	})
+}
+
+func TestDiscoverMonitoringNamespace(t *testing.T) {
+	t.Parallel()
+
+	t.Run("reads from chart defaults", func(t *testing.T) {
+		t.Parallel()
+		cfg := newTestActionCfg(t, "everest-system")
+
+		storeRelease(t, cfg, &release.Release{
+			Name:      "everest",
+			Namespace: "everest-system",
+			Version:   1,
+			Info:      &release.Info{Status: release.StatusDeployed},
+			Chart: &chart.Chart{
+				Metadata: &chart.Metadata{Name: EverestChartName},
+			},
+			Config: map[string]interface{}{
+				"monitoring": map[string]interface{}{"namespaceOverride": "everest-monitoring"},
+			},
+		})
+
+		ns, err := discoverMonitoringNamespace(cfg)
+		require.NoError(t, err)
+		assert.Equal(t, "everest-monitoring", ns)
+	})
+
+	t.Run("user override wins over chart default", func(t *testing.T) {
+		t.Parallel()
+		cfg := newTestActionCfg(t, "everest-system")
+
+		storeRelease(t, cfg, &release.Release{
+			Name:      "everest",
+			Namespace: "everest-system",
+			Version:   1,
+			Info:      &release.Info{Status: release.StatusDeployed},
+			Chart: &chart.Chart{
+				Metadata: &chart.Metadata{Name: EverestChartName},
+				Values: map[string]interface{}{
+					"monitoring": map[string]interface{}{"namespaceOverride": "everest-monitoring"},
+				},
+			},
+			Config: map[string]interface{}{
+				"monitoring": map[string]interface{}{"namespaceOverride": "custom-monitoring"},
+			},
+		})
+
+		ns, err := discoverMonitoringNamespace(cfg)
+		require.NoError(t, err)
+		assert.Equal(t, "custom-monitoring", ns)
+	})
+
+	t.Run("no matching release", func(t *testing.T) {
+		t.Parallel()
+		cfg := newTestActionCfg(t, "default")
+		storeRelease(t, cfg, &release.Release{
+			Name:      "other-app",
+			Namespace: "default",
+			Version:   1,
+			Info:      &release.Info{Status: release.StatusDeployed},
+			Chart:     &chart.Chart{Metadata: &chart.Metadata{Name: "other-chart"}},
+		})
+
+		_, err := discoverMonitoringNamespace(cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "no OpenEverest Helm release found")
+	})
+
+	t.Run("value missing from release", func(t *testing.T) {
+		t.Parallel()
+		cfg := newTestActionCfg(t, "everest-system")
+		storeRelease(t, cfg, &release.Release{
+			Name:      "everest",
+			Namespace: "everest-system",
+			Version:   1,
+			Info:      &release.Info{Status: release.StatusDeployed},
+			Chart: &chart.Chart{
+				Metadata: &chart.Metadata{Name: EverestChartName},
+				Values: map[string]interface{}{
+					"monitoring": map[string]interface{}{},
+				},
+			},
+			Config: nil,
+		})
+
+		_, err := discoverMonitoringNamespace(cfg)
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "monitoring.namespaceOverride not found")
 	})
 }

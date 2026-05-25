@@ -106,7 +106,7 @@ func newTestEnforcer(t *testing.T, policy string) *rbacTestEnforcer {
 	mockClient := fakeclient.NewClientBuilder().
 		WithScheme(kubernetes.CreateScheme()).
 		WithObjects(cm)
-	k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns").WithKubernetesClient(mockClient.Build())
+	k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns", "monitoring-ns").WithKubernetesClient(mockClient.Build())
 	enf, err := NewEnforcer(context.Background(), k, zap.NewNop().Sugar())
 	require.NoError(t, err)
 	return &rbacTestEnforcer{enf: enf, t: t}

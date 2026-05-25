@@ -77,7 +77,7 @@ func (cfg *NamespaceRemoveConfig) ValidateNamespaces(ctx context.Context, nsList
 		return err
 	}
 
-	if err := validateNamespaceNames(nsList, k.Namespace()); err != nil {
+	if err := validateNamespaceNames(nsList, k.Namespace(), k.MonitoringNamespace()); err != nil {
 		return err
 	}
 

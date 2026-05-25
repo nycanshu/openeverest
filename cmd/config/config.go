@@ -64,6 +64,9 @@ type EverestConfig struct {
 	// Namespace is the namespace where OpenEverest is installed.
 	// Must be provided via the NAMESPACE env var (set by the Helm chart).
 	Namespace string `envconfig:"NAMESPACE" required:"true"`
+	// MonitoringNamespace is the namespace where OpenEverest monitoring stack is installed.
+	// Must be provided via the MONITORING_NAMESPACE env var (set by the Helm chart).
+	MonitoringNamespace string `envconfig:"MONITORING_NAMESPACE" required:"true"`
 }
 
 // ParseConfig parses env vars and fills EverestConfig.

@@ -82,7 +82,13 @@ func NewKubeConnector(l *zap.SugaredLogger, kubeconfigPath string) (kubernetes.K
 	if err != nil {
 		return nil, fmt.Errorf("could not discover OpenEverest namespace: %w", err)
 	}
-	k, err := kubernetes.New(kubeconfigPath, l, namespace)
+
+	monitoringNS, err := helm.DiscoverMonitoringNamespace(kubeconfigPath)
+	if err != nil {
+		return nil, fmt.Errorf("could not discover monitoring namespace: %w", err)
+	}
+
+	k, err := kubernetes.New(kubeconfigPath, l, namespace, monitoringNS)
 	if err != nil {
 		var u *url.Error
 		if errors.As(err, &u) {

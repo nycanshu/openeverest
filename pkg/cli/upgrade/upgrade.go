@@ -54,7 +54,8 @@ const (
 // namespace OpenEverest is installed in to build a Kubernetes client.
 // The Helm chart injects NAMESPACE via the Kubernetes downward API.
 type inClusterConfig struct {
-	Namespace string `envconfig:"NAMESPACE" required:"true"`
+	Namespace           string `envconfig:"NAMESPACE" required:"true"`
+	MonitoringNamespace string `envconfig:"MONITORING_NAMESPACE" required:"true"`
 }
 
 type (
@@ -126,7 +127,7 @@ func NewUpgrade(cfg *Config, l *zap.SugaredLogger) (*Upgrade, error) {
 		if err := envconfig.Process("", &ic); err != nil {
 			return nil, fmt.Errorf("could not read in-cluster config: %w", err)
 		}
-		k, err := kubernetes.NewInCluster(cli.l, nil, nil, ic.Namespace)
+		k, err := kubernetes.NewInCluster(cli.l, nil, nil, ic.Namespace, ic.MonitoringNamespace)
 		if err != nil {
 			return nil, fmt.Errorf("could not create in-cluster kubernetes client: %w", err)
 		}

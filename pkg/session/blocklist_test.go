@@ -196,7 +196,7 @@ func TestBlocklist_Block(t *testing.T) {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
 			mockClient := fakeclient.NewClientBuilder().WithScheme(kubernetes.CreateScheme())
-			k := kubernetes.NewEmpty(l, "test-ns").WithKubernetesClient(mockClient.Build())
+			k := kubernetes.NewEmpty(l, "test-ns", "monitoring-ns").WithKubernetesClient(mockClient.Build())
 
 			// check there is no blocklist secret before the blocklist creation
 			secret, err := k.GetSecret(ctx, ctrlclient.ObjectKey{
@@ -412,7 +412,7 @@ func TestBlocklist_IsBlocked(t *testing.T) {
 			t.Parallel()
 			mockClient := fakeclient.NewClientBuilder().WithScheme(kubernetes.CreateScheme())
 			mockClient.WithObjects(tc.objs...)
-			k := kubernetes.NewEmpty(l, "test-ns").WithKubernetesClient(mockClient.Build())
+			k := kubernetes.NewEmpty(l, "test-ns", "monitoring-ns").WithKubernetesClient(mockClient.Build())
 
 			b, err := mockNewBlocklist(ctx, l, k)
 			assert.NoError(t, err)

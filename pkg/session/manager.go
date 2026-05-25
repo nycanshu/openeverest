@@ -60,8 +60,7 @@ type Manager struct {
 	accountManager accounts.Interface
 	signingKey     *rsa.PrivateKey
 	Blocklist
-	l         *zap.SugaredLogger
-	namespace string
+	l *zap.SugaredLogger
 }
 
 // Option is a function that modifies a SessionManager.
@@ -101,8 +100,8 @@ func (mgr *Manager) IsBlocked(ctx context.Context, token *jwt.Token) (bool, erro
 }
 
 // New creates a new session manager with the given options.
-func New(ctx context.Context, l *zap.SugaredLogger, namespace string, options ...Option) (*Manager, error) {
-	m := &Manager{namespace: namespace}
+func New(ctx context.Context, l *zap.SugaredLogger, namespace, monitoringNS string, options ...Option) (*Manager, error) {
+	m := &Manager{}
 	for _, opt := range options {
 		opt(m)
 	}
@@ -114,7 +113,7 @@ func New(ctx context.Context, l *zap.SugaredLogger, namespace string, options ..
 	m.signingKey = privKey
 	m.l = l
 
-	blockList, err := NewBlocklist(ctx, l, m.namespace)
+	blockList, err := NewBlocklist(ctx, l, namespace, monitoringNS)
 	if err != nil {
 		return nil, errors.Join(err, errors.New("failed to configure tokens blocklist"))
 	}

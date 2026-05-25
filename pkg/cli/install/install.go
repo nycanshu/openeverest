@@ -59,6 +59,8 @@ type (
 		KubeconfigPath string
 		// Namespace is the namespace where OpenEverest will be installed.
 		Namespace string
+		// MonitoringNamespace is the namespace where OpenEverest monitoring stack is installed.
+		MonitoringNamespace string
 		// VersionMetadataURL Version service URL to retrieve version metadata information from.
 		VersionMetadataURL string
 		// Version defines Everest version to be installed. If empty, the latest version is installed.
@@ -111,7 +113,7 @@ func (cfg *InstallConfig) detectKubernetesEnv(ctx context.Context, l *zap.Sugare
 		return nil
 	}
 
-	kubeClient, err := kubernetes.New(cfg.KubeconfigPath, l, cfg.Namespace)
+	kubeClient, err := kubernetes.New(cfg.KubeconfigPath, l, cfg.Namespace, cfg.MonitoringNamespace)
 	if err != nil {
 		return fmt.Errorf("failed to create kubernetes client: %w", err)
 	}
@@ -147,10 +149,11 @@ func NewInstall(c InstallConfig, l *zap.SugaredLogger) (*Installer, error) {
 	c.NamespaceAddConfig.DisableTelemetry = c.DisableTelemetry
 	c.NamespaceAddConfig.SkipEnvDetection = c.SkipEnvDetection
 	c.NamespaceAddConfig.SystemNamespace = c.Namespace
+	c.NamespaceAddConfig.MonitoringNamespace = c.MonitoringNamespace
 	cli.cfg = c
 
 	var err error
-	cli.kubeClient, err = kubernetes.New(c.KubeconfigPath, cli.l, c.Namespace)
+	cli.kubeClient, err = kubernetes.New(c.KubeconfigPath, cli.l, c.Namespace, c.MonitoringNamespace)
 	if err != nil {
 		return nil, err
 	}
@@ -396,8 +399,8 @@ func (o *Installer) namespaceExists(ctx context.Context, namespace string) (bool
 }
 
 // CheckEverestAlreadyInstalled checks if Everest is already installed.
-func CheckEverestAlreadyInstalled(ctx context.Context, l *zap.SugaredLogger, kubeConfig, namespace string) error {
-	kubeClient, err := kubernetes.New(kubeConfig, l, namespace)
+func CheckEverestAlreadyInstalled(ctx context.Context, l *zap.SugaredLogger, kubeConfig, namespace, monitoringNs string) error {
+	kubeClient, err := kubernetes.New(kubeConfig, l, namespace, monitoringNs)
 	if err != nil {
 		return fmt.Errorf("failed to create kubernetes client: %w", err)
 	}

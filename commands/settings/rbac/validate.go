@@ -74,7 +74,12 @@ func settingsRBACValidateRun(cmd *cobra.Command, _ []string) {
 			logger.GetLogger().Error(err)
 			os.Exit(1)
 		}
-		client, err := kubernetes.New(rbacValidateKubeconfigPath, l, ns)
+		monitoringNS, err := helm.DiscoverMonitoringNamespace(rbacValidateKubeconfigPath)
+		if err != nil {
+			logger.GetLogger().Error(err)
+			os.Exit(1)
+		}
+		client, err := kubernetes.New(rbacValidateKubeconfigPath, l, ns, monitoringNS)
 		if err != nil {
 			logger.GetLogger().Error(err)
 			os.Exit(1)

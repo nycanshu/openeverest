@@ -105,7 +105,12 @@ func settingsRBACCanRun(cmd *cobra.Command, args []string) {
 			output.PrintError(err, logger.GetLogger(), rbacCanPretty)
 			os.Exit(1)
 		}
-		client, err := kubernetes.New(rbacCanKubeconfigPath, l, ns)
+		monitoringNS, err := helm.DiscoverMonitoringNamespace(rbacCanKubeconfigPath)
+		if err != nil {
+			output.PrintError(err, logger.GetLogger(), rbacCanPretty)
+			os.Exit(1)
+		}
+		client, err := kubernetes.New(rbacCanKubeconfigPath, l, ns, monitoringNS)
 		if err != nil {
 			output.PrintError(err, logger.GetLogger(), rbacCanPretty)
 			os.Exit(1)

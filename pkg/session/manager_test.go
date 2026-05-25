@@ -233,7 +233,7 @@ func mockManager(ctx context.Context, usersFile, blocklistContent string) (*Mana
 	mockClient := fakeclient.NewClientBuilder().WithScheme(kubernetes.CreateScheme())
 	mockClient.WithObjects(objs...)
 
-	k := kubernetes.NewEmpty(l, "test-ns").WithKubernetesClient(mockClient.Build())
+	k := kubernetes.NewEmpty(l, "test-ns", "monitoring-ns").WithKubernetesClient(mockClient.Build())
 
 	bl, err := mockNewBlocklist(ctx, l, k)
 	if err != nil {

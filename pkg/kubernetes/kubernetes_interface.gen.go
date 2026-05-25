@@ -183,6 +183,8 @@ type KubernetesConnector interface {
 	WithKubernetesClient(c ctrlclient.Client) *Kubernetes
 	// Namespace returns the namespace OpenEverest is installed.
 	Namespace() string
+	// MonitoringNamespace returns the namespace where OpenEverest monitoring stack is installed.
+	MonitoringNamespace() string
 	// GetEverestID returns the ID of the namespace where everest is deployed.
 	GetEverestID(ctx context.Context) (string, error)
 	// GetClusterType tries to guess the underlying kubernetes cluster based on storage class.

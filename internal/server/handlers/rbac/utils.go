@@ -46,7 +46,7 @@ func newConfigMapMock(policy string) kubernetes.KubernetesConnector {
 	mockClient := fakeclient.NewClientBuilder().
 		WithScheme(kubernetes.CreateScheme()).
 		WithObjects(newConfigMapPolicy(policy))
-	return kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns").WithKubernetesClient(mockClient.Build())
+	return kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns", "monitoring-ns").WithKubernetesClient(mockClient.Build())
 }
 
 func newPolicy(lines ...string) string {

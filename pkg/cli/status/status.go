@@ -189,7 +189,7 @@ func (s *Status) checkMonitoringComponents(ctx context.Context, result *OverallS
 	}
 
 	for _, name := range monitoringDeployments {
-		cs := s.checkDeployment(ctx, name, common.MonitoringNamespace)
+		cs := s.checkDeployment(ctx, name, s.kubeClient.MonitoringNamespace())
 		result.Components = append(result.Components, cs)
 		if !cs.Ready {
 			result.Healthy = false

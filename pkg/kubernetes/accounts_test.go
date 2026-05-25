@@ -46,6 +46,6 @@ func TestAccounts(t *testing.T) {
 
 	mockClient := fakeclient.NewClientBuilder().WithScheme(CreateScheme())
 	mockClient.WithObjects(objs...)
-	k := NewEmpty(zap.NewNop().Sugar(), "test-ns").WithKubernetesClient(mockClient.Build())
+	k := NewEmpty(zap.NewNop().Sugar(), "test-ns", "monitoring-ns").WithKubernetesClient(mockClient.Build())
 	accounts.Tests(t, k.Accounts())
 }

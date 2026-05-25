@@ -194,7 +194,7 @@ func TestCheckDeployment(t *testing.T) {
 				builder = builder.WithObjects(&tc.objects[i])
 			}
 
-			k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns").
+			k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns", "monitoring-ns").
 				WithKubernetesClient(builder.Build())
 
 			s := &Status{
@@ -269,7 +269,7 @@ func TestCheckCoreComponents(t *testing.T) {
 				builder = builder.WithObjects(obj)
 			}
 
-			k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns").
+			k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns", "monitoring-ns").
 				WithKubernetesClient(builder.Build())
 
 			s := &Status{
@@ -320,7 +320,7 @@ func TestGetManagedNamespaces(t *testing.T) {
 				// Monitoring namespace should be filtered out.
 				{
 					ObjectMeta: metav1.ObjectMeta{
-						Name:   common.MonitoringNamespace,
+						Name:   "monitoring-ns",
 						Labels: map[string]string{common.KubernetesManagedByLabel: common.Everest},
 					},
 				},
@@ -344,7 +344,7 @@ func TestGetManagedNamespaces(t *testing.T) {
 				builder = builder.WithObjects(ns)
 			}
 
-			k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns").
+			k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns", "monitoring-ns").
 				WithKubernetesClient(builder.Build())
 
 			s := &Status{
@@ -411,7 +411,7 @@ func TestRun_Healthy(t *testing.T) {
 			&appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       common.VictoriaMetricsOperatorDeploymentName,
-					Namespace:  common.MonitoringNamespace,
+					Namespace:  "everest-monitoring",
 					Generation: 1,
 				},
 				Status: appsv1.DeploymentStatus{
@@ -424,7 +424,7 @@ func TestRun_Healthy(t *testing.T) {
 			&appsv1.Deployment{
 				ObjectMeta: metav1.ObjectMeta{
 					Name:       common.KubeStateMetricsDeploymentName,
-					Namespace:  common.MonitoringNamespace,
+					Namespace:  "everest-monitoring",
 					Generation: 1,
 				},
 				Status: appsv1.DeploymentStatus{
@@ -443,7 +443,7 @@ func TestRun_Healthy(t *testing.T) {
 			},
 		)
 
-	k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns").
+	k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns", "monitoring-ns").
 		WithKubernetesClient(builder.Build())
 
 	s := &Status{
@@ -493,7 +493,7 @@ func TestRun_Unhealthy(t *testing.T) {
 			// everest-operator is MISSING - should cause unhealthy status
 		)
 
-	k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns").
+	k := kubernetes.NewEmpty(zap.NewNop().Sugar(), "test-ns", "monitoring-ns").
 		WithKubernetesClient(builder.Build())
 
 	s := &Status{

@@ -64,8 +64,8 @@ func TestParseNamespaceNames(t *testing.T) {
 		},
 		{
 			name:   "reserved monitoring ns",
-			input:  "everest-monitoring",
-			output: []string{"everest-monitoring"},
+			input:  "monitoring-ns",
+			output: []string{"monitoring-ns"},
 		},
 		{
 			name:   "reserved olm ns",
@@ -145,8 +145,8 @@ func TestValidateNamespaces(t *testing.T) {
 		},
 		{
 			name:  "reserved monitoring ns",
-			input: []string{"everest-monitoring"},
-			error: ErrNamespaceReserved("everest-monitoring"),
+			input: []string{"monitoring-ns"},
+			error: ErrNamespaceReserved("monitoring-ns"),
 		},
 		{
 			name:  "reserved olm ns",
@@ -178,7 +178,7 @@ func TestValidateNamespaces(t *testing.T) {
 	for _, tc := range tcases {
 		t.Run(tc.name, func(t *testing.T) {
 			t.Parallel()
-			err := validateNamespaceNames(tc.input, "test-ns")
+			err := validateNamespaceNames(tc.input, "test-ns", "monitoring-ns")
 			assert.Equal(t, tc.error, err)
 			// assert.ElementsMatch(t, tc.output, output)
 		})
