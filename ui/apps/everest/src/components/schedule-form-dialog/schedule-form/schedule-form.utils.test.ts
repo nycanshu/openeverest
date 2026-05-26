@@ -40,6 +40,7 @@ const makeFormData = (
   overrides: Partial<ScheduleFormData> = {}
 ): ScheduleFormData => ({
   scheduleName: 'new-schedule',
+  backupClassName: 'percona-backup-mongodb',
   storageLocation: { metadata: { name: 'storage-b' } },
   retentionCopies: '5',
   selectedTime: TimeValue.days,

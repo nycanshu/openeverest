@@ -34,10 +34,11 @@ export const BackupActionButtons = (
   instanceName: string,
   // TODO: v2 restore feature — uncomment when ready
   // blockActions: boolean,
-  handleDeleteBackup: (backupName: string) => void
+  handleDeleteBackup: (backupName: string) => void,
   // handleRestoreBackup: (backupName: string) => void,
   // handleRestoreToNewDbBackup: (backupName: string) => void,
   // dbCluster: DbCluster
+  isDeleting = false
 ) => {
   const backupName = row.original.metadata?.name ?? '';
 
@@ -82,7 +83,10 @@ export const BackupActionButtons = (
       ? [
           <MenuItem
             key="delete"
-            disabled={getBackupState(row.original) === BackupStatus.DELETING || isDeleting}
+            disabled={
+              getBackupState(row.original) === BackupStatus.DELETING ||
+              isDeleting
+            }
             onClick={() => handleDeleteBackup(backupName)}
             sx={{ m: 0, gap: 1, px: 2, py: '10px' }}
           >

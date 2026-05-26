@@ -1,5 +1,6 @@
 // everest
 // Copyright (C) 2023 Percona LLC
+// Copyright (C) 2026 The OpenEverest Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -36,7 +37,8 @@ export const Messages = {
   backupClass: {
     label: 'Backup class',
     required: 'Please select a backup class',
-    disabledHelperText: 'Backup class is shared across all schedules for this instance.',
+    disabledHelperText:
+      'Backup class is shared across all schedules for this instance.',
   },
   sameTimeSchedule:
     'A schedule with the same time selection already exists. Set a different time to create a new one.',

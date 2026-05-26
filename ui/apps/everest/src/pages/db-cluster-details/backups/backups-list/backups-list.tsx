@@ -27,7 +27,11 @@ import {
 import { MRT_ColumnDef } from 'material-react-table';
 import { useContext, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Backup, BackupList, BackupStatus } from 'shared-types/backups.types.ts';
+import {
+  Backup,
+  BackupList,
+  BackupStatus,
+} from 'shared-types/backups.types.ts';
 import { WizardMode } from 'shared-types/wizard.types';
 import { ScheduleModalContext } from '../backups.context.ts';
 import { BACKUP_STATUS_TO_BASE_STATUS } from './backups-list.constants';
@@ -88,7 +92,10 @@ export const BackupsList = () => {
                       b.metadata?.name === backupName
                         ? {
                             ...b,
-                            status: { ...b.status, state: BackupStatus.DELETING },
+                            status: {
+                              ...b.status,
+                              state: BackupStatus.DELETING,
+                            },
                           }
                         : b
                     ),
@@ -117,13 +124,16 @@ export const BackupsList = () => {
               ...instance,
               spec: {
                 ...instance.spec,
-                backup: remainingStorages.length > 0
-                  ? {
-                      classRef: instance.spec?.backup?.classRef ?? { name: '' },
-                      enabled: instance.spec?.backup?.enabled ?? true,
-                      storages: remainingStorages,
-                    }
-                  : undefined,
+                backup:
+                  remainingStorages.length > 0
+                    ? {
+                        classRef: instance.spec?.backup?.classRef ?? {
+                          name: '',
+                        },
+                        enabled: instance.spec?.backup?.enabled ?? true,
+                        storages: remainingStorages,
+                      }
+                    : undefined,
               },
             };
             updateInstance(updatedInstance);
@@ -238,7 +248,9 @@ export const BackupsList = () => {
               row,
               namespace,
               instanceName,
-              handleDeleteBackup
+              handleDeleteBackup,
+              deletingBackup &&
+                selectedBackup === (row.original.metadata?.name ?? '')
             )}
           />
         )}

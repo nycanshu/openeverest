@@ -14,7 +14,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { AutoCompleteInput, LabeledContent, SelectInput, TextInput } from '@percona/ui-lib';
+import {
+  AutoCompleteInput,
+  LabeledContent,
+  SelectInput,
+  TextInput,
+} from '@percona/ui-lib';
 import { TimeSelection } from '../../time-selection/time-selection';
 import { BackupConfigFields } from 'components/backup-config-fields';
 import { FormMode } from 'components/ui-generator/ui-generator.types';
@@ -90,7 +95,11 @@ export const ScheduleForm = ({
         <SelectInput
           name={ScheduleFormFields.backupClassName}
           label={Messages.backupClass.label}
-          helperText={disableClassSelection ? Messages.backupClass.disabledHelperText : undefined}
+          helperText={
+            disableClassSelection
+              ? Messages.backupClass.disabledHelperText
+              : undefined
+          }
           formControlProps={{ disabled: disableClassSelection }}
           selectFieldProps={{
             label: Messages.backupClass.label,

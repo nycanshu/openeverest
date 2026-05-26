@@ -35,6 +35,7 @@ const makeSchedule = (
 
 const validFormData = {
   scheduleName: 'my-new-backup',
+  backupClassName: 'percona-backup-mongodb',
   storageLocation: { metadata: { name: 'storage-a' } },
   retentionCopies: '3',
   selectedTime: TimeValue.days,

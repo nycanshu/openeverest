@@ -59,7 +59,10 @@ export const OnDemandBackupFieldsWrapper = () => {
     }
     // If the instance already uses a ProviderManaged class,
     // only allow that same PM class or any Job class.
-    if (instanceUsesProviderManaged && bc.spec?.executionMode === 'ProviderManaged') {
+    if (
+      instanceUsesProviderManaged &&
+      bc.spec?.executionMode === 'ProviderManaged'
+    ) {
       return bc.metadata?.name === instanceClassRef;
     }
     return true;
