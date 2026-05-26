@@ -15,10 +15,12 @@
 import { MenuItem } from '@mui/material';
 import { SelectInput, TextInput } from '@percona/ui-lib';
 import { useBackupClassesList } from 'hooks/api/backup-classes/useBackupClasses';
+import { useBackupsList } from 'hooks/api/backups/useBackups';
 import { useClusterName } from 'hooks/api/useClusterName';
 import { useContext, useEffect, useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import { useParams } from 'react-router-dom';
+import { removeUnusedStorages } from '../backups.utils';
 import { FormMode } from 'components/ui-generator/ui-generator.types';
 import BackupStoragesInput from 'components/backup-storages-input';
 import { BackupConfigFields } from 'components/backup-config-fields';
@@ -27,7 +29,7 @@ import { ScheduleModalContext } from '../backups.context';
 
 export const OnDemandBackupFieldsWrapper = () => {
   const clusterName = useClusterName();
-  const { namespace = '' } = useParams();
+  const { instanceName = '', namespace = '' } = useParams();
   const { instance } = useContext(ScheduleModalContext);
   const { watch, setValue } = useFormContext();
 
@@ -43,11 +45,24 @@ export const OnDemandBackupFieldsWrapper = () => {
 
   // Filter classes that support this instance's provider.
   const providerType = instance.spec?.provider;
+  const instanceClassRef = instance.spec?.backup?.classRef?.name;
+  const instanceClass = backupClasses.find(
+    (bc) => bc.metadata?.name === instanceClassRef
+  );
+  const instanceUsesProviderManaged =
+    instanceClass?.spec?.executionMode === 'ProviderManaged';
+
   const availableClasses = backupClasses.filter((bc) => {
     const supported = bc.spec?.supportedProviders;
-    if (!supported || supported.length === 0) return true;
-    if (!providerType) return true;
-    return supported.includes(providerType);
+    if (supported && supported.length > 0 && providerType) {
+      if (!supported.includes(providerType)) return false;
+    }
+    // If the instance already uses a ProviderManaged class,
+    // only allow that same PM class or any Job class.
+    if (instanceUsesProviderManaged && bc.spec?.executionMode === 'ProviderManaged') {
+      return bc.metadata?.name === instanceClassRef;
+    }
+    return true;
   });
 
   const maxStorages = selectedClass?.spec?.providerManaged?.limits?.maxStorages;
@@ -55,6 +70,16 @@ export const OnDemandBackupFieldsWrapper = () => {
     selectedClass?.spec?.providerManaged?.limits?.maxSchedulesPerStorage;
 
   const instanceStorages = instance.spec?.backup?.storages ?? [];
+
+  const { data: backups = [] } = useBackupsList(
+    clusterName,
+    namespace,
+    instanceName
+  );
+  const liveInstanceStorages = useMemo(
+    () => removeUnusedStorages(instanceStorages, backups),
+    [instanceStorages, backups]
+  );
 
   useEffect(() => {
     if (availableClasses.length > 0 && !selectedClassName) {
@@ -92,7 +117,7 @@ export const OnDemandBackupFieldsWrapper = () => {
       <BackupStoragesInput
         name={BackupFields.storageName}
         namespace={namespace}
-        instanceStorages={instanceStorages}
+        instanceStorages={liveInstanceStorages}
         maxStorages={maxStorages}
         maxSchedulesPerStorage={maxSchedulesPerStorage}
         autoFillProps={{

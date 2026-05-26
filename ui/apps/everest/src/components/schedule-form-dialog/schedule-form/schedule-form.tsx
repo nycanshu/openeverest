@@ -14,13 +14,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { AutoCompleteInput, LabeledContent, TextInput } from '@percona/ui-lib';
+import { AutoCompleteInput, LabeledContent, SelectInput, TextInput } from '@percona/ui-lib';
 import { TimeSelection } from '../../time-selection/time-selection';
 import { BackupConfigFields } from 'components/backup-config-fields';
 import { FormMode } from 'components/ui-generator/ui-generator.types';
 import { Messages } from './schedule-form.messages';
 import { ScheduleFormFields, ScheduleFormProps } from './schedule-form.types';
-import { Alert } from '@mui/material';
+import { Alert, MenuItem } from '@mui/material';
 import { useFormContext } from 'react-hook-form';
 import { useContext, useMemo } from 'react';
 import { ScheduleFormDialogContext } from '../schedule-form-dialog-context/schedule-form-dialog.context';
@@ -36,6 +36,9 @@ export const ScheduleForm = ({
   maxStorages,
   maxSchedulesPerStorage,
   instanceStorageNames,
+  availableClasses,
+  disableClassSelection = false,
+  backupClass,
 }: ScheduleFormProps) => {
   const {
     formState: { errors },
@@ -43,7 +46,7 @@ export const ScheduleForm = ({
   const schedulesNamesList =
     (schedules && schedules.map((item) => item?.name)) || [];
   const {
-    dbInstanceInfo: { namespace, backupClass },
+    dbInstanceInfo: { namespace },
   } = useContext(ScheduleFormDialogContext);
 
   // Map flattened schedules to the shape BackupStoragesInput expects
@@ -84,6 +87,22 @@ export const ScheduleForm = ({
             isRequired
           />
         )}
+        <SelectInput
+          name={ScheduleFormFields.backupClassName}
+          label={Messages.backupClass.label}
+          helperText={disableClassSelection ? Messages.backupClass.disabledHelperText : undefined}
+          formControlProps={{ disabled: disableClassSelection }}
+          selectFieldProps={{
+            label: Messages.backupClass.label,
+            disabled: disableClassSelection,
+          }}
+        >
+          {availableClasses.map((bc) => (
+            <MenuItem key={bc.metadata?.name} value={bc.metadata?.name ?? ''}>
+              {bc.spec?.displayName || bc.metadata?.name}
+            </MenuItem>
+          ))}
+        </SelectInput>
       </LabeledContent>
       <BackupStoragesInput
         namespace={namespace}

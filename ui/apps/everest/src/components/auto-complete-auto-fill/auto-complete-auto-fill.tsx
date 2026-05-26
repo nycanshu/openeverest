@@ -30,10 +30,7 @@ export function AutoCompleteAutoFill<T>({
       return;
     }
 
-    setValue(name, {
-      // @ts-ignore
-      [fillFirstField]: options[0][fillFirstField],
-    });
+    setValue(name, options[0]);
     trigger(name);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [options]);

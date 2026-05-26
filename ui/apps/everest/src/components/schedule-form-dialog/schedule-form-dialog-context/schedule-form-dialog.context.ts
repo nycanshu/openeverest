@@ -33,5 +33,8 @@ export const ScheduleFormDialogContext =
       namespace: '',
       schedules: [],
       defaultSchedules: [],
+      availableBackupClasses: [],
+      disableClassSelection: false,
+      instanceStorageNames: [],
     },
   });

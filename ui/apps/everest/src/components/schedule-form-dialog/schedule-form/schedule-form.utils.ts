@@ -23,6 +23,7 @@ import { removeEmptyFieldValues } from 'components/ui-generator/utils/postproces
 /** Known static field keys in ScheduleFormData (everything else is dynamic config). */
 const STATIC_KEYS = new Set([
   'scheduleName',
+  'backupClassName',
   'storageLocation',
   'retentionCopies',
   'selectedTime',

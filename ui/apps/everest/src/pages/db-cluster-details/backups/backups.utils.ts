@@ -14,6 +14,7 @@
 
 import { FlattenedSchedule } from 'components/schedule-form-dialog/schedule-form-dialog-context/schedule-form-dialog-context.types';
 import { Instance } from 'shared-types/api.types';
+import { Backup } from 'shared-types/backups.types';
 
 export const flattenSchedules = (instance: Instance): FlattenedSchedule[] =>
   (instance.spec?.backup?.storages ?? []).flatMap((storage) =>
@@ -49,3 +50,21 @@ export const applySchedulesToStorages = (
       })),
   }));
 };
+
+/**
+ * Removes storage entries from the instance that have no schedules
+ * and no active Backup CRs referencing them.
+ */
+export const removeUnusedStorages = (
+  storages: NonNullable<
+    NonNullable<NonNullable<Instance['spec']>['backup']>['storages']
+  >,
+  activeBackups: Backup[]
+) =>
+  storages.filter((storage) => {
+    const hasSchedules = (storage.schedules ?? []).length > 0;
+    const hasBackups = activeBackups.some(
+      (b) => b.spec?.storageName === storage.name
+    );
+    return hasSchedules || hasBackups;
+  });

@@ -13,16 +13,18 @@
 // limitations under the License.
 
 import { useContext, useMemo } from 'react';
+import { useParams } from 'react-router-dom';
 import { ScheduleFormDialog } from 'components/schedule-form-dialog/schedule-form-dialog';
 import { ScheduleFormDialogContext } from 'components/schedule-form-dialog/schedule-form-dialog-context/schedule-form-dialog.context';
 import { ScheduleModalContext } from '../backups.context';
 import { useUpdateDbInstanceWithConflictRetry } from 'hooks/api/db-instances/useUpdateDbInstance';
 import { useBackupClassesList } from 'hooks/api/backup-classes/useBackupClasses';
+import { useBackupsList } from 'hooks/api/backups/useBackups';
 import { useClusterName } from 'hooks/api/useClusterName';
 import { ScheduleFormData } from 'components/schedule-form-dialog/schedule-form/schedule-form-schema';
 import { getSchedulesPayload } from 'components/schedule-form-dialog/schedule-form/schedule-form.utils';
 import { Instance } from 'shared-types/api.types';
-import { flattenSchedules, applySchedulesToStorages } from '../backups.utils';
+import { flattenSchedules, applySchedulesToStorages, removeUnusedStorages } from '../backups.utils';
 
 export const ScheduledBackupModal = () => {
   const {
@@ -36,11 +38,29 @@ export const ScheduledBackupModal = () => {
   } = useContext(ScheduleModalContext);
 
   const clusterName = useClusterName();
+  const { instanceName = '' } = useParams();
   const { data: backupClasses = [] } = useBackupClassesList(clusterName);
   const classRef = instance.spec?.backup?.classRef?.name;
+  const providerType = instance.spec?.provider;
+
+  const availableBackupClasses = useMemo(
+    () =>
+      backupClasses.filter((bc) => {
+        // Schedules always require ProviderManaged execution mode.
+        if (bc.spec?.executionMode !== 'ProviderManaged') return false;
+        const supported = bc.spec?.supportedProviders;
+        if (!supported || supported.length === 0) return true;
+        if (!providerType) return true;
+        return supported.includes(providerType);
+      }),
+    [backupClasses, providerType]
+  );
+
   const backupClass = useMemo(
-    () => backupClasses.find((bc) => bc.metadata?.name === classRef),
-    [backupClasses, classRef]
+    () =>
+      availableBackupClasses.find((bc) => bc.metadata?.name === classRef) ??
+      availableBackupClasses[0],
+    [availableBackupClasses, classRef]
   );
 
   const { mutate: updateInstance, isPending } =
@@ -49,6 +69,18 @@ export const ScheduledBackupModal = () => {
     });
 
   const namespace = instance.metadata?.namespace ?? '';
+  const { data: backups = [] } = useBackupsList(
+    clusterName,
+    namespace,
+    instanceName
+  );
+  const liveStorages = useMemo(
+    () => removeUnusedStorages(instance.spec?.backup?.storages ?? [], backups),
+    [instance, backups]
+  );
+
+  const disableClassSelection = !!classRef && liveStorages.length > 0;
+
   const schedules = useMemo(() => flattenSchedules(instance), [instance]);
 
   const handleSubmit = (data: ScheduleFormData) => {
@@ -95,7 +127,9 @@ export const ScheduledBackupModal = () => {
         ...instance.spec,
         backup: {
           ...instance.spec?.backup,
-          classRef: instance.spec?.backup?.classRef ?? { name: '' },
+          classRef: classRef
+            ? { name: classRef }
+            : { name: data.backupClassName ?? '' },
           enabled: instance.spec?.backup?.enabled ?? true,
           storages: updatedStorages,
         },
@@ -128,6 +162,11 @@ export const ScheduledBackupModal = () => {
           schedules,
           defaultSchedules: schedules,
           backupClass,
+          availableBackupClasses,
+          disableClassSelection,
+          instanceStorageNames: liveStorages
+            .map((s) => s.storageRef.name)
+            .filter((name): name is string => !!name),
         },
       }}
     >

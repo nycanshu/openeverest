@@ -174,6 +174,9 @@ export const Schedules = ({ backupStorages }: Props) => {
               schedules: formSchedules,
               defaultSchedules: formSchedules,
               backupClass,
+              availableBackupClasses: backupClasses,
+              disableClassSelection: true,
+              instanceStorageNames: [],
             },
           }}
         >

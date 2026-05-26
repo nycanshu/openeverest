@@ -27,7 +27,7 @@ import {
 import { MRT_ColumnDef } from 'material-react-table';
 import { useContext, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { Backup, BackupStatus } from 'shared-types/backups.types.ts';
+import { Backup, BackupList, BackupStatus } from 'shared-types/backups.types.ts';
 import { WizardMode } from 'shared-types/wizard.types';
 import { ScheduleModalContext } from '../backups.context.ts';
 import { BACKUP_STATUS_TO_BASE_STATUS } from './backups-list.constants';
@@ -36,6 +36,9 @@ import BackupListTableHeader from './table-header';
 import { BackupActionButtons } from './backups-list-menu-actions';
 import { useClusterName } from 'hooks/api/useClusterName.ts';
 import { useQueryClient } from '@tanstack/react-query';
+import { useUpdateDbInstanceWithConflictRetry } from 'hooks/api/db-instances/useUpdateDbInstance';
+import { Instance } from 'shared-types/api.types';
+import { removeUnusedStorages } from '../backups.utils';
 
 export const BackupsList = () => {
   const { instanceName = '', namespace = '' } = useParams();
@@ -59,31 +62,39 @@ export const BackupsList = () => {
   const { mutate: deleteBackupMutate, isPending: deletingBackup } =
     useDeleteBackup(clusterName, namespace, instanceName);
 
+  const { mutate: updateInstance } =
+    useUpdateDbInstanceWithConflictRetry(instance);
+
   const handleDeleteBackup = (backupName: string) => {
     setSelectedBackup(backupName);
     setOpenDeleteDialog(true);
   };
 
   const handleConfirmDelete = (backupName: string) => {
+    setOpenDeleteDialog(false);
     deleteBackupMutate(
       { backupName },
       {
         onSuccess: () => {
           // Optimistically mark the backup as Deleting in the cache so the
           // actions menu disables immediately, before the next poll cycle.
-          queryClient.setQueryData<Backup[]>(
+          queryClient.setQueryData<BackupList>(
             getBackupListQueryKey(clusterName, namespace, instanceName),
             (prev) =>
-              prev?.map((b) =>
-                b.metadata?.name === backupName
-                  ? {
-                      ...b,
-                      status: { ...b.status, state: BackupStatus.DELETING },
-                    }
-                  : b
-              )
+              prev
+                ? {
+                    ...prev,
+                    items: prev.items?.map((b) =>
+                      b.metadata?.name === backupName
+                        ? {
+                            ...b,
+                            status: { ...b.status, state: BackupStatus.DELETING },
+                          }
+                        : b
+                    ),
+                  }
+                : prev
           );
-          setOpenDeleteDialog(false);
           queryClient.invalidateQueries({
             queryKey: getBackupListQueryKey(
               clusterName,
@@ -91,6 +102,32 @@ export const BackupsList = () => {
               instanceName
             ),
           });
+
+          // Clean up instance storages that are no longer referenced.
+          const remainingBackups = backups.filter(
+            (b) => b.metadata?.name !== backupName
+          );
+          const existingStorages = instance.spec?.backup?.storages ?? [];
+          const remainingStorages = removeUnusedStorages(
+            existingStorages,
+            remainingBackups
+          );
+          if (remainingStorages.length < existingStorages.length) {
+            const updatedInstance: Instance = {
+              ...instance,
+              spec: {
+                ...instance.spec,
+                backup: remainingStorages.length > 0
+                  ? {
+                      classRef: instance.spec?.backup?.classRef ?? { name: '' },
+                      enabled: instance.spec?.backup?.enabled ?? true,
+                      storages: remainingStorages,
+                    }
+                  : undefined,
+              },
+            };
+            updateInstance(updatedInstance);
+          }
         },
       }
     );

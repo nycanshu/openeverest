@@ -96,6 +96,9 @@ export const schema = (schedules: FlattenedSchedule[], mode: WizardMode) => {
             });
           }
         }),
+      [ScheduleFormFields.backupClassName]: z
+        .string()
+        .min(1, Messages.backupClass.required),
       ...timeSelectionSchemaObject,
       ...storageLocationScheduleFormSchema('scheduledBackups'),
     })

@@ -22,15 +22,24 @@ import { ScheduleForm } from '../schedule-form/schedule-form';
 import { WizardMode } from 'shared-types/wizard.types';
 
 export const ScheduleFormWrapper = () => {
-  const { watch, trigger } = useFormContext();
+  const { watch, trigger, setValue } = useFormContext();
   const {
     mode = WizardMode.New,
     setSelectedScheduleName,
     dbInstanceInfo,
   } = useContext(ScheduleFormDialogContext);
-  const { schedules = [], defaultSchedules = [], backupClass } = dbInstanceInfo;
+  const {
+    schedules = [],
+    defaultSchedules = [],
+    availableBackupClasses = [],
+    disableClassSelection = false,
+    instanceStorageNames = [],
+  } = dbInstanceInfo;
 
-  const [scheduleName] = watch([ScheduleFormFields.scheduleName]);
+  const [scheduleName, selectedBackupClassName] = watch([
+    ScheduleFormFields.scheduleName,
+    ScheduleFormFields.backupClassName,
+  ]);
 
   const isJustAddedSchedule = !defaultSchedules.find(
     (item) => item?.name === scheduleName
@@ -39,16 +48,29 @@ export const ScheduleFormWrapper = () => {
     mode === WizardMode.Edit && !isJustAddedSchedule;
 
   // Extract limits from the backup class
-  const maxStorages = backupClass?.spec?.providerManaged?.limits?.maxStorages;
-  const maxSchedulesPerStorage =
-    backupClass?.spec?.providerManaged?.limits?.maxSchedulesPerStorage;
-
-  // Compute active storage names from existing schedules
-  // (in create/wizard mode these are the storages chosen so far in the form)
-  const instanceStorageNames = useMemo(
-    () => [...new Set(schedules.map((s) => s.storageName).filter(Boolean))],
-    [schedules]
+  const currentBackupClass = useMemo(
+    () =>
+      availableBackupClasses.find(
+        (bc) => bc.metadata?.name === selectedBackupClassName
+      ),
+    [availableBackupClasses, selectedBackupClassName]
   );
+
+  const maxStorages =
+    currentBackupClass?.spec?.providerManaged?.limits?.maxStorages;
+  const maxSchedulesPerStorage =
+    currentBackupClass?.spec?.providerManaged?.limits?.maxSchedulesPerStorage;
+
+  // Auto-select first available class if the field is still empty (handles late-loading).
+  useEffect(() => {
+    if (!selectedBackupClassName && availableBackupClasses.length > 0) {
+      setValue(
+        ScheduleFormFields.backupClassName,
+        availableBackupClasses[0]?.metadata?.name ?? '',
+        { shouldValidate: false }
+      );
+    }
+  }, [availableBackupClasses, selectedBackupClassName, setValue]);
 
   const [amPm, hour, minute, onDay, weekDay, selectedTime] = watch([
     ScheduleFormFields.amPm,
@@ -79,6 +101,9 @@ export const ScheduleFormWrapper = () => {
       maxStorages={maxStorages}
       maxSchedulesPerStorage={maxSchedulesPerStorage}
       instanceStorageNames={instanceStorageNames}
+      availableClasses={availableBackupClasses}
+      disableClassSelection={disableClassSelection}
+      backupClass={currentBackupClass}
     />
   );
 };

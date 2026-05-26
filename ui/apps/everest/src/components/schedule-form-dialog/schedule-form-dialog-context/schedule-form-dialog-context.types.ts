@@ -58,5 +58,8 @@ export type ScheduleFormDialogContextType = {
     schedules: FlattenedSchedule[];
     defaultSchedules: FlattenedSchedule[];
     backupClass?: BackupClass;
+    availableBackupClasses: BackupClass[];
+    disableClassSelection: boolean;
+    instanceStorageNames: string[];
   };
 };

@@ -14,11 +14,13 @@
 
 import { TimeSelectionFields } from '../../time-selection/time-selection.types';
 import { FlattenedSchedule } from '../schedule-form-dialog-context/schedule-form-dialog-context.types';
+import { BackupClass } from 'shared-types/backups.types';
 
 enum ScheduleForm {
   scheduleName = 'scheduleName',
   storageLocation = 'storageLocation',
   retentionCopies = 'retentionCopies',
+  backupClassName = 'backupClassName',
 }
 
 export interface ScheduleFormProps {
@@ -31,6 +33,9 @@ export interface ScheduleFormProps {
   maxStorages?: number;
   maxSchedulesPerStorage?: number;
   instanceStorageNames?: string[];
+  availableClasses: BackupClass[];
+  disableClassSelection?: boolean;
+  backupClass?: BackupClass;
 }
 
 export const ScheduleFormFields = { ...ScheduleForm, ...TimeSelectionFields };

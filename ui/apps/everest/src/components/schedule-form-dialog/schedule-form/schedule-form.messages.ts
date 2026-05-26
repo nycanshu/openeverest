@@ -33,6 +33,11 @@ export const Messages = {
   },
   backupDetails: 'Backup Details',
   repeats: 'Repeats',
+  backupClass: {
+    label: 'Backup class',
+    required: 'Please select a backup class',
+    disabledHelperText: 'Backup class is shared across all schedules for this instance.',
+  },
   sameTimeSchedule:
     'A schedule with the same time selection already exists. Set a different time to create a new one.',
   sameStorageScheduleForPG:

@@ -82,7 +82,7 @@ export const BackupActionButtons = (
       ? [
           <MenuItem
             key="delete"
-            disabled={getBackupState(row.original) === BackupStatus.DELETING}
+            disabled={getBackupState(row.original) === BackupStatus.DELETING || isDeleting}
             onClick={() => handleDeleteBackup(backupName)}
             sx={{ m: 0, gap: 1, px: 2, py: '10px' }}
           >
