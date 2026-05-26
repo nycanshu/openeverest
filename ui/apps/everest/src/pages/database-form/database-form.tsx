@@ -343,6 +343,7 @@ export const DatabasePage = () => {
         sections: engine.sections,
         sectionsOrder: engine.sectionsOrder,
         providerObject,
+        hasBackupStep,
       }}
     >
       <Stack direction={isDesktop ? 'row' : 'column'}>

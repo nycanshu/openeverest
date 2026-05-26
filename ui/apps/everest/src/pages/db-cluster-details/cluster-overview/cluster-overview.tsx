@@ -99,9 +99,11 @@ export const ClusterOverview = () => {
       })}
 
       {/* Uncovered instance fields */}
+      {/* TODO: temporarily hidden until properly formatted
       {otherFields.length > 0 && (
         <OtherFieldsCard fields={otherFields} loading={isLoading} />
       )}
+      */}
 
       {editingSectionKey && provider && (
         <SectionEditModal

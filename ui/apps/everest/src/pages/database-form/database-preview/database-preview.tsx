@@ -42,7 +42,7 @@ export const DatabasePreview = ({
   const { getValues } = useFormContext<DbWizardType>();
   const location = useLocation();
   const showImportStep = location.state?.showImport;
-  const { sections, sectionsOrder } = useDatabaseFormContext();
+  const { sections, sectionsOrder, hasBackupStep } = useDatabaseFormContext();
 
   // Trigger a re-render when any form value changes so the preview stays in sync
   useWatch();
@@ -70,9 +70,7 @@ export const DatabasePreview = ({
           },
         ]
       : []),
-    ...((values as Record<string, unknown>).backup &&
-    ((values as Record<string, unknown>).backup as { schedules?: unknown[] })
-      ?.schedules?.length
+    ...(hasBackupStep
       ? [
           {
             stepId: BACKUP_STEP_ID,

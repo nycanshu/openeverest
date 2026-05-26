@@ -43,14 +43,14 @@ export const useDatabasePageDefaultValues = (
       state?.selectedDbProvider?.metadata?.name || 'unknown-provider';
     if (mode === WizardMode.New) {
       const dbWizardDefaultValues = getDbWizardDefaultValues(providerName);
-      // Add topology to default values
+      // Always include backup defaults so that form fields exist regardless of
+      // whether backup classes have loaded yet. The backup step visibility is
+      // gated separately; the preview checks schedules.length > 0.
       return {
         ...defaultSchemaValues,
         ...dbWizardDefaultValues,
         topology: { type: defaultSelectedTopology },
-        ...(hasBackupStep
-          ? { backup: { schedules: [], classRef: { name: '' } } }
-          : {}),
+        backup: { schedules: [], classRef: { name: '' } },
       };
     } else {
       // TODO edit,restore,templates mode
@@ -60,9 +60,7 @@ export const useDatabasePageDefaultValues = (
       return {
         ...defaultSchemaValues,
         topology: { type: defaultSelectedTopology },
-        ...(hasBackupStep
-          ? { backup: { schedules: [], classRef: { name: '' } } }
-          : {}),
+        backup: { schedules: [], classRef: { name: '' } },
       };
       //   return dbClusterRequestStatus === 'success'
       //     ? DbClusterPayloadToFormValues(dbCluster, mode, namespace)
