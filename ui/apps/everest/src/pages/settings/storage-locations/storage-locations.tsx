@@ -97,11 +97,6 @@ export const StorageLocations = () => {
         header: Messages.namespace,
       },
       {
-        accessorKey: StorageLocationsFields.description,
-        header: Messages.description,
-        enableHiding: false,
-      },
-      {
         accessorKey: StorageLocationsFields.url,
         header: Messages.url,
         enableHiding: false,
@@ -190,7 +185,6 @@ export const StorageLocations = () => {
         hideExpandAllIcon
         state={{
           columnVisibility: {
-            description: false,
             url: false,
             accessKey: false,
             secretKey: false,
@@ -235,10 +229,6 @@ export const StorageLocations = () => {
               <ExpandedRowInfoLine
                 label={Messages.url}
                 value={row.original.url}
-              />
-              <ExpandedRowInfoLine
-                label={Messages.description}
-                value={row.original.description}
               />
             </Box>
             {/* TODO: uncomment when endpoint is ready

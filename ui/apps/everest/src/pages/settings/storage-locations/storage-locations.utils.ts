@@ -38,7 +38,6 @@ export const convertBackupStoragesPayloadToTableFormat = (
           name: storage.metadata?.name ?? '',
           type: (storage.spec?.type as StorageType) ?? StorageType.S3,
           bucketName: storage.spec?.s3?.bucket ?? '',
-          description: '',
           url: storage.spec?.s3?.endpointURL ?? '',
           raw: storage,
         }))

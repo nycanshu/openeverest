@@ -22,7 +22,8 @@ import { getDbWizardDefaultValues } from '../utils/get-default-values';
 export const useDatabasePageDefaultValues = (
   mode: WizardMode,
   uiSchema: TopologyUISchemas,
-  defaultSelectedTopology: string
+  defaultSelectedTopology: string,
+  hasBackupStep = false
 ): {
   // TODO add typescript types
   defaultValues: Record<string, unknown>;
@@ -47,7 +48,9 @@ export const useDatabasePageDefaultValues = (
         ...defaultSchemaValues,
         ...dbWizardDefaultValues,
         topology: { type: defaultSelectedTopology },
-        backup: { schedules: [], classRef: { name: '' } },
+        ...(hasBackupStep
+          ? { backup: { schedules: [], classRef: { name: '' } } }
+          : {}),
       };
     } else {
       // TODO edit,restore,templates mode
@@ -57,7 +60,9 @@ export const useDatabasePageDefaultValues = (
       return {
         ...defaultSchemaValues,
         topology: { type: defaultSelectedTopology },
-        backup: { schedules: [], classRef: { name: '' } },
+        ...(hasBackupStep
+          ? { backup: { schedules: [], classRef: { name: '' } } }
+          : {}),
       };
       //   return dbClusterRequestStatus === 'success'
       //     ? DbClusterPayloadToFormValues(dbCluster, mode, namespace)
@@ -66,6 +71,7 @@ export const useDatabasePageDefaultValues = (
   }, [
     defaultSchemaValues,
     defaultSelectedTopology,
+    hasBackupStep,
     mode,
     state?.selectedDbEngine,
   ]);

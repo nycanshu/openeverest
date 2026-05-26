@@ -23,7 +23,6 @@ export enum StorageLocationsFields {
   name = 'name',
   type = 'type',
   bucketName = 'bucketName',
-  description = 'description',
   region = 'region',
   url = 'url',
   accessKey = 'accessKey',
@@ -38,7 +37,6 @@ export const storageLocationDefaultValues = (namespace: string) => ({
   [StorageLocationsFields.name]: '',
   [StorageLocationsFields.type]: StorageType.S3,
   [StorageLocationsFields.url]: '',
-  [StorageLocationsFields.description]: '',
   [StorageLocationsFields.region]: '',
   [StorageLocationsFields.accessKey]: '',
   [StorageLocationsFields.secretKey]: '',
@@ -53,7 +51,6 @@ export const storageLocationEditValues = (crd: BackupStorageCRD) => ({
   [StorageLocationsFields.type]:
     (crd.spec?.type as StorageType) ?? StorageType.S3,
   [StorageLocationsFields.url]: crd.spec?.s3?.endpointURL ?? '',
-  [StorageLocationsFields.description]: '',
   [StorageLocationsFields.region]: crd.spec?.s3?.region ?? '',
   [StorageLocationsFields.accessKey]: crd.spec?.s3?.accessKeyId ?? '',
   [StorageLocationsFields.secretKey]: crd.spec?.s3?.secretAccessKey ?? '',
@@ -71,7 +68,6 @@ export const storageLocationsSchema = z.object({
   }),
   [StorageLocationsFields.type]: z.nativeEnum(StorageType),
   [StorageLocationsFields.bucketName]: z.string().nonempty(),
-  [StorageLocationsFields.description]: z.string().optional(),
   [StorageLocationsFields.url]: z.string().nonempty().url(),
   [StorageLocationsFields.region]: z.string().nonempty(),
   [StorageLocationsFields.accessKey]: z.string().nonempty(),
@@ -89,6 +85,5 @@ export interface BackupStorageTableElement {
   bucketName: string;
   url: string;
   namespace: string;
-  description?: string | undefined;
   raw: BackupStorageCRD;
 }

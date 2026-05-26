@@ -33,7 +33,6 @@ export interface BackupStorageFormValues {
   region: string;
   accessKey: string;
   secretKey: string;
-  description?: string;
   verifyTLS: boolean;
   forcePathStyle: boolean;
 }

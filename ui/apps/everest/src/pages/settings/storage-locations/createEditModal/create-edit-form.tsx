@@ -27,13 +27,6 @@ export const CreateEditStorageForm = ({ isEditMode }: CreateEditFormProps) => {
         isRequired
         labelProps={{ sx: { mt: 0 } }}
       />
-      <TextInput
-        textFieldProps={{
-          placeholder: Messages.createEditModal.placeholders.description,
-        }}
-        name={StorageLocationsFields.description}
-        label={Messages.description}
-      />
       <AutoCompleteInput
         name={StorageLocationsFields.namespace}
         label={Messages.namespace}

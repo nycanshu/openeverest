@@ -91,7 +91,8 @@ export const DatabasePage = () => {
   const { defaultValues } = useDatabasePageDefaultValues(
     mode,
     uiSchema,
-    defaultTopology
+    defaultTopology,
+    hasBackupStep
   );
   const loadingClusterValues = !defaultValues;
 

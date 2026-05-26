@@ -25,6 +25,7 @@ describe('on-demand-backup schema', () => {
         backupClassName: 'standard',
         storageName: { metadata: { name: 'my-storage' } },
       });
+      expect(result.success).toBe(false);
       if (!result.success) {
         const nameErrors = result.error.issues.filter(
           (i) => i.path[0] === 'name'

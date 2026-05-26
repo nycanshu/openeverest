@@ -70,7 +70,9 @@ export const DatabasePreview = ({
           },
         ]
       : []),
-    ...((values as Record<string, unknown>).backup
+    ...((values as Record<string, unknown>).backup &&
+    ((values as Record<string, unknown>).backup as { schedules?: unknown[] })
+      ?.schedules?.length
       ? [
           {
             stepId: BACKUP_STEP_ID,

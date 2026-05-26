@@ -37,12 +37,13 @@ import { ScheduleModalContext } from '../backups.context.ts';
 import { BACKUP_STATUS_TO_BASE_STATUS } from './backups-list.constants';
 import { Messages } from './backups-list.messages';
 import BackupListTableHeader from './table-header';
-import { BackupActionButtons } from './backups-list-menu-actions';
+import { getBackupActionButtons } from './backups-list-menu-actions';
 import { useClusterName } from 'hooks/api/useClusterName.ts';
 import { useQueryClient } from '@tanstack/react-query';
 import { useUpdateDbInstanceWithConflictRetry } from 'hooks/api/db-instances/useUpdateDbInstance';
 import { Instance } from 'shared-types/api.types';
 import { removeUnusedStorages } from '../backups.utils';
+import { useRBACPermissions } from 'hooks/rbac';
 
 export const BackupsList = () => {
   const { instanceName = '', namespace = '' } = useParams();
@@ -53,6 +54,11 @@ export const BackupsList = () => {
 
   const { instance, setOpenOnDemandModal, setOpenScheduleModal, setMode } =
     useContext(ScheduleModalContext);
+
+  const { canDelete } = useRBACPermissions(
+    'backups',
+    `${namespace}/${instanceName}`
+  );
 
   const { data: backups = [] } = useBackupsList(
     clusterName,
@@ -244,11 +250,10 @@ export const BackupsList = () => {
         enableRowActions
         renderRowActions={({ row }) => (
           <TableActionsMenu
-            menuItems={BackupActionButtons(
+            menuItems={getBackupActionButtons(
               row,
-              namespace,
-              instanceName,
               handleDeleteBackup,
+              canDelete,
               deletingBackup &&
                 selectedBackup === (row.original.metadata?.name ?? '')
             )}

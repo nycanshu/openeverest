@@ -6,7 +6,6 @@ export const Messages = {
     cancel: 'Cancel',
     placeholders: {
       name: 'Enter storage display name',
-      description: 'Enter an optional description',
       namespace: 'Select namespace',
       type: 'Enter bucket name',
       region: 'Enter region',
@@ -32,7 +31,6 @@ export const Messages = {
   namespace: 'Namespace',
   type: 'Type',
   bucketName: 'Bucket Name',
-  description: 'Description',
   region: 'Region',
   url: 'Endpoint',
   accessKey: 'Access Key',

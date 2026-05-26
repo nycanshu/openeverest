@@ -17,7 +17,7 @@
 import { Stack, Typography } from '@mui/material';
 import EditableItem from 'components/editable-item/editable-item';
 import { Messages } from './schedules.messages';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { DbWizardFormFields } from 'consts.ts';
 import { useFormContext } from 'react-hook-form';
 import {
@@ -74,7 +74,7 @@ export const Schedules = ({ backupStorages }: Props) => {
   );
 
   // Auto-set the backup class if not yet selected
-  useMemo(() => {
+  useEffect(() => {
     if (
       !selectedClassName &&
       backupClasses.length > 0 &&

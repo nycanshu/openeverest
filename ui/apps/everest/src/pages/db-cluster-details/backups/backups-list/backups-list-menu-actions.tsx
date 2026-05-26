@@ -23,45 +23,25 @@ import {
   getBackupState,
 } from 'shared-types/backups.types';
 // import { DbCluster } from 'shared-types/dbCluster.types';
-import { useRBACPermissions } from 'hooks/rbac';
 import { Messages } from './backups-list.messages';
 
 // TODO: check main — original had restore/restoreToNewDb actions with RBAC checks.
 // Restore these when restore feature is implemented in v2.
-export const BackupActionButtons = (
+export const getBackupActionButtons = (
   row: MRT_Row<Backup>,
-  namespace: string,
-  instanceName: string,
   // TODO: v2 restore feature — uncomment when ready
   // blockActions: boolean,
   handleDeleteBackup: (backupName: string) => void,
   // handleRestoreBackup: (backupName: string) => void,
   // handleRestoreToNewDbBackup: (backupName: string) => void,
   // dbCluster: DbCluster
+  canDelete: boolean,
   isDeleting = false
 ) => {
   const backupName = row.original.metadata?.name ?? '';
 
-  const { canDelete } = useRBACPermissions(
-    'backups',
-    `${namespace}/${instanceName}`
-  );
-
   // TODO: v2 restore — original restore RBAC checks (from main):
-  // const { canCreate: canCreateRestore } = useRBACPermissions(
-  //   'database-cluster-restores',
-  //   `${dbCluster.metadata.namespace}/${row.original.dbClusterName}`
-  // );
-  // const { canCreate: canCreateClusters } = useRBACPermissions(
-  //   'database-clusters',
-  //   `${dbCluster.metadata.namespace}/*`
-  // );
-  // const { canRead: canReadCredentials } = useRBACPermissions(
-  //   'database-cluster-credentials',
-  //   `${dbCluster.metadata.namespace}/${row.original.dbClusterName}`
-  // );
-  // const canRestore = canCreateRestore && canReadCredentials;
-  // const canCreateClusterFromBackup = canRestore && canCreateClusters;
+  // canRestore / canCreateClusterFromBackup should be derived outside and passed in.
 
   return [
     // TODO: v2 restore — uncomment when restore feature is ready
