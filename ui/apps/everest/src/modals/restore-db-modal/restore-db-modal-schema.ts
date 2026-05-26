@@ -1,26 +1,25 @@
-import { isAfter, isBefore, isDate } from 'date-fns';
 import { z } from 'zod';
 
 export enum RestoreDbFields {
   backupType = 'backupType',
   backupName = 'backupName',
-  pitrBackup = 'pitrBackup',
+  // pitrBackup = 'pitrBackup',
 }
 
-export enum BackuptypeValues {
+export enum BackupTypeValues {
   fromBackup = 'fromBackup',
   fromPitr = 'fromPITR',
 }
 
-export const schema = (gaps: boolean, minDate?: Date, maxDate?: Date) =>
+export const schema = (_gaps: boolean, _minDate?: Date, _maxDate?: Date) =>
   z
     .object({
-      [RestoreDbFields.backupType]: z.nativeEnum(BackuptypeValues),
+      [RestoreDbFields.backupType]: z.nativeEnum(BackupTypeValues),
       [RestoreDbFields.backupName]: z.string().optional(),
-      [RestoreDbFields.pitrBackup]: z.string().or(z.date()).optional(),
+      // [RestoreDbFields.pitrBackup]: z.string().or(z.date()).optional(),
     })
-    .superRefine(({ backupType, backupName, pitrBackup }, ctx) => {
-      if (backupType === BackuptypeValues.fromBackup) {
+    .superRefine(({ backupType, backupName /*, pitrBackup */ }, ctx) => {
+      if (backupType === BackupTypeValues.fromBackup) {
         if (!backupName) {
           ctx.addIssue({
             type: 'string',
@@ -29,7 +28,8 @@ export const schema = (gaps: boolean, minDate?: Date, maxDate?: Date) =>
             minimum: 1,
           });
         }
-      } else {
+      }
+      /* else {
         if (isDate(minDate) && isDate(maxDate) && !!pitrBackup) {
           const pitrBackupDate = isDate(pitrBackup)
             ? pitrBackup
@@ -60,12 +60,13 @@ export const schema = (gaps: boolean, minDate?: Date, maxDate?: Date) =>
           });
         }
       }
+      */
     });
 
 export const defaultValues = {
-  [RestoreDbFields.backupType]: BackuptypeValues.fromBackup,
+  [RestoreDbFields.backupType]: BackupTypeValues.fromBackup,
   [RestoreDbFields.backupName]: '',
-  [RestoreDbFields.pitrBackup]: '',
+  // [RestoreDbFields.pitrBackup]: '',
 };
 
 export type RestoreDbFormData = z.infer<ReturnType<typeof schema>>;

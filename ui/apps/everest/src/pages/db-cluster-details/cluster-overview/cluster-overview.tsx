@@ -22,7 +22,8 @@ import { useClusterOverviewData } from './hooks/use-cluster-overview-data';
 import BasicInfoSection from './sections/basic-info-section';
 import ConnectionSection from './sections/connection-section';
 import SchemaDrivenCard from './sections/schema-driven-card';
-import OtherFieldsCard from './sections/other-fields-card';
+// TODO: Re-enable OtherFieldsCard when uncovered fields are properly formatted
+// import OtherFieldsCard from './sections/other-fields-card';
 import { SectionEditModal } from './sections/section-edit-modal';
 import { FormMode } from 'components/ui-generator/ui-generator.types';
 import { isSectionEditable } from 'components/ui-generator/utils/section-editable';
@@ -35,7 +36,7 @@ export const ClusterOverview = () => {
     isLoading,
     credentials,
     schemaSectionCards,
-    otherFields,
+    // otherFields, // TODO: Re-enable when OtherFieldsCard is restored
     provider,
     sections,
   } = useClusterOverviewData();

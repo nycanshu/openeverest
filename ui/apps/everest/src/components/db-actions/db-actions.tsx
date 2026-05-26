@@ -16,7 +16,11 @@
 
 import { useState } from 'react';
 import { Box, Button, IconButton, Menu, MenuItem } from '@mui/material';
-import { DeleteOutline } from '@mui/icons-material';
+import {
+  DeleteOutline as DeleteOutlineIcon,
+  KeyboardReturn as KeyboardReturnIcon,
+} from '@mui/icons-material';
+// import AddIcon from '@mui/icons-material/Add';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import { DbActionsProps } from './db-actions.types';
 import { useRBACPermissions } from 'hooks/rbac';
@@ -31,7 +35,7 @@ export const DbActions = ({
   dbInstance,
 }: DbActionsProps) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const [isNewClusterMode /*setIsNewClusterMode*/] = useState(false);
+  const [isNewClusterMode, setIsNewClusterMode] = useState(false);
   const {
     openRestoreDialog,
     handleCloseRestoreDialog,
@@ -45,7 +49,7 @@ export const DbActions = ({
     // handleOpenDbDetailsDialog,
     handleCloseDetailsDialog,
     // handleDbSuspendOrResumed,
-    // handleRestoreDbCluster,
+    handleRestoreDbCluster,
     deleteMutation,
   } = useDbInstanceActions(dbInstance);
   const open = Boolean(anchorEl);
@@ -56,6 +60,7 @@ export const DbActions = ({
   // const navigate = useNavigate();
   // TODO needs a final enum
   // const actionsBlocked = shouldDbActionsBeBlocked(dbInstance.status?.phase as DbInstanceStatus || '');
+  const actionsBlocked = dbInstance?.status?.phase === 'Terminating';
   // const hasSchedules = !!(
   //   dbInstance.spec.backup && (dbInstance.spec.backup.schedules || []).length > 0
   // );
@@ -204,20 +209,19 @@ export const DbActions = ({
               <AddIcon /> {Messages.menuItems.createNewDbFromBackup}
             </MenuItem>
           )*/}
-          {/*canRestore && (
-            <MenuItem
-              data-testid={`${dbInstanceName}-restore`}
-              disabled={actionsBlocked}
-              key={3}
-              onClick={() => {
-                setIsNewClusterMode(false);
-                handleRestoreDbCluster();
-              }}
-              sx={sx}
-            >
-              <KeyboardReturnIcon /> {Messages.menuItems.restoreFromBackup}
-            </MenuItem>
-          )*/}
+          <MenuItem
+            data-testid={`${dbInstanceName}-restore`}
+            disabled={actionsBlocked}
+            key={3}
+            onClick={() => {
+              // TODO: Re-enable create-new-db flow and set true in that branch.
+              setIsNewClusterMode(false);
+              handleRestoreDbCluster();
+            }}
+            sx={sx}
+          >
+            <KeyboardReturnIcon /> {Messages.menuItems.restoreFromBackup}
+          </MenuItem>
           {/*
           {showStatusActions && dbInstance?.status?.details && (
             <MenuItem
@@ -247,7 +251,7 @@ export const DbActions = ({
           )} */}
           {canDelete && (
             <MenuItem
-              disabled={dbInstance?.status?.phase === 'Terminating'}
+              disabled={actionsBlocked}
               data-testid={`${dbInstanceName}-delete`}
               key={5}
               onClick={() => {
@@ -255,7 +259,7 @@ export const DbActions = ({
               }}
               sx={sx}
             >
-              <DeleteOutline /> {Messages.menuItems.delete}
+              <DeleteOutlineIcon /> {Messages.menuItems.delete}
             </MenuItem>
           )}
         </Menu>

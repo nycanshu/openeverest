@@ -16,6 +16,7 @@
 import { Table } from '@percona/ui-lib';
 import StatusField from 'components/status-field';
 import { ConfirmDialog } from 'components/confirm-dialog/confirm-dialog';
+import { RestoreDbModal } from 'modals';
 import TableActionsMenu from 'components/table-actions-menu';
 import { DATE_FORMAT } from 'consts';
 import { format } from 'date-fns';
@@ -51,6 +52,8 @@ export const BackupsList = () => {
   const queryClient = useQueryClient();
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState('');
+  const [openRestoreModal, setOpenRestoreModal] = useState(false);
+  const [selectedRestoreBackup, setSelectedRestoreBackup] = useState('');
 
   const { instance, setOpenOnDemandModal, setOpenScheduleModal, setMode } =
     useContext(ScheduleModalContext);
@@ -78,6 +81,11 @@ export const BackupsList = () => {
   const handleDeleteBackup = (backupName: string) => {
     setSelectedBackup(backupName);
     setOpenDeleteDialog(true);
+  };
+
+  const handleRestoreBackup = (backupName: string) => {
+    setSelectedRestoreBackup(backupName);
+    setOpenRestoreModal(true);
   };
 
   const handleConfirmDelete = (backupName: string) => {
@@ -253,6 +261,7 @@ export const BackupsList = () => {
             menuItems={getBackupActionButtons(
               row,
               handleDeleteBackup,
+              handleRestoreBackup,
               canDelete,
               deletingBackup &&
                 selectedBackup === (row.original.metadata?.name ?? '')
@@ -272,6 +281,15 @@ export const BackupsList = () => {
         >
           {Messages.deleteDialog.content(selectedBackup)}
         </ConfirmDialog>
+      )}
+      {openRestoreModal && (
+        <RestoreDbModal
+          isOpen={openRestoreModal}
+          closeModal={() => setOpenRestoreModal(false)}
+          instanceName={instanceName}
+          namespace={namespace}
+          preselectedBackupName={selectedRestoreBackup}
+        />
       )}
     </>
   );

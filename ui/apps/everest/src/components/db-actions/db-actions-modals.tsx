@@ -16,17 +16,19 @@
 
 import { Messages } from './db-actions.messages';
 import { CustomConfirmDialog } from 'components/custom-confirm-dialog';
+import { RestoreDbModal } from 'modals';
 import { useBackupsList } from 'hooks/api/backups/useBackups';
 import { useClusterName } from 'hooks/api/useClusterName';
 import { DbActionsModalsProps } from './db-actions-modals.types';
 
 export const DbActionsModals = ({
   dbInstance,
+  // TODO: Re-enable when create-new-db-from-backup flow is restored.
   // isNewClusterMode,
   // openDetailsDialog,
   // handleCloseDetailsDialog,
-  // openRestoreDialog,
-  // handleCloseRestoreDialog,
+  openRestoreDialog,
+  handleCloseRestoreDialog,
   openDeleteDialog,
   handleCloseDeleteDialog,
   handleConfirmDelete,
@@ -50,15 +52,16 @@ export const DbActionsModals = ({
 
   return (
     <>
-      {/* {openRestoreDialog && (
+      {openRestoreDialog && (
         <RestoreDbModal
-          dbInstance={dbInstance}
-          namespace={dbInstance.metadata.namespace}
-          isNewClusterMode={isNewClusterMode}
           isOpen={openRestoreDialog}
           closeModal={handleCloseRestoreDialog}
+          instanceName={dbInstance.metadata?.name || ''}
+          namespace={dbInstance.metadata?.namespace || ''}
+          // TODO: Re-enable when create-new-db-from-backup flow is restored.
+          // isNewClusterMode={isNewClusterMode}
         />
-      )} */}
+      )}
       {/* {openDetailsDialog && handleCloseDetailsDialog && (
         <DbStatusDetailsDialog
           isOpen={openDetailsDialog}

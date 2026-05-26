@@ -21,5 +21,5 @@ export const Messages = {
     To ensure complete PITR points for future restores, start a full backup now.`,
   seeDocs: 'See Documentation',
   pitrLimitationAlert:
-    'In PostgreSQL, point-in-time recovery (PITR) can get stuck in a Restoring state when you attempt to recover the database after the last transaction. Refer to the documentation for a workaround.',
+    'In PostgreSQL, point-in-time recovery (PITR) can get stuck in a Restoring state when you attempt to recover the database after the last transaction. Refer to the documentation for a workaround.',
 };
