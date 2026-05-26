@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import {
-  BackupStorage,
+  BackupStorageFormValues,
   BackupStorageCRD,
   StorageType,
 } from 'shared-types/backupStorages.types';
@@ -21,11 +21,14 @@ import {
 type KubeMetadata = { name?: string; namespace?: string };
 
 /**
- * Maps a BackupStorage CRD object (from the v2 API) to the flat UI model.
+ * Maps a BackupStorage CRD object (from the v2 API) to flat form values.
+ * Used only when pre-populating an edit form.
  * Credentials (accessKey/secretKey) are write-only on the CRD and will be empty
  * strings on read.
  */
-export const crdToFlat = (crd: BackupStorageCRD): BackupStorage => {
+export const crdToFormValues = (
+  crd: BackupStorageCRD
+): BackupStorageFormValues => {
   const meta = crd.metadata as unknown as KubeMetadata | undefined;
   return {
     name: meta?.name ?? '',
@@ -42,44 +45,44 @@ export const crdToFlat = (crd: BackupStorageCRD): BackupStorage => {
 };
 
 /**
- * Maps a flat UI model to a CRD payload for creating a new BackupStorage.
+ * Maps form values to a CRD payload for creating a new BackupStorage.
  */
-export const flatToCrdCreate = (flat: BackupStorage) => ({
+export const formValuesToCrdCreate = (formValues: BackupStorageFormValues) => ({
   metadata: {
-    name: flat.name,
-    namespace: flat.namespace,
+    name: formValues.name,
+    namespace: formValues.namespace,
   },
   spec: {
-    type: flat.type,
+    type: formValues.type,
     s3: {
-      bucket: flat.bucketName,
-      endpointURL: flat.url,
-      region: flat.region,
-      credentialsSecretName: `backup-storage-${flat.name}-credentials`,
-      accessKeyId: flat.accessKey,
-      secretAccessKey: flat.secretKey,
-      verifyTLS: flat.verifyTLS,
-      forcePathStyle: flat.forcePathStyle,
+      bucket: formValues.bucketName,
+      endpointURL: formValues.url,
+      region: formValues.region,
+      credentialsSecretName: `backup-storage-${formValues.name}-credentials`,
+      accessKeyId: formValues.accessKey,
+      secretAccessKey: formValues.secretKey,
+      verifyTLS: formValues.verifyTLS,
+      forcePathStyle: formValues.forcePathStyle,
     },
   },
 });
 
 /**
- * Maps editable flat fields to a partial CRD payload for patching.
+ * Maps editable form fields to a partial CRD payload for patching.
  * Name, namespace, and type are immutable and excluded.
  */
-export const flatToCrdEdit = (flat: BackupStorage) => ({
+export const formValuesToCrdEdit = (formValues: BackupStorageFormValues) => ({
   spec: {
-    type: flat.type,
+    type: formValues.type,
     s3: {
-      bucket: flat.bucketName,
-      endpointURL: flat.url,
-      region: flat.region,
-      credentialsSecretName: `backup-storage-${flat.name}-credentials`,
-      ...(flat.accessKey && { accessKeyId: flat.accessKey }),
-      ...(flat.secretKey && { secretAccessKey: flat.secretKey }),
-      verifyTLS: flat.verifyTLS,
-      forcePathStyle: flat.forcePathStyle,
+      bucket: formValues.bucketName,
+      endpointURL: formValues.url,
+      region: formValues.region,
+      credentialsSecretName: `backup-storage-${formValues.name}-credentials`,
+      ...(formValues.accessKey && { accessKeyId: formValues.accessKey }),
+      ...(formValues.secretKey && { secretAccessKey: formValues.secretKey }),
+      verifyTLS: formValues.verifyTLS,
+      forcePathStyle: formValues.forcePathStyle,
     },
   },
 });

@@ -16,7 +16,7 @@ import { Typography } from '@mui/material';
 import { AutoCompleteAutoFill } from 'components/auto-complete-auto-fill/auto-complete-auto-fill';
 import { useBackupStoragesByNamespace } from 'hooks/api/backup-storages/useBackupStorages';
 import { useMemo } from 'react';
-import { BackupStorage } from 'shared-types/backupStorages.types';
+import { BackupStorageCRD } from 'shared-types/backupStorages.types';
 import { Messages } from './backup-storages-input.messages';
 import { getAvailableStorages } from './backup-storages-input.utils';
 import {
@@ -83,7 +83,7 @@ const BackupStoragesInput = ({
   const showInUseHighlight = !limitReached && inUseNames.size > 0;
 
   return (
-    <AutoCompleteAutoFill<BackupStorage>
+    <AutoCompleteAutoFill<BackupStorageCRD>
       name={name}
       textFieldProps={{
         label: 'Backup storage',
@@ -95,14 +95,15 @@ const BackupStoragesInput = ({
       {...autoFillProps}
       controllerProps={{ name, defaultValue: null }}
       autoCompleteProps={{
-        isOptionEqualToValue: (option, value) => option.name === value.name,
+        isOptionEqualToValue: (option, value) =>
+          option.metadata?.name === value.metadata?.name,
         getOptionLabel: (option) =>
-          typeof option === 'string' ? option : option.name,
+          typeof option === 'string' ? option : (option.metadata?.name ?? ''),
         ...(showInUseHighlight && {
           renderOption: (props, option) => (
-            <li {...props} key={option.name}>
-              {option.name}
-              {inUseNames.has(option.name) && (
+            <li {...props} key={option.metadata?.name}>
+              {option.metadata?.name}
+              {inUseNames.has(option.metadata?.name ?? '') && (
                 <Typography
                   component="span"
                   variant="body2"

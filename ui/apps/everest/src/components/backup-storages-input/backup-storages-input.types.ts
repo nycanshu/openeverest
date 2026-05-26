@@ -13,7 +13,7 @@
 // limitations under the License.
 
 import { AutoCompleteAutoFillProps } from 'components/auto-complete-auto-fill/auto-complete-auto-fill.types';
-import { BackupStorage } from 'shared-types/backupStorages.types';
+import { BackupStorageCRD } from 'shared-types/backupStorages.types';
 import { Instance } from 'shared-types/api.types';
 
 // Minimal schedule shape required by BackupStoragesInput for limit calculations
@@ -21,7 +21,6 @@ export interface ScheduleWithStorage {
   backupStorageName: string;
 }
 
-/** A single entry from Instance.spec.backup.storages[] */
 export type InstanceStorage = NonNullable<
   NonNullable<Instance['spec']['backup']>['storages']
 >[number];
@@ -29,16 +28,13 @@ export type InstanceStorage = NonNullable<
 export type BackupStoragesInputProps = {
   name?: string;
   namespace: string;
-  /**
-   * Controls how the backup storage field behaves in different product flows.
-   *
-   * Typical usage:
-   * - On-demand and schedule creation forms: keep default auto-selection of the first
+  // Controls how the backup storage field behaves in different product flows.
+  /* - On-demand and schedule creation forms: keep default auto-selection of the first
    *   available storage to reduce user actions.
    * - Schedule edit and similar update flows: disable auto-selection to preserve
    *   the storage already saved in the existing configuration.
    */
-  autoFillProps?: Partial<AutoCompleteAutoFillProps<BackupStorage>>;
+  autoFillProps?: Partial<AutoCompleteAutoFillProps<BackupStorageCRD>>;
   maxStorages?: number;
   maxSchedulesPerStorage?: number;
 } & (

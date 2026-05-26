@@ -245,7 +245,7 @@ describe('scheduleModalDefaultValues', () => {
         selectedSchedule
       );
       expect(result[ScheduleFormFields.storageLocation]).toEqual({
-        name: 'my-storage',
+        metadata: { name: 'my-storage' },
       });
     });
 

@@ -67,7 +67,7 @@ export const getSchedulesPayload = ({
   const storageName =
     typeof storageLocation === 'string'
       ? storageLocation
-      : storageLocation!.name;
+      : (storageLocation!.metadata?.name ?? '');
 
   // Extract dynamic config fields (UIGenerator backup config) from form data.
   // UIGenerator registers fields with sectionKey prefix ("config.X"), so in form

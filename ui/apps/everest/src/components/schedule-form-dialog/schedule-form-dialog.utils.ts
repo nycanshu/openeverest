@@ -32,7 +32,7 @@ export const scheduleModalDefaultValues = (
     const formValues = getFormValuesFromCronExpression(cron);
     return {
       [ScheduleFormFields.scheduleName]: name || '',
-      [ScheduleFormFields.storageLocation]: { name: storageName },
+      [ScheduleFormFields.storageLocation]: { metadata: { name: storageName } },
       [ScheduleFormFields.retentionCopies]: retentionCopies?.toString() || '0',
       ...formValues,
       // UIGenerator fields are registered under sectionKey "config" (e.g. config.compressionType).

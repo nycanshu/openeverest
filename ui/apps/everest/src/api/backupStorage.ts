@@ -13,47 +13,78 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 import {
-  BackupStorage,
+  BackupStorageFormValues,
+  BackupStorageCRD,
   BackupStorageListCRD,
-  GetBackupStoragesPayload,
 } from 'shared-types/backupStorages.types';
 import { api } from './api';
-import {
-  crdToFlat,
-  flatToCrdCreate,
-  flatToCrdEdit,
-} from './backupStorage.mappers';
+
+const formValuesToCrdCreate = (formValues: BackupStorageFormValues) => ({
+  metadata: {
+    name: formValues.name,
+    namespace: formValues.namespace,
+  },
+  spec: {
+    type: formValues.type,
+    s3: {
+      bucket: formValues.bucketName,
+      endpointURL: formValues.url,
+      region: formValues.region,
+      credentialsSecretName: `backup-storage-${formValues.name}-credentials`,
+      accessKeyId: formValues.accessKey,
+      secretAccessKey: formValues.secretKey,
+      verifyTLS: formValues.verifyTLS,
+      forcePathStyle: formValues.forcePathStyle,
+    },
+  },
+});
+
+const formValuesToCrdEdit = (formValues: BackupStorageFormValues) => ({
+  spec: {
+    type: formValues.type,
+    s3: {
+      bucket: formValues.bucketName,
+      endpointURL: formValues.url,
+      region: formValues.region,
+      credentialsSecretName: `backup-storage-${formValues.name}-credentials`,
+      ...(formValues.accessKey && { accessKeyId: formValues.accessKey }),
+      ...(formValues.secretKey && { secretAccessKey: formValues.secretKey }),
+      verifyTLS: formValues.verifyTLS,
+      forcePathStyle: formValues.forcePathStyle,
+    },
+  },
+});
 
 export const getBackupStoragesFn = async (
   cluster: string,
   namespace: string
-): Promise<GetBackupStoragesPayload> => {
+): Promise<BackupStorageCRD[]> => {
   const response = await api.get<BackupStorageListCRD>(
     `clusters/${cluster}/namespaces/${namespace}/backup-storages`
   );
-  return response.data?.items?.map(crdToFlat) ?? [];
+  return response.data?.items ?? [];
 };
 
 export const createBackupStorageFn = async (
   cluster: string,
-  formData: BackupStorage
+  formData: BackupStorageFormValues
 ) => {
   const { namespace } = formData;
   const response = await api.post(
     `clusters/${cluster}/namespaces/${namespace}/backup-storages`,
-    flatToCrdCreate(formData)
+    formValuesToCrdCreate(formData)
   );
   return response.data;
 };
 
 export const editBackupStorageFn = async (
   cluster: string,
-  formData: BackupStorage
+  formData: BackupStorageFormValues
 ) => {
   const { name, namespace } = formData;
   const response = await api.patch(
     `clusters/${cluster}/namespaces/${namespace}/backup-storages/${name}`,
-    flatToCrdEdit(formData)
+    formValuesToCrdEdit(formData)
   );
   return response.data;
 };

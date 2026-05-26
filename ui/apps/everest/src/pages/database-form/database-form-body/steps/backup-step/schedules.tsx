@@ -35,7 +35,7 @@ import {
   FlattenedSchedule,
 } from 'components/schedule-form-dialog/schedule-form-dialog-context/schedule-form-dialog-context.types';
 import { ScheduleWizardMode, WizardMode } from 'shared-types/wizard.types';
-import { BackupStorage } from 'shared-types/backupStorages.types';
+import { BackupStorageCRD } from 'shared-types/backupStorages.types';
 import { useBackupClassesList } from 'hooks/api/backup-classes/useBackupClasses';
 import { useClusterName } from 'hooks/api/useClusterName';
 
@@ -45,7 +45,7 @@ export const BACKUP_SCHEDULES_FIELD = 'backup.schedules';
 export const BACKUP_CLASS_REF_FIELD = 'backup.classRef.name';
 
 type Props = {
-  backupStorages: BackupStorage[];
+  backupStorages: BackupStorageCRD[];
 };
 
 export const Schedules = ({ backupStorages }: Props) => {

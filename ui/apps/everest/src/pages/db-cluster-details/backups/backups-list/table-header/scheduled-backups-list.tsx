@@ -25,17 +25,7 @@ import { useRBACPermissions } from 'hooks/rbac';
 import { useUpdateDbInstanceWithConflictRetry } from 'hooks/api/db-instances/useUpdateDbInstance';
 import { FormMode } from 'components/ui-generator/ui-generator.types';
 import { Instance } from 'shared-types/api.types';
-
-// TODO: check main — verify nothing was lost during v2 migration of this component
-
-/** Flatten all schedules from every storage on the Instance, annotating with storageName. */
-const flattenSchedules = (instance: Instance) =>
-  (instance.spec?.backup?.storages ?? []).flatMap((storage) =>
-    (storage.schedules ?? []).map((schedule) => ({
-      ...schedule,
-      storageName: storage.storageRef.name,
-    }))
-  );
+import { flattenSchedules } from '../../backups.utils';
 
 const ScheduledBackupsList = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);

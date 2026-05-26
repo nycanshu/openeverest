@@ -40,7 +40,7 @@ const makeFormData = (
   overrides: Partial<ScheduleFormData> = {}
 ): ScheduleFormData => ({
   scheduleName: 'new-schedule',
-  storageLocation: { name: 'storage-b' },
+  storageLocation: { metadata: { name: 'storage-b' } },
   retentionCopies: '5',
   selectedTime: TimeValue.days,
   minute: 30,
@@ -80,7 +80,9 @@ describe('getSchedulesPayload', () => {
 
     it('extracts storage name from object storageLocation', () => {
       const result = getSchedulesPayload({
-        formData: makeFormData({ storageLocation: { name: 'my-storage' } }),
+        formData: makeFormData({
+          storageLocation: { metadata: { name: 'my-storage' } },
+        }),
         mode: WizardMode.New,
         schedules: [],
       });

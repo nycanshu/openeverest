@@ -35,7 +35,7 @@ const makeSchedule = (
 
 const validFormData = {
   scheduleName: 'my-new-backup',
-  storageLocation: { name: 'storage-a' },
+  storageLocation: { metadata: { name: 'storage-a' } },
   retentionCopies: '3',
   selectedTime: TimeValue.days,
   minute: 0,

@@ -17,7 +17,11 @@ import DeleteIcon from '@mui/icons-material/Delete';
 // import AddIcon from '@mui/icons-material/Add';
 // import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
 import { MRT_Row } from 'material-react-table';
-import { Backup, BackupStatus, getBackupState } from 'shared-types/backups.types';
+import {
+  Backup,
+  BackupStatus,
+  getBackupState,
+} from 'shared-types/backups.types';
 // import { DbCluster } from 'shared-types/dbCluster.types';
 import { useRBACPermissions } from 'hooks/rbac';
 import { Messages } from './backups-list.messages';

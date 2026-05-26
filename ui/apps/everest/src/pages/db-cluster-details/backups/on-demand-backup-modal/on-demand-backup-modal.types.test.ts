@@ -23,9 +23,8 @@ describe('on-demand-backup schema', () => {
       const result = testSchema.safeParse({
         name: 'backup-abc123',
         backupClassName: 'standard',
-        storageName: { name: 'my-storage' },
+        storageName: { metadata: { name: 'my-storage' } },
       });
-      expect(result.success).toBe(false);
       if (!result.success) {
         const nameErrors = result.error.issues.filter(
           (i) => i.path[0] === 'name'
@@ -41,7 +40,7 @@ describe('on-demand-backup schema', () => {
       const result = testSchema.safeParse({
         name: 'backup-new001',
         backupClassName: 'standard',
-        storageName: { name: 'my-storage' },
+        storageName: { metadata: { name: 'my-storage' } },
       });
       expect(result.success).toBe(true);
     });

@@ -28,9 +28,11 @@ import { WizardMode } from 'shared-types/wizard.types.ts';
 export const storageLocationZodObject = z
   .string()
   .or(
-    z.object({
-      name: z.string(),
-    })
+    z
+      .object({
+        metadata: z.object({ name: z.string() }).passthrough(),
+      })
+      .passthrough()
   )
   .nullable();
 
@@ -45,7 +47,7 @@ export const storageLocationScheduleFormSchema = (
         //  will become mandatory everywhere and it will be possible to remove the null check at all,
         const checkNullStorage = mode !== 'dbWizard';
         if (
-          (!input || typeof input === 'string' || !input.name) &&
+          (!input || typeof input === 'string' || !input.metadata?.name) &&
           (checkNullStorage ? true : input !== null)
         ) {
           ctx.addIssue({

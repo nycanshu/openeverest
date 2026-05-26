@@ -26,17 +26,14 @@ import {
   getBackupStoragesFn,
 } from 'api/backupStorage';
 import {
-  BackupStorage,
-  GetBackupStoragesPayload,
+  BackupStorageCRD,
+  BackupStorageFormValues,
 } from 'shared-types/backupStorages.types';
 import { PerconaQueryOptions } from 'shared-types/query.types';
 import { useNamespaces } from '../namespaces';
 import { useClusterName } from '../useClusterName';
 
 export const BACKUP_STORAGES_QUERY_KEY = 'backupStorages';
-
-export type BackupStoragesForNamespaceResult =
-  PerconaQueryOptions<GetBackupStoragesPayload>;
 
 export const useBackupStorages = () => {
   const cluster = useClusterName();
@@ -60,14 +57,10 @@ export const useBackupStorages = () => {
 
 export const useBackupStoragesByNamespace = (
   namespace: string,
-  options?: PerconaQueryOptions<
-    GetBackupStoragesPayload,
-    unknown,
-    BackupStorage[]
-  >
+  options?: PerconaQueryOptions<BackupStorageCRD[], unknown, BackupStorageCRD[]>
 ) => {
   const cluster = useClusterName();
-  return useQuery<GetBackupStoragesPayload, unknown, BackupStorage[]>({
+  return useQuery<BackupStorageCRD[], unknown, BackupStorageCRD[]>({
     queryKey: [BACKUP_STORAGES_QUERY_KEY, cluster, namespace],
     queryFn: () => getBackupStoragesFn(cluster, namespace),
     ...options,
@@ -75,22 +68,32 @@ export const useBackupStoragesByNamespace = (
 };
 
 export const useCreateBackupStorage = (
-  options?: UseMutationOptions<unknown, unknown, BackupStorage, unknown>
+  options?: UseMutationOptions<
+    unknown,
+    unknown,
+    BackupStorageFormValues,
+    unknown
+  >
 ) => {
   const cluster = useClusterName();
   return useMutation({
-    mutationFn: (formData: BackupStorage) =>
+    mutationFn: (formData: BackupStorageFormValues) =>
       createBackupStorageFn(cluster, formData),
     ...options,
   });
 };
 
 export const useEditBackupStorage = (
-  options?: UseMutationOptions<unknown, unknown, BackupStorage, unknown>
+  options?: UseMutationOptions<
+    unknown,
+    unknown,
+    BackupStorageFormValues,
+    unknown
+  >
 ) => {
   const cluster = useClusterName();
   return useMutation({
-    mutationFn: (formData: BackupStorage) =>
+    mutationFn: (formData: BackupStorageFormValues) =>
       editBackupStorageFn(cluster, formData),
     ...options,
   });

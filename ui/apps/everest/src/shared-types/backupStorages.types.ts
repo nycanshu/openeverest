@@ -21,10 +21,10 @@ export type BackupStorageListCRD =
   CrdsGen.components['schemas']['BackupStorageList'];
 
 /**
- * Flat UI representation of a backup storage.
- * Used in forms, table display, and the schedule storage dropdown.
+ * Flat form-values representation of a backup storage.
+ * Used only in create/edit forms and as the input to mutation hooks.
  */
-export interface BackupStorage {
+export interface BackupStorageFormValues {
   name: string;
   namespace: string;
   type: StorageType;
@@ -37,8 +37,6 @@ export interface BackupStorage {
   verifyTLS: boolean;
   forcePathStyle: boolean;
 }
-
-export type GetBackupStoragesPayload = BackupStorage[];
 
 export enum StorageType {
   S3 = 's3',

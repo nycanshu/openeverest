@@ -21,45 +21,8 @@ import { useBackupClassesList } from 'hooks/api/backup-classes/useBackupClasses'
 import { useClusterName } from 'hooks/api/useClusterName';
 import { ScheduleFormData } from 'components/schedule-form-dialog/schedule-form/schedule-form-schema';
 import { getSchedulesPayload } from 'components/schedule-form-dialog/schedule-form/schedule-form.utils';
-import { FlattenedSchedule } from 'components/schedule-form-dialog/schedule-form-dialog-context/schedule-form-dialog-context.types';
 import { Instance } from 'shared-types/api.types';
-
-/** Flatten all schedules from every storage on the Instance, annotating with storageName. */
-const flattenSchedules = (instance: Instance): FlattenedSchedule[] =>
-  (instance.spec?.backup?.storages ?? []).flatMap((storage) =>
-    (storage.schedules ?? []).map((schedule) => ({
-      name: schedule.name,
-      cron: schedule.cron,
-      enabled: schedule.enabled,
-      retentionCopies: schedule.retentionCopies,
-      config: schedule.config as Record<string, unknown> | undefined,
-      storageName: storage.storageRef.name ?? '',
-    }))
-  );
-
-/** Rebuild Instance storages array from the flat schedules list. */
-const buildStoragesFromSchedules = (
-  instance: Instance,
-  schedules: FlattenedSchedule[]
-): NonNullable<
-  NonNullable<NonNullable<Instance['spec']>['backup']>['storages']
-> => {
-  const existingStorages = instance.spec?.backup?.storages ?? [];
-  return existingStorages.map((storage) => ({
-    ...storage,
-    schedules: schedules
-      .filter((s) => s.storageName === (storage.storageRef.name ?? ''))
-      .map((schedule) => ({
-        name: schedule.name,
-        cron: schedule.cron,
-        enabled: schedule.enabled,
-        retentionCopies: schedule.retentionCopies,
-        ...(schedule.config
-          ? { config: schedule.config as Record<string, never> }
-          : {}),
-      })),
-  }));
-};
+import { flattenSchedules, applySchedulesToStorages } from '../backups.utils';
 
 export const ScheduledBackupModal = () => {
   const {
@@ -95,7 +58,7 @@ export const ScheduledBackupModal = () => {
       schedules,
     });
 
-    const updatedStorages = buildStoragesFromSchedules(
+    const updatedStorages = applySchedulesToStorages(
       instance,
       updatedSchedules
     );
@@ -104,7 +67,7 @@ export const ScheduledBackupModal = () => {
     const newStorageName =
       typeof data.storageLocation === 'string'
         ? data.storageLocation
-        : data.storageLocation?.name;
+        : data.storageLocation?.metadata?.name;
     const storageExists = updatedStorages.some(
       (s) => s.storageRef.name === newStorageName
     );

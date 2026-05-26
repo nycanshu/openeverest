@@ -49,14 +49,17 @@ const staticSchema = (backupsNamesList: string[]) =>
       .min(1, Messages.backupClassRequired),
     [BackupFields.storageName]: z
       .string()
-      .or(z.object({ name: z.string() }))
+      .or(
+        z
+          .object({ metadata: z.object({ name: z.string() }).passthrough() })
+          .passthrough()
+      )
       .nullish()
-      // AutoComplete can return either a string or { name: string } object.
-      // In v1 this normalization was done in the hook (backupStorageName: typeof ... === 'string' ? ... : ....name).
-      // Now we handle it at the schema level via transform.
+      // AutoComplete can return either a string or a BackupStorageCRD object.
+      // We normalize to a plain storage name string via transform.
       .transform((v) => {
         if (v == null) return '';
-        return typeof v === 'string' ? v : v.name;
+        return typeof v === 'string' ? v : v.metadata.name;
       })
       .pipe(z.string().min(1, Messages.storageRequired)),
   });
