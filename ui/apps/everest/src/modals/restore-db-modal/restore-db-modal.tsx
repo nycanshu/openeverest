@@ -13,6 +13,7 @@
 // limitations under the License.
 
 import { useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import { FormDialog } from 'components/form-dialog';
 import { useBackupsList } from 'hooks/api/backups/useBackups';
@@ -46,12 +47,12 @@ const RestoreDbModal = ({
   closeModal,
   instanceName,
   namespace,
-  // TODO: Re-enable when create-new-db-from-backup flow is restored.
-  // isNewClusterMode = false,
+  isNewClusterMode = false,
   preselectedBackupName,
 }: RestoreDbModalProps) => {
   const clusterName = useClusterName();
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const { data: backups = [], isLoading } = useBackupsList(
     clusterName,
@@ -101,6 +102,18 @@ const RestoreDbModal = ({
         return;
       }
 
+      if (isNewClusterMode) {
+        closeModal();
+        navigate('/databases/new', {
+          state: {
+            selectedDbCluster: instanceName,
+            backupName,
+            namespace,
+          },
+        });
+        return;
+      }
+
       createRestore(
         { instanceName, backupName },
         {
@@ -133,9 +146,11 @@ const RestoreDbModal = ({
       isOpen={isOpen}
       dataTestId="restore-modal"
       closeModal={closeModal}
-      // TODO: Re-enable when create-new-db-from-backup flow is restored.
-      // headerMessage={isNewClusterMode ? Messages.headerMessageCreate : Messages.headerMessage}
-      headerMessage={Messages.headerMessage}
+      headerMessage={
+        isNewClusterMode
+          ? Messages.headerMessageCreate
+          : Messages.headerMessage
+      }
       // TODO: Re-enable PITR schema when PITR restore flow is implemented.
       // schema={pitrSchema}
       schema={schema(false)}
@@ -144,18 +159,17 @@ const RestoreDbModal = ({
       submitting={restoringFromBackup}
       defaultValues={{
         ...defaultValues,
-        [RestoreDbFields.backupName]: preselectedBackupName || '',
+        [RestoreDbFields.backupName]:
+          preselectedBackupName || succeededBackups[0]?.name || '',
       }}
       onSubmit={handleSubmit}
-      // TODO: Re-enable when create-new-db-from-backup flow is restored.
-      // submitMessage={isNewClusterMode ? Messages.create : Messages.restore}
-      submitMessage={Messages.restore}
+      submitMessage={isNewClusterMode ? Messages.create : Messages.restore}
     >
       <ModalContent
         isLoading={isLoading}
-        // TODO: Re-enable when create-new-db-from-backup flow is restored.
-        // header={isNewClusterMode ? Messages.subHeadCreate : Messages.subHead}
-        header={Messages.subHead}
+        header={
+          isNewClusterMode ? Messages.subHeadCreate : Messages.subHead
+        }
         succeededBackups={succeededBackups}
       />
     </FormDialog>

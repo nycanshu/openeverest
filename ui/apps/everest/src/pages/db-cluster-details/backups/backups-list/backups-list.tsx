@@ -53,6 +53,7 @@ export const BackupsList = () => {
   const [openDeleteDialog, setOpenDeleteDialog] = useState(false);
   const [selectedBackup, setSelectedBackup] = useState('');
   const [openRestoreModal, setOpenRestoreModal] = useState(false);
+  const [isNewClusterMode, setIsNewClusterMode] = useState(false);
   const [selectedRestoreBackup, setSelectedRestoreBackup] = useState('');
 
   const { instance, setOpenOnDemandModal, setOpenScheduleModal, setMode } =
@@ -85,6 +86,13 @@ export const BackupsList = () => {
 
   const handleRestoreBackup = (backupName: string) => {
     setSelectedRestoreBackup(backupName);
+    setIsNewClusterMode(false);
+    setOpenRestoreModal(true);
+  };
+
+  const handleRestoreToNewDbBackup = (backupName: string) => {
+    setSelectedRestoreBackup(backupName);
+    setIsNewClusterMode(true);
     setOpenRestoreModal(true);
   };
 
@@ -262,6 +270,7 @@ export const BackupsList = () => {
               row,
               handleDeleteBackup,
               handleRestoreBackup,
+              handleRestoreToNewDbBackup,
               canDelete,
               deletingBackup &&
                 selectedBackup === (row.original.metadata?.name ?? '')
@@ -288,6 +297,7 @@ export const BackupsList = () => {
           closeModal={() => setOpenRestoreModal(false)}
           instanceName={instanceName}
           namespace={namespace}
+          isNewClusterMode={isNewClusterMode}
           preselectedBackupName={selectedRestoreBackup}
         />
       )}

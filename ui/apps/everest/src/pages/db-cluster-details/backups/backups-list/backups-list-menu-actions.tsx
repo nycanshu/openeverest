@@ -15,8 +15,7 @@
 import { MenuItem } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import KeyboardReturnIcon from '@mui/icons-material/KeyboardReturn';
-// TODO: Re-enable when restore-to-new-db is implemented.
-// import AddIcon from '@mui/icons-material/Add';
+import AddIcon from '@mui/icons-material/Add';
 import { MRT_Row } from 'material-react-table';
 import {
   Backup,
@@ -32,12 +31,9 @@ import { Messages } from './backups-list.messages';
 // Restore these when restore feature is implemented in v2.
 export const getBackupActionButtons = (
   row: MRT_Row<Backup>,
-  // TODO: Re-enable when restore actions are restored in v2.
-  // blockActions: boolean,
   handleDeleteBackup: (backupName: string) => void,
   handleRestoreBackup: (backupName: string) => void,
-  // handleRestoreToNewDbBackup: (backupName: string) => void,
-  // dbCluster: DbCluster,
+  handleRestoreToNewDbBackup: (backupName: string) => void,
   canDelete: boolean,
   isDeleting = false
 ) => {
@@ -67,26 +63,20 @@ export const getBackupActionButtons = (
     <MenuItem
       key="restore"
       disabled={backupState !== BackupStatus.SUCCEEDED}
-      // TODO: Re-enable when restore actions are restored in v2.
-      // disabled={backupState !== BackupStatus.SUCCEEDED || blockActions}
       onClick={() => handleRestoreBackup(backupName)}
       sx={{ m: 0, gap: 1, px: 2, py: '10px' }}
     >
       <KeyboardReturnIcon /> {Messages.restore}
     </MenuItem>,
-    // TODO: Re-enable when restore-to-new-db is implemented.
-    // ...(canCreateClusterFromBackup
-    //   ? [
-    //       <MenuItem
-    //         key="restore-to-new"
-    //         disabled={backupState !== BackupStatus.SUCCEEDED || blockActions}
-    //         onClick={() => handleRestoreToNewDbBackup(backupName)}
-    //         sx={{ m: 0, gap: 1, px: 2, py: '10px' }}
-    //       >
-    //         <AddIcon /> {Messages.restoreToNewDb}
-    //       </MenuItem>,
-    //     ]
-    //   : []),
+    //TODO RBAC ...(canCreateClusterFromBackup
+    <MenuItem
+      key="restore-to-new"
+      disabled={backupState !== BackupStatus.SUCCEEDED}
+      onClick={() => handleRestoreToNewDbBackup(backupName)}
+      sx={{ m: 0, gap: 1, px: 2, py: '10px' }}
+    >
+      <AddIcon /> {Messages.restoreToNewDb}
+    </MenuItem>,
     ...(canDelete
       ? [
           <MenuItem

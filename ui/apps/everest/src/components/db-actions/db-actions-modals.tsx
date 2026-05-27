@@ -23,8 +23,7 @@ import { DbActionsModalsProps } from './db-actions-modals.types';
 
 export const DbActionsModals = ({
   dbInstance,
-  // TODO: Re-enable when create-new-db-from-backup flow is restored.
-  // isNewClusterMode,
+  isNewClusterMode,
   // openDetailsDialog,
   // handleCloseDetailsDialog,
   openRestoreDialog,
@@ -58,8 +57,7 @@ export const DbActionsModals = ({
           closeModal={handleCloseRestoreDialog}
           instanceName={dbInstance.metadata?.name || ''}
           namespace={dbInstance.metadata?.namespace || ''}
-          // TODO: Re-enable when create-new-db-from-backup flow is restored.
-          // isNewClusterMode={isNewClusterMode}
+          isNewClusterMode={isNewClusterMode}
         />
       )}
       {/* {openDetailsDialog && handleCloseDetailsDialog && (

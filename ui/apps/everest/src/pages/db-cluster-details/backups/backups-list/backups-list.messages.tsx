@@ -71,9 +71,7 @@ export const Messages = {
   schedule: 'Schedule',
   delete: 'Delete',
   restore: 'Restore',
-  // TODO: Re-enable when restore dialogs are restored.
-  // restore: 'Restore to this DB',
-  // restoreToNewDb: 'Create new DB',
+  restoreToNewDb: 'Create new DB',
   // pgMaximum: (slotsInUse: number) =>
   //   `Note: There is a maximum of 3 backup schedules for PostgreSQL. You are using ${slotsInUse} out of ${PG_SLOTS_LIMIT} available storages.`,
   // pitrToBeDisabled:

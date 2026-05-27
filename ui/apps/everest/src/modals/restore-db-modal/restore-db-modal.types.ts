@@ -3,8 +3,7 @@ export interface RestoreDbModalProps {
   closeModal: () => void;
   instanceName: string;
   namespace: string;
-  // TODO: Re-enable when create-new-db-from-backup flow is restored.
-  // isNewClusterMode?: boolean;
+  isNewClusterMode?: boolean;
   preselectedBackupName?: string;
 }
 

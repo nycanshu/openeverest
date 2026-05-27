@@ -25,7 +25,7 @@ import { StepHeader } from '../../steps-old/step-header/step-header.js';
 import { Messages } from '../../steps-old/first/first-step.messages.js';
 import { useNamespacePermissionsForResource } from 'hooks/rbac';
 import { useNamespaces } from 'hooks/index.ts';
-import { WizardMode } from 'shared-types/wizard.types.ts';
+import { FormMode } from 'components/ui-generator/ui-generator.types.js';
 import { useDatabaseFormContext } from 'pages/database-form/database-form-context';
 
 export const BaseInfoStep = ({ loadingDefaultsForEdition }: StepProps) => {
@@ -93,7 +93,7 @@ export const BaseInfoStep = ({ loadingDefaultsForEdition }: StepProps) => {
     );
     if (
       !k8sNamespaceTouched &&
-      mode === WizardMode.New &&
+      mode === FormMode.New &&
       namespaces.length > 0 &&
       !isLoading
     ) {
@@ -111,7 +111,7 @@ export const BaseInfoStep = ({ loadingDefaultsForEdition }: StepProps) => {
     );
     if (
       !topologyTouched &&
-      mode === WizardMode.New &&
+      mode === FormMode.New &&
       topologies.length > 0 &&
       !currentTopology
     ) {
@@ -149,7 +149,7 @@ export const BaseInfoStep = ({ loadingDefaultsForEdition }: StepProps) => {
           label={Messages.labels.k8sNamespace}
           loading={isLoading}
           options={namespaces}
-          disabled={mode === WizardMode.Restore || loadingDefaultsForEdition}
+          disabled={mode === FormMode.Restore || loadingDefaultsForEdition}
           // onChange={onNamespaceChange}
           autoCompleteProps={{
             disableClearable: true,
@@ -169,7 +169,8 @@ export const BaseInfoStep = ({ loadingDefaultsForEdition }: StepProps) => {
             name={DbWizardFormFields.topology}
             label="Database Topology"
             selectFieldProps={{
-              disabled: loadingDefaultsForEdition,
+              disabled:
+                mode === FormMode.Restore || loadingDefaultsForEdition,
             }}
           >
             {topologies.map((topology) => (

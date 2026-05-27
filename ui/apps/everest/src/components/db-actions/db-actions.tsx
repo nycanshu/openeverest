@@ -19,8 +19,8 @@ import { Box, Button, IconButton, Menu, MenuItem } from '@mui/material';
 import {
   DeleteOutline as DeleteOutlineIcon,
   KeyboardReturn as KeyboardReturnIcon,
+  Add as AddIcon,
 } from '@mui/icons-material';
-// import AddIcon from '@mui/icons-material/Add';
 import MoreHorizIcon from '@mui/icons-material/MoreHoriz';
 import { DbActionsProps } from './db-actions.types';
 import { useRBACPermissions } from 'hooks/rbac';
@@ -195,26 +195,24 @@ export const DbActions = ({
               <RestartAltIcon /> {Messages.menuItems.restart}
             </MenuItem>
           )*/}
-          {/*canCreateClusterFromBackup && (
-            <MenuItem
-              data-testid={`${dbInstanceName}-create-new-db-from-backup`}
-              disabled={actionsBlocked}
-              key={1}
-              onClick={() => {
-                setIsNewClusterMode(true);
-                handleRestoreDbCluster();
-              }}
-              sx={sx}
-            >
-              <AddIcon /> {Messages.menuItems.createNewDbFromBackup}
-            </MenuItem>
-          )*/}
+          {/* TODO RBAC canCreateClusterFromBackup && */}
+          <MenuItem
+            data-testid={`${dbInstanceName}-create-new-db-from-backup`}
+            disabled={actionsBlocked}
+            key={1}
+            onClick={() => {
+              setIsNewClusterMode(true);
+              handleRestoreDbCluster();
+            }}
+            sx={sx}
+          >
+            <AddIcon /> {Messages.menuItems.createNewDbFromBackup}
+          </MenuItem>
           <MenuItem
             data-testid={`${dbInstanceName}-restore`}
             disabled={actionsBlocked}
             key={3}
             onClick={() => {
-              // TODO: Re-enable create-new-db flow and set true in that branch.
               setIsNewClusterMode(false);
               handleRestoreDbCluster();
             }}
