@@ -58,7 +58,7 @@ export const useDatabasePageDefaultValues = (
     const providerName =
       state?.selectedDbProvider?.metadata?.name || 'unknown-provider';
 
-    if (mode === WizardMode.New) {
+    if (mode === FormMode.New) {
       const dbWizardDefaultValues = getDbWizardDefaultValues(providerName);
       return {
         ...defaultSchemaValues,

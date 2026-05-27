@@ -55,7 +55,7 @@ export const BaseInfoStep = ({ loadingDefaultsForEdition }: StepProps) => {
   //     .filter((item) => item.namespace === dbNamespace)
   //     .map((item) => item.dbEngine);
   //   const dbEngine = dbEnginesArray ? dbEnginesArray[0] : undefined;
-  //   if (mode !== WizardMode.New && dbEngine) {
+  //   if (mode !== FormMode.New && dbEngine) {
   //     const validVersions = filterAvailableDbVersionsForDbEngineEdition(
   //       dbEngine,
   //       defaultDbVersion,

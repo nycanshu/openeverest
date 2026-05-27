@@ -33,7 +33,7 @@ import {
   BackupList,
   BackupStatus,
 } from 'shared-types/backups.types.ts';
-import { WizardMode } from 'shared-types/wizard.types';
+import { FormMode } from 'components/ui-generator/ui-generator.types';
 import { ScheduleModalContext } from '../backups.context.ts';
 import { BACKUP_STATUS_TO_BASE_STATUS } from './backups-list.constants';
 import { Messages } from './backups-list.messages';
@@ -237,7 +237,7 @@ export const BackupsList = () => {
   };
 
   const handleScheduleBackup = () => {
-    setMode(WizardMode.New);
+    setMode(FormMode.New);
     setOpenScheduleModal(true);
   };
 

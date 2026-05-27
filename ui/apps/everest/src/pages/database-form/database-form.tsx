@@ -32,7 +32,7 @@ import DatabaseFormCancelDialog from './database-form-cancel-dialog/index';
 import DatabaseFormBody from './database-form-body';
 import DatabaseFormSideDrawer from './database-form-side-drawer';
 import { useInstancesForNamespaces, useNamespaces } from 'hooks';
-import { WizardMode } from 'shared-types/wizard.types';
+import { FormMode } from 'components/ui-generator/ui-generator.types';
 import { ZodType } from 'zod';
 import { useDatabasePageDefaultValues } from './hooks/use-database-form-default-values';
 import { useDatabasePageMode } from './hooks/use-database-page-mode';
@@ -186,7 +186,7 @@ export const DatabasePage = () => {
         fields: Object.values(ImportFields) as string[],
       });
     }
-    if (hasBackupStep && mode !== WizardMode.Restore) {
+    if (hasBackupStep && mode !== FormMode.Restore) {
       steps.push({
         id: BACKUP_STEP_ID,
         label: 'Backups',
@@ -281,7 +281,7 @@ export const DatabasePage = () => {
   // and skip the isDirty guard the first time they arrive.
   const restoreDefaultsApplied = useRef(false);
   useEffect(() => {
-    if (mode !== WizardMode.Restore) return;
+    if (mode !== FormMode.Restore) return;
     if (dbClusterRequestStatus !== 'success') return;
     if (restoreDefaultsApplied.current && isDirty) return;
     restoreDefaultsApplied.current = true;
@@ -328,7 +328,7 @@ export const DatabasePage = () => {
 
     latestDataRef.current = postProcessedData;
 
-    if (mode === WizardMode.New) {
+    if (mode === FormMode.New) {
       createInstance(
         { formValue: postProcessedData },
         {
@@ -337,7 +337,7 @@ export const DatabasePage = () => {
           },
         }
       );
-    } else if (mode === WizardMode.Restore) {
+    } else if (mode === FormMode.Restore) {
       const backupName = location.state?.backupName as string;
       createInstance(
         { formValue: postProcessedData },
@@ -359,7 +359,7 @@ export const DatabasePage = () => {
   };
 
   // ── Render ───────────────────────────────────────────────────────────────
-  if (!uiSchema || (mode === WizardMode.Restore && topologies.length === 0)) {
+  if (!uiSchema || (mode === FormMode.Restore && topologies.length === 0)) {
     return null;
   }
 
@@ -373,7 +373,7 @@ export const DatabasePage = () => {
         sections: engine.sections,
         sectionsOrder: engine.sectionsOrder,
         providerObject,
-        hasBackupStep: hasBackupStep && mode !== WizardMode.Restore,
+        hasBackupStep: hasBackupStep && mode !== FormMode.Restore,
       }}
     >
       <Stack direction={isDesktop ? 'row' : 'column'}>
