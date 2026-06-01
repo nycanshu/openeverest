@@ -54,7 +54,7 @@ export interface components {
                  *     itself.
                  * @default Delete
                  */
-                deletionPolicy: string & (("Retain" | "Delete") & ("Retain" | "Delete"));
+                deletionPolicy?: string & (("Retain" | "Delete") & ("Retain" | "Delete"));
                 /**
                  * @description InstanceName is the name of the Instance to back up. The Instance must
                  *     live in the same namespace as this Backup.
@@ -186,8 +186,8 @@ export interface components {
             spec: {
                 /**
                  * @description Config contains the OpenAPI v3 schema describing the backup-time
-                 *     configuration accepted by this class. Backup.spec.config is validated
-                 *     against this schema.
+                 *     configuration accepted by this class. Backup.spec.config and
+                 *     InstanceBackupSchedule.config are both validated against this schema.
                  */
                 config?: {
                     /** @description OpenAPIV3Schema is the OpenAPI v3 schema of the backup class. */
@@ -523,7 +523,6 @@ export interface components {
              *
              *       - Instance.spec.backup.storages[].storageRef
              *       - Backup.spec.storageName
-             *       - Restore.spec.dataSource.external.storageName
              *
              *     Decoupling storage from individual Backup CRs makes provider-managed
              *     backups (e.g. PBM, pgBackRest) practical: the provider can register a
@@ -556,7 +555,7 @@ export interface components {
                      *     instead of the host). Defaults to false.
                      * @default false
                      */
-                    forcePathStyle: boolean;
+                    forcePathStyle?: boolean;
                     /** @description Region is the region of the S3 bucket. */
                     region: string;
                     /** @description SecretAccessKey is a write-only convenience input. See AccessKeyID. */
@@ -566,7 +565,7 @@ export interface components {
                      *     Defaults to true.
                      * @default true
                      */
-                    verifyTLS: boolean;
+                    verifyTLS?: boolean;
                 };
                 /**
                  * @description Type is the object storage type. Today only "s3" is supported.
@@ -642,11 +641,6 @@ export interface components {
                      */
                     storages?: {
                         /**
-                         * @description Main marks this storage as the engine's default. At most one storage
-                         *     per Instance may be marked main.
-                         */
-                        main?: boolean;
-                        /**
                          * @description Name is the logical name the engine uses for this storage. It is also
                          *     the value that Backup CRs target via .spec.storageName.
                          */
@@ -676,6 +670,13 @@ export interface components {
                          *     all storages on the Instance.
                          */
                         schedules?: {
+                            /**
+                             * @description Config is schedule-specific configuration validated against the
+                             *     BackupClass's .spec.scheduleConfig.openAPIV3Schema. When unset the
+                             *     provider falls back to engine defaults. The schema is the same as for
+                             *     Backup.spec.config but applied per-schedule rather than per-backup-run.
+                             */
+                            config?: Record<string, never>;
                             /**
                              * @description Cron is a standard 5-field cron expression. The provider may reject
                              *     expressions the engine does not support.
@@ -711,7 +712,7 @@ export interface components {
                              *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                              * @default
                              */
-                            name: string;
+                            name?: string;
                         };
                     }[];
                 };
@@ -737,7 +738,7 @@ export interface components {
                                  *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                  * @default
                                  */
-                                name: string;
+                                name?: string;
                             };
                             key?: string;
                             /**
@@ -753,7 +754,7 @@ export interface components {
                                  *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                                  * @default
                                  */
-                                name: string;
+                                name?: string;
                             };
                         };
                         /**
@@ -831,6 +832,68 @@ export interface components {
                     };
                 };
                 /**
+                 * @description DataSource allows creating a new Instance from an existing
+                 *     Backup CR of another Instance.
+                 *
+                 *     Only ProviderManaged BackupClasses are supported. The referenced Backup
+                 *     must be in the same namespace, in Succeeded state, and its BackupClass
+                 *     must list the Instance's provider in SupportedProviders. Instance must
+                 *     also have backup enabled and include a storage entry that matches the
+                 *     storage used by the source Backup so the provider can access the data.
+                 */
+                dataSource?: {
+                    /**
+                     * @description Backup references an existing Backup CR in the same namespace.
+                     *     Required when type=Backup.
+                     */
+                    backup?: {
+                        /** @description BackupName is the name of the Backup CR in the same namespace. */
+                        backupName: string;
+                        /**
+                         * @description PITR configures point-in-time recovery on top of this backup.
+                         *     The resolved BackupClass must advertise PITR support via
+                         *     .spec.providerManaged for this to be honoured.
+                         */
+                        pitr?: {
+                            /**
+                             * Format: date-time
+                             * @description Date is the target recovery point. Required when Type is "date".
+                             */
+                            date?: string;
+                            /** @description Type selects date-based or latest recovery. */
+                            type: string & (("date" | "latest") & ("date" | "latest"));
+                        };
+                    };
+                    /**
+                     * @description Type selects the data source kind.
+                     * @enum {string}
+                     */
+                    type: "Backup";
+                };
+                /**
+                 * @description DeletionPolicy controls what happens to Backup and Restore CRs that
+                 *     reference this Instance when the Instance is deleted.
+                 *     Cascade (default) instructs the runtime to delete every Backup and
+                 *     Restore in the Instance's namespace whose .spec.instanceName matches
+                 *     this Instance before tearing down the engine. Each Backup's own
+                 *     .spec.deletionPolicy then independently controls whether its
+                 *     underlying data in the BackupStorage is purged or retained.
+                 *     Orphan instructs the runtime to leave Backup and Restore CRs in
+                 *     place; they survive the Instance deletion and can later be used to
+                 *     restore into a newly-created Instance.
+                 *
+                 *     The Instance is held in the Terminating phase until all referenced
+                 *     Backups/Restores have been deleted (Cascade) or until the engine
+                 *     resources have been torn down (both policies).
+                 *
+                 *     The field is mutable on a live Instance but is frozen once deletion
+                 *     has started: switching policies after .metadata.deletionTimestamp
+                 *     has been set is rejected so the cascade path cannot race with
+                 *     itself.
+                 * @default Cascade
+                 */
+                deletionPolicy?: string & (("Cascade" | "Orphan") & ("Cascade" | "Orphan"));
+                /**
                  * @description Global contains provider-level configuration that applies to the entire cluster.
                  *     The schema for this field is defined by the provider's GlobalConfigSchema.
                  */
@@ -873,7 +936,7 @@ export interface components {
                          *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                          * @default
                          */
-                        name: string;
+                        name?: string;
                     }[];
                     /** Format: int32 */
                     ready?: number;
@@ -939,7 +1002,7 @@ export interface components {
                      *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
                      * @default
                      */
-                    name: string;
+                    name?: string;
                 };
                 /**
                  * @description Phase of the database cluster.
@@ -1014,23 +1077,29 @@ export interface components {
             /** @description spec defines the desired state of MonitoringConfig */
             spec: {
                 /**
-                 * @description CredentialsSecretName is the reference to the secret containing the API key.
-                 *     It contains `apiKey` key with the API key value.
+                 * @description PMM contains PMM-specific monitoring configuration.
+                 *     Required when type is "pmm".
                  */
-                credentialsSecretName: string;
+                pmm?: {
+                    /**
+                     * @description CredentialsSecretName is the reference to the secret containing the API key.
+                     *     It contains `apiKey` key with the API key value.
+                     */
+                    credentialsSecretName: string;
+                    /** @description URL is the URL of the PMM server. */
+                    url: string;
+                    /**
+                     * @description VerifyTLS is set to ensure TLS/SSL verification.
+                     *     If unspecified, the default value is true.
+                     * @default true
+                     */
+                    verifyTLS?: boolean;
+                };
                 /**
                  * @description Type is the name of monitoring tool (e.g., "pmm").
                  * @enum {string}
                  */
                 type: "pmm";
-                /** @description URL is the URL of the monitoring server (e.g., PMM server URL). */
-                url: string;
-                /**
-                 * @description VerifyTLS is set to ensure TLS/SSL verification.
-                 *     If unspecified, the default value is true.
-                 * @default true
-                 */
-                verifyTLS: boolean;
             };
             /**
              * @description status defines the observed state of MonitoringConfig
@@ -1038,19 +1107,22 @@ export interface components {
              *       "inUse": false
              *     }
              */
-            status: {
+            status?: {
                 /**
                  * @description InUse is a flag that indicates if any Instance uses the monitoring config.
                  * @default false
                  */
-                inUse: boolean;
+                inUse?: boolean;
                 /**
                  * Format: int64
                  * @description LastObservedGeneration is the most recent generation observed for this MonitoringConfig.
                  */
                 lastObservedGeneration?: number;
-                /** @description PMMServerVersion shows PMM server version. */
-                pmmServerVersion?: string;
+                /** @description PMM contains PMM-specific status information. */
+                pmm?: {
+                    /** @description ServerVersion shows the PMM server version. */
+                    serverVersion?: string;
+                };
             };
         };
         /** @description MonitoringConfigList is an object that contains the list of the existing monitoringconfigs. */
@@ -1065,6 +1137,297 @@ export interface components {
                 name?: string;
                 /** @description Namespace defines the space within which each name must be unique. An empty namespace is equivalent to the "default" namespace, but "default" is the canonical representation. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces */
                 namespace?: string;
+            };
+        };
+        /**
+         * @description Plugin is the Schema for the plugins API. It registers an external plugin
+         *     with the Everest platform, enabling its UI bundle to be loaded dynamically
+         *     and its backend to be reverse-proxied through the Everest server.
+         */
+        Plugin: {
+            /**
+             * @description APIVersion defines the versioned schema of this representation of an object.
+             *     Servers should convert recognized schemas to the latest internal value, and
+             *     may reject unrecognized values.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+             */
+            apiVersion?: string;
+            /**
+             * @description Kind is a string value representing the REST resource this object represents.
+             *     Servers may infer this from the endpoint the client submits requests to.
+             *     Cannot be updated.
+             *     In CamelCase.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+             */
+            kind?: string;
+            metadata?: Record<string, never>;
+            /** @description PluginSpec defines the desired state of Plugin */
+            spec: {
+                /** @description Backend defines the optional backend contribution of the plugin. */
+                backend?: {
+                    /**
+                     * @description CredentialsSecretRef is the name of a Secret in the same namespace as
+                     *     the PluginInstallation (or in everest-system for cluster-wide installs)
+                     *     whose "token" key is forwarded as the Authorization header to the external backend.
+                     *     Only meaningful when ExternalURL is set.
+                     */
+                    credentialsSecretRef?: string;
+                    /**
+                     * @description ExternalURL is the HTTPS base URL of an externally hosted backend
+                     *     (e.g. "https://sql-explorer.example.com"). Mutually exclusive with ServiceRef.
+                     */
+                    externalUrl?: string;
+                    /**
+                     * @description ServiceRef references an in-cluster Kubernetes Service.
+                     *     The Everest server resolves it to http://<name>.<namespace>.svc:<port>
+                     *     and reverse-proxies /v1/plugins/<pluginName>/* to that address.
+                     */
+                    serviceRef?: {
+                        /** @description Name of the Service. */
+                        name: string;
+                        /** @description Namespace of the Service. */
+                        namespace: string;
+                        /**
+                         * Format: int32
+                         * @description Port is the service port number.
+                         */
+                        port: number;
+                    };
+                };
+                /**
+                 * @description CLI defines an optional CLI contribution. When set, `everestctl plugin run`
+                 *     can exec a container from the specified image.
+                 */
+                cli?: {
+                    /** @description Description is a short human-readable description for the CLI help text. */
+                    description?: string;
+                    /** @description Image is the OCI image reference for the CLI container. */
+                    image: string;
+                    /**
+                     * @description Subcommand is the name used under `everestctl plugin run <subcommand>`.
+                     *     Defaults to the plugin name if not set.
+                     */
+                    subcommand?: string;
+                };
+                /**
+                 * @description CompatibleHostVersions is a SemVer range expression specifying which
+                 *     OpenEverest host versions this plugin supports (e.g. ">=2.0.0 <3.0.0").
+                 */
+                compatibleHostVersions?: string;
+                /** @description Description is a short human-readable description of what the plugin does. */
+                description?: string;
+                /** @description DisplayName is the human-readable name shown in the UI sidebar. */
+                displayName: string;
+                /**
+                 * @description Enabled controls whether the plugin is active. A disabled plugin
+                 *     is not returned by the list endpoint and its proxy routes are inactive.
+                 * @default true
+                 */
+                enabled?: boolean;
+                /** @description Frontend defines the optional frontend contribution of the plugin. */
+                frontend?: {
+                    /** @description BundleIntegrity is an optional SRI hash for verifying the bundle. */
+                    bundleIntegrity?: string;
+                    /**
+                     * @description BundlePath is the path on the backend that serves the plugin's
+                     *     frontend ESM bundle (e.g. "/main.js"). The Everest server exposes
+                     *     this as /v1/plugins/<name>/<bundlePath> for the UI to import().
+                     * @default /main.js
+                     */
+                    bundlePath?: string;
+                    /**
+                     * @description ExtensionPoints declares the UI extension points this plugin fills.
+                     *     This enables the host to show/hide contributions before loading the bundle
+                     *     and enables RBAC-based filtering.
+                     */
+                    extensionPoints?: {
+                        /** @description Icon is an optional icon identifier. */
+                        icon?: string;
+                        /** @description Label is the human-readable label displayed for this contribution. */
+                        label?: string;
+                        /** @description Path is an optional sub-path (used by "route" and tab-type extension points). */
+                        path?: string;
+                        /**
+                         * @description Providers is an optional list of database engine types this extension point
+                         *     applies to. Values match spec.engine.type on the DatabaseCluster CR:
+                         *     "postgresql", "psmdb", "pxc".
+                         *     When omitted or empty, the extension point is shown for all engine types.
+                         */
+                        providers?: string[];
+                        /**
+                         * @description Type is the kind of extension point (e.g. "route", "sidebarItem",
+                         *     "clusterDetailTab", "clusterAction", "clusterCard",
+                         *     "globalDashboardWidget", "settingsPanel", "instanceCreateFormSection",
+                         *     "instanceEditFormSection", "themeOverride").
+                         */
+                        type: string;
+                    }[];
+                };
+                /** @description Icon is a URL to the plugin's icon image. */
+                icon?: string;
+                /**
+                 * @description KubePermissions declares additional Kubernetes API permissions the plugin's
+                 *     ServiceAccount needs beyond the OpenEverest API. Used by infrastructure
+                 *     plugins that create per-cluster resources (e.g., ProxySQL deployments).
+                 *     The host auto-generates a Role from these rules and binds it to the
+                 *     plugin's ServiceAccount in each namespace where a PluginInstallation exists.
+                 *     Rules are validated against a hard-coded denylist at reconcile time.
+                 */
+                kubePermissions?: {
+                    /** @description APIGroups is the list of API groups (e.g. "", "apps"). Use "" for core. */
+                    apiGroups: string[];
+                    /** @description Resources is the list of resources (e.g. "deployments", "services"). */
+                    resources: string[];
+                    /** @description Verbs is the list of verbs (e.g. "get", "list", "create", "delete"). */
+                    verbs: string[];
+                }[];
+                /** @description Permissions declares what OpenEverest API resources this plugin needs access to. */
+                permissions?: {
+                    /** @description Resource is the OpenEverest API resource (e.g. "database-clusters"). */
+                    resource: string;
+                    /** @description Verb is the action (e.g. "read", "create", "update", "delete"). */
+                    verb: string;
+                }[];
+                /** @description Vendor is the name of the plugin author or organisation. */
+                vendor?: string;
+                /** @description Version is the SemVer version of the plugin. */
+                version?: string;
+            };
+            /** @description PluginStatus defines the observed state of Plugin. */
+            status?: {
+                conditions?: {
+                    /**
+                     * Format: date-time
+                     * @description lastTransitionTime is the last time the condition transitioned from one status to another.
+                     *     This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                     */
+                    lastTransitionTime: string;
+                    /**
+                     * @description message is a human readable message indicating details about the transition.
+                     *     This may be an empty string.
+                     */
+                    message: string;
+                    /**
+                     * Format: int64
+                     * @description observedGeneration represents the .metadata.generation that the condition was set based upon.
+                     *     For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                     *     with respect to the current state of the instance.
+                     */
+                    observedGeneration?: number;
+                    /**
+                     * @description reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                     *     Producers of specific condition types may define expected values and meanings for this field,
+                     *     and whether the values are considered a guaranteed API.
+                     *     The value should be a CamelCase string.
+                     *     This field may not be empty.
+                     */
+                    reason: string;
+                    /**
+                     * @description status of the condition, one of True, False, Unknown.
+                     * @enum {string}
+                     */
+                    status: "True" | "False" | "Unknown";
+                    /** @description type of condition in CamelCase or in foo.example.com/CamelCase. */
+                    type: string;
+                }[];
+            };
+        };
+        /** @description PluginInstallation is the Schema for the plugininstallations API */
+        PluginInstallation: {
+            /**
+             * @description APIVersion defines the versioned schema of this representation of an object.
+             *     Servers should convert recognized schemas to the latest internal value, and
+             *     may reject unrecognized values.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources
+             */
+            apiVersion?: string;
+            /**
+             * @description Kind is a string value representing the REST resource this object represents.
+             *     Servers may infer this from the endpoint the client submits requests to.
+             *     Cannot be updated.
+             *     In CamelCase.
+             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+             */
+            kind?: string;
+            metadata?: Record<string, never>;
+            /** @description PluginInstallationSpec defines the desired state of PluginInstallation */
+            spec: {
+                /**
+                 * @description ConfigSecretRef is an optional reference to a Secret in the same namespace
+                 *     that holds plugin-specific configuration (mounted as env vars in the backend).
+                 */
+                configSecretRef?: string;
+                /**
+                 * @description Enabled controls whether the plugin is active in this namespace.
+                 * @default true
+                 */
+                enabled?: boolean;
+                /** @description PluginName references the cluster-scoped Plugin CR by name. */
+                pluginName: string;
+            };
+            /** @description PluginInstallationStatus defines the observed state of PluginInstallation. */
+            status?: {
+                conditions?: {
+                    /**
+                     * Format: date-time
+                     * @description lastTransitionTime is the last time the condition transitioned from one status to another.
+                     *     This should be when the underlying condition changed.  If that is not known, then using the time when the API field changed is acceptable.
+                     */
+                    lastTransitionTime: string;
+                    /**
+                     * @description message is a human readable message indicating details about the transition.
+                     *     This may be an empty string.
+                     */
+                    message: string;
+                    /**
+                     * Format: int64
+                     * @description observedGeneration represents the .metadata.generation that the condition was set based upon.
+                     *     For instance, if .metadata.generation is currently 12, but the .status.conditions[x].observedGeneration is 9, the condition is out of date
+                     *     with respect to the current state of the instance.
+                     */
+                    observedGeneration?: number;
+                    /**
+                     * @description reason contains a programmatic identifier indicating the reason for the condition's last transition.
+                     *     Producers of specific condition types may define expected values and meanings for this field,
+                     *     and whether the values are considered a guaranteed API.
+                     *     The value should be a CamelCase string.
+                     *     This field may not be empty.
+                     */
+                    reason: string;
+                    /**
+                     * @description status of the condition, one of True, False, Unknown.
+                     * @enum {string}
+                     */
+                    status: "True" | "False" | "Unknown";
+                    /** @description type of condition in CamelCase or in foo.example.com/CamelCase. */
+                    type: string;
+                }[];
+            };
+        };
+        /** @description PluginInstallationList is an object that contains the list of the existing plugininstallations. */
+        PluginInstallationList: {
+            /** @description APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            items?: components["schemas"]["PluginInstallation"][];
+            /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                /** @description Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names */
+                name?: string;
+                /** @description Namespace defines the space within which each name must be unique. An empty namespace is equivalent to the "default" namespace, but "default" is the canonical representation. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces */
+                namespace?: string;
+            };
+        };
+        /** @description PluginList is an object that contains the list of the existing plugins. */
+        PluginList: {
+            /** @description APIVersion defines the versioned schema of this representation of an object. Servers should convert recognized schemas to the latest internal value, and may reject unrecognized values. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#resources */
+            apiVersion?: string;
+            items?: components["schemas"]["Plugin"][];
+            /** @description Kind is a string value representing the REST resource this object represents. Servers may infer this from the endpoint the client submits requests to. Cannot be updated. In CamelCase. More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds */
+            kind?: string;
+            metadata?: {
+                /** @description Name must be unique within a namespace. Is required when creating resources, although some resources may allow a client to request the generation of an appropriate name automatically. Name is primarily intended for creation idempotence and configuration definition. More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names#names */
+                name?: string;
             };
         };
         /** @description Provider is the Schema for the providers API */
@@ -1223,48 +1586,32 @@ export interface components {
                 /** @description DataSource defines where the backup data to restore from is located. */
                 dataSource: {
                     /**
-                     * @description BackupName references an existing Backup CR in the same namespace to
-                     *     restore from. The BackupClass and storage are resolved from the
-                     *     referenced Backup.
+                     * @description Backup references an existing Backup CR in the same namespace.
+                     *     Required when type=Backup.
                      */
-                    backupName?: string;
-                    /**
-                     * @description External describes a backup that has no corresponding Backup CR in the
-                     *     cluster (e.g., a backup taken outside of OpenEverest).
-                     */
-                    external?: {
+                    backup?: {
+                        /** @description BackupName is the name of the Backup CR in the same namespace. */
+                        backupName: string;
                         /**
-                         * @description BackupClassName is the name of the BackupClass that defines how to
-                         *     restore this external backup.
+                         * @description PITR configures point-in-time recovery on top of this backup.
+                         *     The resolved BackupClass must advertise PITR support via
+                         *     .spec.providerManaged for this to be honoured.
                          */
-                        backupClassName: string;
-                        /**
-                         * @description Config is forwarded to the BackupClass's restore configuration. It is
-                         *     validated against the same schema as Restore.spec.config.
-                         */
-                        config?: Record<string, never>;
-                        /**
-                         * @description StorageName references the BackupStorage in the same namespace that
-                         *     describes where the external backup data is located.
-                         */
-                        storageName: string;
+                        pitr?: {
+                            /**
+                             * Format: date-time
+                             * @description Date is the target recovery point. Required when Type is "date".
+                             */
+                            date?: string;
+                            /** @description Type selects date-based or latest recovery. */
+                            type: string & (("date" | "latest") & ("date" | "latest"));
+                        };
                     };
                     /**
-                     * @description PITR defines point-in-time recovery options. Requires the resolved
-                     *     BackupClass to advertise PITR support via .spec.providerManaged.
+                     * @description Type selects the data source kind.
+                     * @enum {string}
                      */
-                    pitr?: {
-                        /**
-                         * Format: date-time
-                         * @description Date is the target recovery point in time. Required when Type is "date".
-                         */
-                        date?: string;
-                        /**
-                         * @description Type is the type of point-in-time recovery: "date" or "latest".
-                         * @enum {string}
-                         */
-                        type: "date" | "latest";
-                    };
+                    type: "Backup";
                 };
                 /**
                  * @description InstanceName is the name of the Instance to restore into. The Instance

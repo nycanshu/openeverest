@@ -440,6 +440,16 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req reconcile.Reques
 			_ = r.Client.Status().Update(ctx, in)
 			return reconcile.Result{}, nil
 		}
+		// DataSourceConfigError means the engine is healthy but initial seeding
+		// cannot proceed (e.g., source credentials secret missing). Surface it on
+		// the DataSourceReady condition without marking Instance Failed.
+		if dse := controller.AsDataSourceConfigError(err); dse != nil {
+			logger.Error(err, "DataSource configuration failed")
+			setCondition(in, v1alpha1.ConditionDataSourceReady, metav1.ConditionFalse,
+				dse.Reason, dse.Message, metav1.Now())
+			_ = r.Client.Status().Update(ctx, in)
+			return reconcile.Result{}, nil
+		}
 		logger.Error(err, "Sync failed")
 		return reconcile.Result{}, err
 	}
@@ -447,6 +457,19 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req reconcile.Reques
 	if _, ok := r.provider.(controller.BackupProvider); ok {
 		setCondition(in, v1alpha1.ConditionBackupConfigured, metav1.ConditionTrue,
 			"Configured", "Backup configuration applied to engine", metav1.Now())
+	}
+
+	// Flush ConditionDataSourceReady when the provider invoked
+	// Context.ReconcileDataSource during Sync. Status=True when the seeding
+	// restore has Succeeded; Status=False otherwise with the staged reason
+	// and message explaining what the helper is waiting on.
+	if ds := syncCtx.GetDataSourceStatus(); ds != nil && ds.State != controller.DataSourceStateNone {
+		condStatus := metav1.ConditionFalse
+		if ds.State == controller.DataSourceStateSucceeded {
+			condStatus = metav1.ConditionTrue
+		}
+		setCondition(in, v1alpha1.ConditionDataSourceReady, condStatus,
+			ds.Reason, ds.Message, metav1.Now())
 	}
 
 	// Compute and update status
@@ -504,6 +527,23 @@ func (r *ProviderReconciler) handleDeletion(
 		}
 	}
 
+	// Cascade delete Backup/Restore CRs that reference this Instance before
+	// tearing down the engine. We only attempt this when the provider opts
+	// into BackupProvider (the case in which the Backup/Restore field
+	// indexes are registered and the user is expected to be creating
+	// Backup CRs against this Instance).
+	if _, isBackupProvider := r.provider.(controller.BackupProvider); isBackupProvider &&
+		in.Spec.DeletionPolicy == v1alpha1.InstanceDeletionPolicyCascade {
+		remaining, err := r.cascadeDeleteChildren(ctx, inCtx, logger)
+		if err != nil {
+			return reconcile.Result{}, err
+		}
+		if remaining > 0 {
+			logger.Info("Waiting for child Backup/Restore CRs to terminate", "remaining", remaining)
+			return reconcile.Result{RequeueAfter: controller.GetWaitDuration(controller.WaitFor("waiting for child Backup/Restore CRs"))}, nil
+		}
+	}
+
 	// Run cleanup
 	if err := r.provider.Cleanup(inCtx); err != nil {
 		if controller.IsWaitError(err) {
@@ -521,6 +561,53 @@ func (r *ProviderReconciler) handleDeletion(
 
 	logger.Info("Cleanup complete")
 	return reconcile.Result{}, nil
+}
+
+// cascadeDeleteChildren issues Delete on every Backup and Restore CR in the
+// Instance's namespace whose .spec.instanceName matches this Instance, then
+// returns the number of CRs still present (counting both freshly-deleted ones
+// that have not yet been reaped by their own controllers and any older ones
+// still finalizing). The caller should requeue while remaining > 0.
+//
+// Each child Backup's own .spec.deletionPolicy controls whether the
+// underlying data in the BackupStorage is purged or retained — this function
+// only triggers Delete on the CR itself and never overrides that decision.
+func (r *ProviderReconciler) cascadeDeleteChildren(
+	ctx context.Context,
+	inCtx *controller.Context,
+	logger interface{ Info(string, ...interface{}) },
+) (int, error) {
+	backups, err := inCtx.BackupsForInstance()
+	if err != nil {
+		return 0, fmt.Errorf("list backups for cascade delete: %w", err)
+	}
+	for i := range backups {
+		b := &backups[i]
+		if !b.GetDeletionTimestamp().IsZero() {
+			continue
+		}
+		if err := r.Client.Delete(ctx, b); err != nil && !apierrors.IsNotFound(err) {
+			return 0, fmt.Errorf("delete child Backup %q: %w", b.Name, err)
+		}
+		logger.Info("Cascade delete: issued Delete on Backup", "name", b.Name)
+	}
+
+	restores, err := inCtx.RestoresForInstance()
+	if err != nil {
+		return 0, fmt.Errorf("list restores for cascade delete: %w", err)
+	}
+	for i := range restores {
+		rs := &restores[i]
+		if !rs.GetDeletionTimestamp().IsZero() {
+			continue
+		}
+		if err := r.Client.Delete(ctx, rs); err != nil && !apierrors.IsNotFound(err) {
+			return 0, fmt.Errorf("delete child Restore %q: %w", rs.Name, err)
+		}
+		logger.Info("Cascade delete: issued Delete on Restore", "name", rs.Name)
+	}
+
+	return len(backups) + len(restores), nil
 }
 
 // reconcileConnectionSecret creates or updates the connection details Secret
