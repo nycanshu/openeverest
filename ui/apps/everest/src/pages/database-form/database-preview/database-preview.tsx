@@ -113,9 +113,7 @@ export const DatabasePreview = ({
           );
         }
         return (
-          <PreviewContentText
-            text={config ? 'Configured' : 'Not configured'}
-          />
+          <PreviewContentText text={config ? 'Configured' : 'Not configured'} />
         );
       },
     })),

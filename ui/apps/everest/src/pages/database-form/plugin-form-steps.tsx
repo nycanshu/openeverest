@@ -14,9 +14,7 @@
 
 import React, { useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
-import type {
-  ComponentType,
-} from 'react';
+import type { ComponentType } from 'react';
 import type {
   InstanceCreateStepExtension,
   InstanceCreateStepSummaryProps,
@@ -132,59 +130,65 @@ export const usePluginFormSteps = ({
     // renders so the wizard step indices don't shift unexpectedly.
     matches.sort((a, b) => a.pluginName.localeCompare(b.pluginName));
 
-    return matches.map(({ pluginName, ext }): {
-      step: StepDefinition;
-      summary: PluginStepSummary;
-    } => {
-      const PluginComponent = ext.component as unknown as React.ComponentType<
-        Record<string, unknown>
-      >;
-
-      const StepWrapper: React.FC = () => {
-        const { getValues } = useFormContext();
-
-        const handleChange = (config: Record<string, unknown>) => {
-          onConfigChange(pluginName, config);
-        };
-        const handleValidity = (valid: boolean) => {
-          onValidityChange(pluginName, valid);
-        };
-
-        const props: Record<string, unknown> = {
-          formValues: getValues() as Record<string, unknown>,
-          initialConfig: initialConfigsRef.current[pluginName],
-          onChange: handleChange,
-          onValidityChange: handleValidity,
-          namespace,
-        };
-        if (!isCreate) {
-          props.instance = instance;
-        }
-
-        return React.createElement(PluginComponent, props);
-      };
-      StepWrapper.displayName = `PluginStep(${pluginName})`;
-
-      const step: StepDefinition = {
-        id: `plugin:${pluginName}`,
-        kind: 'plugin',
+    return matches.map(
+      ({
         pluginName,
-        optional: ext.optional,
-        label: ext.label,
-        description: ext.description,
-        component: StepWrapper,
-        fields: [],
-      };
+        ext,
+      }): {
+        step: StepDefinition;
+        summary: PluginStepSummary;
+      } => {
+        const PluginComponent = ext.component as unknown as React.ComponentType<
+          Record<string, unknown>
+        >;
 
-      const summary: PluginStepSummary = {
-        stepId: step.id,
-        pluginName,
-        label: ext.label,
-        summaryComponent: ext.summaryComponent as PluginStepSummary['summaryComponent'],
-      };
+        const StepWrapper: React.FC = () => {
+          const { getValues } = useFormContext();
 
-      return { step, summary };
-    });
+          const handleChange = (config: Record<string, unknown>) => {
+            onConfigChange(pluginName, config);
+          };
+          const handleValidity = (valid: boolean) => {
+            onValidityChange(pluginName, valid);
+          };
+
+          const props: Record<string, unknown> = {
+            formValues: getValues() as Record<string, unknown>,
+            initialConfig: initialConfigsRef.current[pluginName],
+            onChange: handleChange,
+            onValidityChange: handleValidity,
+            namespace,
+          };
+          if (!isCreate) {
+            props.instance = instance;
+          }
+
+          return React.createElement(PluginComponent, props);
+        };
+        StepWrapper.displayName = `PluginStep(${pluginName})`;
+
+        const step: StepDefinition = {
+          id: `plugin:${pluginName}`,
+          kind: 'plugin',
+          pluginName,
+          optional: ext.optional,
+          label: ext.label,
+          description: ext.description,
+          component: StepWrapper,
+          fields: [],
+        };
+
+        const summary: PluginStepSummary = {
+          stepId: step.id,
+          pluginName,
+          label: ext.label,
+          summaryComponent:
+            ext.summaryComponent as PluginStepSummary['summaryComponent'],
+        };
+
+        return { step, summary };
+      }
+    );
   }, [
     plugins,
     extensionType,
