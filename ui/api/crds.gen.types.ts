@@ -2029,7 +2029,8 @@ export interface components {
                          * @description Type is the kind of extension point (e.g. "route", "sidebarItem",
                          *     "clusterDetailTab", "clusterAction", "clusterCard",
                          *     "globalDashboardWidget", "settingsPanel", "instanceCreateFormSection",
-                         *     "instanceEditFormSection", "themeOverride").
+                         *     "instanceEditFormSection", "instanceCreateStep", "instanceEditStep",
+                         *     "themeOverride").
                          */
                         type: string;
                     }[];
