@@ -461,9 +461,8 @@ wizard re-render.
 
 A plugin step is rendered only when all of the following hold:
 
-- The user has `use` on `plugin/{name}` (§9.2).
-- The plugin is enabled in the target namespace
-  (`InstalledExtension.spec.plugin.namespaces[]`, or `scope: Cluster`).
+- The user has `use` on `plugin/{name}` in the target namespace (§9.2) — the
+  same Everest RBAC grant that governs every other plugin entry point.
 - The provider filter matches the engine type selected on the Basic Info
   step, if `providers` is declared.
 

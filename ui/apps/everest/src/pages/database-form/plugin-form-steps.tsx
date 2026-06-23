@@ -22,7 +22,6 @@ import type {
   InstanceEditStepSummaryProps,
 } from '@openeverest/plugin-sdk';
 import { usePlugins } from 'contexts/plugins';
-import { usePluginsForNamespace } from 'hooks/api/plugins/usePluginsForNamespace';
 import type { StepDefinition } from 'components/ui-generator/form-engine';
 
 interface UsePluginFormStepsArgs {
@@ -95,20 +94,10 @@ export const usePluginFormSteps = ({
   onValidityChange,
 }: UsePluginFormStepsArgs): PluginFormStepsResult => {
   const { plugins } = usePlugins();
-  const { data: pluginsEnabledInNamespace } = usePluginsForNamespace(namespace);
-
-  // Stable comma-joined key so useMemo below doesn't depend on the array
-  // identity returned by react-query.
-  const enabledNames = pluginsEnabledInNamespace
-    ?.map((p) => p.name)
-    .sort()
-    .join(',');
 
   const extensionType = isCreate ? 'instanceCreateStep' : 'instanceEditStep';
 
   const built = useMemo(() => {
-    const enabledInNs = enabledNames ? new Set(enabledNames.split(',')) : null;
-
     const matches = plugins.flatMap((p) =>
       p.extensions
         .filter(
@@ -122,7 +111,6 @@ export const usePluginFormSteps = ({
             !ext.providers?.length ||
             (engineType != null && ext.providers.includes(engineType))
         )
-        .filter(() => enabledInNs === null || enabledInNs.has(p.name))
         .map((ext) => ({ pluginName: p.name, ext }))
     );
 
@@ -193,7 +181,6 @@ export const usePluginFormSteps = ({
     plugins,
     extensionType,
     engineType,
-    enabledNames,
     namespace,
     instance,
     isCreate,
