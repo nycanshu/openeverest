@@ -111,6 +111,34 @@ type MonitoringConfigList struct {
 	Items           []MonitoringConfig `json:"items"`
 }
 
+// FindDefaultMonitoringConfig finds the most recent MonitoringConfig with the specified annotation
+// from a list of configs. Returns nil if no matching config is found.
+func FindDefaultMonitoringConfig(configs []MonitoringConfig, annotationKey string) *MonitoringConfig {
+	// Filter by annotation
+	filtered := make([]MonitoringConfig, 0)
+	for _, config := range configs {
+		if annotations := config.GetAnnotations(); annotations != nil {
+			if annotations[annotationKey] == "true" {
+				filtered = append(filtered, config)
+			}
+		}
+	}
+
+	if len(filtered) == 0 {
+		return nil
+	}
+
+	// Return the most recently created
+	mostRecent := &filtered[0]
+	for i := 1; i < len(filtered); i++ {
+		if filtered[i].GetCreationTimestamp().After(mostRecent.GetCreationTimestamp().Time) {
+			mostRecent = &filtered[i]
+		}
+	}
+
+	return mostRecent
+}
+
 func init() {
 	SchemeBuilder.Register(&MonitoringConfig{}, &MonitoringConfigList{})
 }

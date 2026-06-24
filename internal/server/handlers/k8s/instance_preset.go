@@ -228,7 +228,19 @@ func (h *k8sHandler) findDefaultResource(ctx context.Context, namespace, resourc
 	case "Secret":
 		mostRecent, err = h.findDefaultSecret(ctx, namespace, annotationKey)
 	case "MonitoringConfig":
-		mostRecent, err = h.findDefaultMonitoringConfig(ctx, namespace, annotationKey)
+		configs, err := h.kubeConnector.ListMonitoringConfigsV2(ctx,
+			ctrlclient.InNamespace(namespace),
+		)
+		if err != nil {
+			return "", err
+		}
+
+		defaultConfig := monitoringv1alpha1.FindDefaultMonitoringConfig(configs.Items, annotationKey)
+		if defaultConfig == nil {
+			return "", nil
+		}
+
+		return defaultConfig.GetName(), nil
 	default:
 		return "", nil
 	}
@@ -289,34 +301,6 @@ func (h *k8sHandler) findDefaultSecret(ctx context.Context, namespace, annotatio
 	return getMostRecentlyCreated(convertSecretsToObjects(filtered)), nil
 }
 
-// findDefaultMonitoringConfig finds the most recent MonitoringConfig with the annotation
-func (h *k8sHandler) findDefaultMonitoringConfig(ctx context.Context, namespace, annotationKey string) (ctrlclient.Object, error) {
-	configs, err := h.kubeConnector.ListMonitoringConfigsV2(ctx,
-		ctrlclient.InNamespace(namespace),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	// Filter by annotation. Note: Kubernetes API doesn't support annotation selectors,
-	// so we must list all MonitoringConfigs and filter client-side (same limitation as StorageClass).
-	// If performance becomes an issue with many configs, consider adding labels instead.
-	filtered := make([]monitoringv1alpha1.MonitoringConfig, 0)
-	for _, config := range configs.Items {
-		if annotations := config.GetAnnotations(); annotations != nil {
-			if annotations[annotationKey] == "true" {
-				filtered = append(filtered, config)
-			}
-		}
-	}
-
-	if len(filtered) == 0 {
-		return nil, nil
-	}
-
-	return getMostRecentlyCreated(convertMonitoringConfigsToObjects(filtered)), nil
-}
-
 // getMostRecentlyCreated returns the most recently created resource
 func getMostRecentlyCreated(items []ctrlclient.Object) ctrlclient.Object {
 	if len(items) == 0 {
@@ -334,14 +318,6 @@ func getMostRecentlyCreated(items []ctrlclient.Object) ctrlclient.Object {
 }
 
 func convertSecretsToObjects(items []corev1.Secret) []ctrlclient.Object {
-	result := make([]ctrlclient.Object, len(items))
-	for i := range items {
-		result[i] = &items[i]
-	}
-	return result
-}
-
-func convertMonitoringConfigsToObjects(items []monitoringv1alpha1.MonitoringConfig) []ctrlclient.Object {
 	result := make([]ctrlclient.Object, len(items))
 	for i := range items {
 		result[i] = &items[i]
