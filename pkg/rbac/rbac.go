@@ -89,6 +89,7 @@ var ClusterScopedResources = []string{
 	ResourceNamespaces,
 	ResourceProviders,
 	ResourceBackupClasses,
+	ResourceInstancePresets,
 }
 
 // ClusterNamespacedResources is a list of v2 resources scoped to cluster + namespace.

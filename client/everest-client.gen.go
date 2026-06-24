@@ -412,6 +412,12 @@ type DeleteBackupParams struct {
 // DeleteBackupParamsDeletionPolicy defines parameters for DeleteBackup.
 type DeleteBackupParamsDeletionPolicy string
 
+// CreateInstancePresetFromInstanceParams defines parameters for CreateInstancePresetFromInstance.
+type CreateInstancePresetFromInstanceParams struct {
+	// PresetName The name for the new preset
+	PresetName string `form:"presetName" json:"presetName"`
+}
+
 // DeleteInstanceParams defines parameters for DeleteInstance.
 type DeleteInstanceParams struct {
 	// DeletionPolicy Override the instance's spec.deletionPolicy before deletion.
@@ -429,6 +435,12 @@ type RevokeAuthTokenJSONRequestBody = AuthRevokeRequest
 
 // CreateAuthTokenJSONRequestBody defines body for CreateAuthToken for application/json ContentType.
 type CreateAuthTokenJSONRequestBody = AuthTokenRequest
+
+// CreateInstancePresetJSONRequestBody defines body for CreateInstancePreset for application/json ContentType.
+type CreateInstancePresetJSONRequestBody = InstancePreset
+
+// UpdateInstancePresetJSONRequestBody defines body for UpdateInstancePreset for application/json ContentType.
+type UpdateInstancePresetJSONRequestBody = InstancePreset
 
 // CreateBackupStorageJSONRequestBody defines body for CreateBackupStorage for application/json ContentType.
 type CreateBackupStorageJSONRequestBody = BackupStorage
@@ -558,8 +570,21 @@ type ClientInterface interface {
 	// ListInstancePresets request
 	ListInstancePresets(ctx context.Context, cluster string, params *ListInstancePresetsParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
+	// CreateInstancePresetWithBody request with any body
+	CreateInstancePresetWithBody(ctx context.Context, cluster string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	CreateInstancePreset(ctx context.Context, cluster string, body CreateInstancePresetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// DeleteInstancePreset request
+	DeleteInstancePreset(ctx context.Context, cluster string, name string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
 	// GetInstancePreset request
 	GetInstancePreset(ctx context.Context, cluster string, name string, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// UpdateInstancePresetWithBody request with any body
+	UpdateInstancePresetWithBody(ctx context.Context, cluster string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	UpdateInstancePreset(ctx context.Context, cluster string, name string, body UpdateInstancePresetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// ResolveInstancePreset request
 	ResolveInstancePreset(ctx context.Context, cluster string, name string, params *ResolveInstancePresetParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -609,6 +634,9 @@ type ClientInterface interface {
 	CreateInstanceWithBody(ctx context.Context, cluster string, namespace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	CreateInstance(ctx context.Context, cluster string, namespace string, body CreateInstanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error)
+
+	// CreateInstancePresetFromInstance request
+	CreateInstancePresetFromInstance(ctx context.Context, cluster string, namespace string, instanceName string, params *CreateInstancePresetFromInstanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
 
 	// DeleteInstance request
 	DeleteInstance(ctx context.Context, cluster string, namespace string, instance string, params *DeleteInstanceParams, reqEditors ...RequestEditorFn) (*http.Response, error)
@@ -798,8 +826,68 @@ func (c *Client) ListInstancePresets(ctx context.Context, cluster string, params
 	return c.Client.Do(req)
 }
 
+func (c *Client) CreateInstancePresetWithBody(ctx context.Context, cluster string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateInstancePresetRequestWithBody(c.Server, cluster, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateInstancePreset(ctx context.Context, cluster string, body CreateInstancePresetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateInstancePresetRequest(c.Server, cluster, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) DeleteInstancePreset(ctx context.Context, cluster string, name string, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewDeleteInstancePresetRequest(c.Server, cluster, name)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
 func (c *Client) GetInstancePreset(ctx context.Context, cluster string, name string, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewGetInstancePresetRequest(c.Server, cluster, name)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateInstancePresetWithBody(ctx context.Context, cluster string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateInstancePresetRequestWithBody(c.Server, cluster, name, contentType, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) UpdateInstancePreset(ctx context.Context, cluster string, name string, body UpdateInstancePresetJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewUpdateInstancePresetRequest(c.Server, cluster, name, body)
 	if err != nil {
 		return nil, err
 	}
@@ -1016,6 +1104,18 @@ func (c *Client) CreateInstanceWithBody(ctx context.Context, cluster string, nam
 
 func (c *Client) CreateInstance(ctx context.Context, cluster string, namespace string, body CreateInstanceJSONRequestBody, reqEditors ...RequestEditorFn) (*http.Response, error) {
 	req, err := NewCreateInstanceRequest(c.Server, cluster, namespace, body)
+	if err != nil {
+		return nil, err
+	}
+	req = req.WithContext(ctx)
+	if err := c.applyEditors(ctx, req, reqEditors); err != nil {
+		return nil, err
+	}
+	return c.Client.Do(req)
+}
+
+func (c *Client) CreateInstancePresetFromInstance(ctx context.Context, cluster string, namespace string, instanceName string, params *CreateInstancePresetFromInstanceParams, reqEditors ...RequestEditorFn) (*http.Response, error) {
+	req, err := NewCreateInstancePresetFromInstanceRequest(c.Server, cluster, namespace, instanceName, params)
 	if err != nil {
 		return nil, err
 	}
@@ -1632,6 +1732,94 @@ func NewListInstancePresetsRequest(server string, cluster string, params *ListIn
 	return req, nil
 }
 
+// NewCreateInstancePresetRequest calls the generic CreateInstancePreset builder with application/json body
+func NewCreateInstancePresetRequest(server string, cluster string, body CreateInstancePresetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewCreateInstancePresetRequestWithBody(server, cluster, "application/json", bodyReader)
+}
+
+// NewCreateInstancePresetRequestWithBody generates requests for CreateInstancePreset with any type of body
+func NewCreateInstancePresetRequestWithBody(server string, cluster string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "cluster", cluster, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/clusters/%s/instance-presets", pathParam0)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewDeleteInstancePresetRequest generates requests for DeleteInstancePreset
+func NewDeleteInstancePresetRequest(server string, cluster string, name string) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "cluster", cluster, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "name", name, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/clusters/%s/instance-presets/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodDelete, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	return req, nil
+}
+
 // NewGetInstancePresetRequest generates requests for GetInstancePreset
 func NewGetInstancePresetRequest(server string, cluster string, name string) (*http.Request, error) {
 	var err error
@@ -1669,6 +1857,60 @@ func NewGetInstancePresetRequest(server string, cluster string, name string) (*h
 	if err != nil {
 		return nil, err
 	}
+
+	return req, nil
+}
+
+// NewUpdateInstancePresetRequest calls the generic UpdateInstancePreset builder with application/json body
+func NewUpdateInstancePresetRequest(server string, cluster string, name string, body UpdateInstancePresetJSONRequestBody) (*http.Request, error) {
+	var bodyReader io.Reader
+	buf, err := json.Marshal(body)
+	if err != nil {
+		return nil, err
+	}
+	bodyReader = bytes.NewReader(buf)
+	return NewUpdateInstancePresetRequestWithBody(server, cluster, name, "application/json", bodyReader)
+}
+
+// NewUpdateInstancePresetRequestWithBody generates requests for UpdateInstancePreset with any type of body
+func NewUpdateInstancePresetRequestWithBody(server string, cluster string, name string, contentType string, body io.Reader) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "cluster", cluster, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "name", name, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/clusters/%s/instance-presets/%s", pathParam0, pathParam1)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	req, err := http.NewRequest(http.MethodPut, queryURL.String(), body)
+	if err != nil {
+		return nil, err
+	}
+
+	req.Header.Add("Content-Type", contentType)
 
 	return req, nil
 }
@@ -2352,6 +2594,77 @@ func NewCreateInstanceRequestWithBody(server string, cluster string, namespace s
 	}
 
 	req.Header.Add("Content-Type", contentType)
+
+	return req, nil
+}
+
+// NewCreateInstancePresetFromInstanceRequest generates requests for CreateInstancePresetFromInstance
+func NewCreateInstancePresetFromInstanceRequest(server string, cluster string, namespace string, instanceName string, params *CreateInstancePresetFromInstanceParams) (*http.Request, error) {
+	var err error
+
+	var pathParam0 string
+
+	pathParam0, err = runtime.StyleParamWithOptions("simple", false, "cluster", cluster, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam1 string
+
+	pathParam1, err = runtime.StyleParamWithOptions("simple", false, "namespace", namespace, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	var pathParam2 string
+
+	pathParam2, err = runtime.StyleParamWithOptions("simple", false, "instanceName", instanceName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationPath, Type: "string", Format: ""})
+	if err != nil {
+		return nil, err
+	}
+
+	serverURL, err := url.Parse(server)
+	if err != nil {
+		return nil, err
+	}
+
+	operationPath := fmt.Sprintf("/clusters/%s/namespaces/%s/instances/%s/create-preset", pathParam0, pathParam1, pathParam2)
+	if operationPath[0] == '/' {
+		operationPath = "." + operationPath
+	}
+
+	queryURL, err := serverURL.Parse(operationPath)
+	if err != nil {
+		return nil, err
+	}
+
+	if params != nil {
+		// queryValues collects non-styled parameters (passthrough, JSON)
+		// that are safe to round-trip through url.Values.Encode().
+		queryValues := queryURL.Query()
+		// rawQueryFragments collects pre-encoded query fragments from
+		// styled parameters, preserving literal commas as delimiters
+		// per the OpenAPI spec (e.g. "color=blue,black,brown").
+		var rawQueryFragments []string
+
+		if queryFrag, err := runtime.StyleParamWithOptions("form", true, "presetName", params.PresetName, runtime.StyleParamOptions{ParamLocation: runtime.ParamLocationQuery, Type: "string", Format: ""}); err != nil {
+			return nil, err
+		} else {
+			for _, qp := range strings.Split(queryFrag, "&") {
+				rawQueryFragments = append(rawQueryFragments, qp)
+			}
+		}
+
+		if encoded := queryValues.Encode(); encoded != "" {
+			rawQueryFragments = append(rawQueryFragments, encoded)
+		}
+		queryURL.RawQuery = strings.Join(rawQueryFragments, "&")
+	}
+
+	req, err := http.NewRequest(http.MethodPost, queryURL.String(), nil)
+	if err != nil {
+		return nil, err
+	}
 
 	return req, nil
 }
@@ -3438,8 +3751,21 @@ type ClientWithResponsesInterface interface {
 	// ListInstancePresetsWithResponse request
 	ListInstancePresetsWithResponse(ctx context.Context, cluster string, params *ListInstancePresetsParams, reqEditors ...RequestEditorFn) (*ListInstancePresetsResponse, error)
 
+	// CreateInstancePresetWithBodyWithResponse request with any body
+	CreateInstancePresetWithBodyWithResponse(ctx context.Context, cluster string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateInstancePresetResponse, error)
+
+	CreateInstancePresetWithResponse(ctx context.Context, cluster string, body CreateInstancePresetJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateInstancePresetResponse, error)
+
+	// DeleteInstancePresetWithResponse request
+	DeleteInstancePresetWithResponse(ctx context.Context, cluster string, name string, reqEditors ...RequestEditorFn) (*DeleteInstancePresetResponse, error)
+
 	// GetInstancePresetWithResponse request
 	GetInstancePresetWithResponse(ctx context.Context, cluster string, name string, reqEditors ...RequestEditorFn) (*GetInstancePresetResponse, error)
+
+	// UpdateInstancePresetWithBodyWithResponse request with any body
+	UpdateInstancePresetWithBodyWithResponse(ctx context.Context, cluster string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateInstancePresetResponse, error)
+
+	UpdateInstancePresetWithResponse(ctx context.Context, cluster string, name string, body UpdateInstancePresetJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateInstancePresetResponse, error)
 
 	// ResolveInstancePresetWithResponse request
 	ResolveInstancePresetWithResponse(ctx context.Context, cluster string, name string, params *ResolveInstancePresetParams, reqEditors ...RequestEditorFn) (*ResolveInstancePresetResponse, error)
@@ -3489,6 +3815,9 @@ type ClientWithResponsesInterface interface {
 	CreateInstanceWithBodyWithResponse(ctx context.Context, cluster string, namespace string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateInstanceResponse, error)
 
 	CreateInstanceWithResponse(ctx context.Context, cluster string, namespace string, body CreateInstanceJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateInstanceResponse, error)
+
+	// CreateInstancePresetFromInstanceWithResponse request
+	CreateInstancePresetFromInstanceWithResponse(ctx context.Context, cluster string, namespace string, instanceName string, params *CreateInstancePresetFromInstanceParams, reqEditors ...RequestEditorFn) (*CreateInstancePresetFromInstanceResponse, error)
 
 	// DeleteInstanceWithResponse request
 	DeleteInstanceWithResponse(ctx context.Context, cluster string, namespace string, instance string, params *DeleteInstanceParams, reqEditors ...RequestEditorFn) (*DeleteInstanceResponse, error)
@@ -3793,6 +4122,70 @@ func (r ListInstancePresetsResponse) ContentType() string {
 	return ""
 }
 
+type CreateInstancePresetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *InstancePreset
+	JSON400      *Error
+	JSON409      *Error
+	JSONDefault  *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateInstancePresetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateInstancePresetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateInstancePresetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type DeleteInstancePresetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON404      *Error
+	JSONDefault  *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r DeleteInstancePresetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r DeleteInstancePresetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r DeleteInstancePresetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
 type GetInstancePresetResponse struct {
 	Body         []byte
 	HTTPResponse *http.Response
@@ -3819,6 +4212,39 @@ func (r GetInstancePresetResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r GetInstancePresetResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type UpdateInstancePresetResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON200      *InstancePreset
+	JSON400      *Error
+	JSON404      *Error
+	JSONDefault  *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r UpdateInstancePresetResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r UpdateInstancePresetResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r UpdateInstancePresetResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -4232,6 +4658,40 @@ func (r CreateInstanceResponse) StatusCode() int {
 
 // ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
 func (r CreateInstanceResponse) ContentType() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Header.Get("Content-Type")
+	}
+	return ""
+}
+
+type CreateInstancePresetFromInstanceResponse struct {
+	Body         []byte
+	HTTPResponse *http.Response
+	JSON201      *InstancePreset
+	JSON400      *Error
+	JSON404      *Error
+	JSON409      *Error
+	JSONDefault  *Error
+}
+
+// Status returns HTTPResponse.Status
+func (r CreateInstancePresetFromInstanceResponse) Status() string {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.Status
+	}
+	return http.StatusText(0)
+}
+
+// StatusCode returns HTTPResponse.StatusCode
+func (r CreateInstancePresetFromInstanceResponse) StatusCode() int {
+	if r.HTTPResponse != nil {
+		return r.HTTPResponse.StatusCode
+	}
+	return 0
+}
+
+// ContentType is a convenience method to retrieve the Content-Type value from the HTTP response headers
+func (r CreateInstancePresetFromInstanceResponse) ContentType() string {
 	if r.HTTPResponse != nil {
 		return r.HTTPResponse.Header.Get("Content-Type")
 	}
@@ -5051,6 +5511,32 @@ func (c *ClientWithResponses) ListInstancePresetsWithResponse(ctx context.Contex
 	return ParseListInstancePresetsResponse(rsp)
 }
 
+// CreateInstancePresetWithBodyWithResponse request with arbitrary body returning *CreateInstancePresetResponse
+func (c *ClientWithResponses) CreateInstancePresetWithBodyWithResponse(ctx context.Context, cluster string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*CreateInstancePresetResponse, error) {
+	rsp, err := c.CreateInstancePresetWithBody(ctx, cluster, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateInstancePresetResponse(rsp)
+}
+
+func (c *ClientWithResponses) CreateInstancePresetWithResponse(ctx context.Context, cluster string, body CreateInstancePresetJSONRequestBody, reqEditors ...RequestEditorFn) (*CreateInstancePresetResponse, error) {
+	rsp, err := c.CreateInstancePreset(ctx, cluster, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateInstancePresetResponse(rsp)
+}
+
+// DeleteInstancePresetWithResponse request returning *DeleteInstancePresetResponse
+func (c *ClientWithResponses) DeleteInstancePresetWithResponse(ctx context.Context, cluster string, name string, reqEditors ...RequestEditorFn) (*DeleteInstancePresetResponse, error) {
+	rsp, err := c.DeleteInstancePreset(ctx, cluster, name, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseDeleteInstancePresetResponse(rsp)
+}
+
 // GetInstancePresetWithResponse request returning *GetInstancePresetResponse
 func (c *ClientWithResponses) GetInstancePresetWithResponse(ctx context.Context, cluster string, name string, reqEditors ...RequestEditorFn) (*GetInstancePresetResponse, error) {
 	rsp, err := c.GetInstancePreset(ctx, cluster, name, reqEditors...)
@@ -5058,6 +5544,23 @@ func (c *ClientWithResponses) GetInstancePresetWithResponse(ctx context.Context,
 		return nil, err
 	}
 	return ParseGetInstancePresetResponse(rsp)
+}
+
+// UpdateInstancePresetWithBodyWithResponse request with arbitrary body returning *UpdateInstancePresetResponse
+func (c *ClientWithResponses) UpdateInstancePresetWithBodyWithResponse(ctx context.Context, cluster string, name string, contentType string, body io.Reader, reqEditors ...RequestEditorFn) (*UpdateInstancePresetResponse, error) {
+	rsp, err := c.UpdateInstancePresetWithBody(ctx, cluster, name, contentType, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateInstancePresetResponse(rsp)
+}
+
+func (c *ClientWithResponses) UpdateInstancePresetWithResponse(ctx context.Context, cluster string, name string, body UpdateInstancePresetJSONRequestBody, reqEditors ...RequestEditorFn) (*UpdateInstancePresetResponse, error) {
+	rsp, err := c.UpdateInstancePreset(ctx, cluster, name, body, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseUpdateInstancePresetResponse(rsp)
 }
 
 // ResolveInstancePresetWithResponse request returning *ResolveInstancePresetResponse
@@ -5215,6 +5718,15 @@ func (c *ClientWithResponses) CreateInstanceWithResponse(ctx context.Context, cl
 		return nil, err
 	}
 	return ParseCreateInstanceResponse(rsp)
+}
+
+// CreateInstancePresetFromInstanceWithResponse request returning *CreateInstancePresetFromInstanceResponse
+func (c *ClientWithResponses) CreateInstancePresetFromInstanceWithResponse(ctx context.Context, cluster string, namespace string, instanceName string, params *CreateInstancePresetFromInstanceParams, reqEditors ...RequestEditorFn) (*CreateInstancePresetFromInstanceResponse, error) {
+	rsp, err := c.CreateInstancePresetFromInstance(ctx, cluster, namespace, instanceName, params, reqEditors...)
+	if err != nil {
+		return nil, err
+	}
+	return ParseCreateInstancePresetFromInstanceResponse(rsp)
 }
 
 // DeleteInstanceWithResponse request returning *DeleteInstanceResponse
@@ -5737,6 +6249,86 @@ func ParseListInstancePresetsResponse(rsp *http.Response) (*ListInstancePresetsR
 	return response, nil
 }
 
+// ParseCreateInstancePresetResponse parses an HTTP response from a CreateInstancePresetWithResponse call
+func ParseCreateInstancePresetResponse(rsp *http.Response) (*CreateInstancePresetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateInstancePresetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest InstancePreset
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseDeleteInstancePresetResponse parses an HTTP response from a DeleteInstancePresetWithResponse call
+func ParseDeleteInstancePresetResponse(rsp *http.Response) (*DeleteInstancePresetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &DeleteInstancePresetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
 // ParseGetInstancePresetResponse parses an HTTP response from a GetInstancePresetWithResponse call
 func ParseGetInstancePresetResponse(rsp *http.Response) (*GetInstancePresetResponse, error) {
 	bodyBytes, err := io.ReadAll(rsp.Body)
@@ -5757,6 +6349,53 @@ func ParseGetInstancePresetResponse(rsp *http.Response) (*GetInstancePresetRespo
 			return nil, err
 		}
 		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseUpdateInstancePresetResponse parses an HTTP response from a UpdateInstancePresetWithResponse call
+func ParseUpdateInstancePresetResponse(rsp *http.Response) (*UpdateInstancePresetResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &UpdateInstancePresetResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 200:
+		var dest InstancePreset
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON200 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
 		var dest Error
@@ -6263,6 +6902,60 @@ func ParseCreateInstanceResponse(rsp *http.Response) (*CreateInstanceResponse, e
 			return nil, err
 		}
 		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSONDefault = &dest
+
+	}
+
+	return response, nil
+}
+
+// ParseCreateInstancePresetFromInstanceResponse parses an HTTP response from a CreateInstancePresetFromInstanceWithResponse call
+func ParseCreateInstancePresetFromInstanceResponse(rsp *http.Response) (*CreateInstancePresetFromInstanceResponse, error) {
+	bodyBytes, err := io.ReadAll(rsp.Body)
+	defer func() { _ = rsp.Body.Close() }()
+	if err != nil {
+		return nil, err
+	}
+
+	response := &CreateInstancePresetFromInstanceResponse{
+		Body:         bodyBytes,
+		HTTPResponse: rsp,
+	}
+
+	switch {
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 201:
+		var dest InstancePreset
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON201 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 400:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON400 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 404:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON404 = &dest
+
+	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && rsp.StatusCode == 409:
+		var dest Error
+		if err := json.Unmarshal(bodyBytes, &dest); err != nil {
+			return nil, err
+		}
+		response.JSON409 = &dest
 
 	case strings.Contains(rsp.Header.Get("Content-Type"), "json") && true:
 		var dest Error
@@ -7582,87 +8275,93 @@ var swaggerSpec = []string{
 	"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",
-	"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",
+	"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",
 }
 
 // decodeSpec returns the embedded OpenAPI spec as raw JSON bytes,

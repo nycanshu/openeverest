@@ -470,6 +470,53 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+    post:
+      tags:
+        - Preset
+      summary: Create instance preset
+      description: |
+        This API creates a new instance preset in the specified cluster.
+        All namespace-scoped fields (such as secret references and monitoring config names)
+        must be empty. Requests with non-empty namespace-scoped fields will be rejected.
+      operationId: createInstancePreset
+      parameters:
+        - name: cluster
+          in: path
+          required: true
+          description: The name of the cluster
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'crds.gen.yaml#/components/schemas/InstancePreset'
+      responses:
+        '201':
+          description: Instance preset created successfully
+          content:
+            application/json:
+              schema:
+                $ref: 'crds.gen.yaml#/components/schemas/InstancePreset'
+        '400':
+          description: Invalid request (e.g., namespace-scoped fields are not empty)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Instance preset already exists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   '/clusters/{cluster}/instance-presets/{name}':
     x-everest-resource-name: instance-presets
     get:
@@ -499,6 +546,94 @@ paths:
             application/json:
               schema:
                 $ref: 'crds.gen.yaml#/components/schemas/InstancePreset'
+        '404':
+          description: Instance preset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      tags:
+        - Preset
+      summary: Update instance preset
+      description: |
+        This API updates an existing instance preset in the specified cluster.
+        All namespace-scoped fields (such as secret references and monitoring config names)
+        must be empty. Requests with non-empty namespace-scoped fields will be rejected.
+      operationId: updateInstancePreset
+      parameters:
+        - name: cluster
+          in: path
+          required: true
+          description: The name of the cluster
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          description: The name of the instance preset
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: 'crds.gen.yaml#/components/schemas/InstancePreset'
+      responses:
+        '200':
+          description: Instance preset updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: 'crds.gen.yaml#/components/schemas/InstancePreset'
+        '400':
+          description: Invalid request (e.g., namespace-scoped fields are not empty, or name mismatch)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Instance preset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    delete:
+      tags:
+        - Preset
+      summary: Delete instance preset
+      description: |
+        This API deletes the instance preset specified by the `name` in the specified `cluster`.
+      operationId: deleteInstancePreset
+      parameters:
+        - name: cluster
+          in: path
+          required: true
+          description: The name of the cluster
+          schema:
+            type: string
+        - name: name
+          in: path
+          required: true
+          description: The name of the instance preset
+          schema:
+            type: string
+      responses:
+        '204':
+          description: Instance preset deleted successfully
         '404':
           description: Instance preset not found
           content:
@@ -550,6 +685,72 @@ paths:
                 $ref: 'crds.gen.yaml#/components/schemas/InstancePreset'
         '404':
           description: Instance preset not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  '/clusters/{cluster}/namespaces/{namespace}/instances/{instanceName}/create-preset':
+    x-everest-resource-name: instance-presets
+    post:
+      tags:
+        - Preset
+      summary: Create preset from instance
+      description: |
+        This API creates a new instance preset based on an existing instance.
+        The preset can be used as a template for creating new instances across different namespaces.
+      operationId: createInstancePresetFromInstance
+      parameters:
+        - name: cluster
+          in: path
+          required: true
+          description: The name of the cluster
+          schema:
+            type: string
+        - name: namespace
+          in: path
+          required: true
+          description: The namespace of the source instance
+          schema:
+            type: string
+        - name: instanceName
+          in: path
+          required: true
+          description: The name of the source instance
+          schema:
+            type: string
+        - name: presetName
+          in: query
+          required: true
+          description: The name for the new preset
+          schema:
+            type: string
+      responses:
+        '201':
+          description: Instance preset created successfully from instance
+          content:
+            application/json:
+              schema:
+                $ref: 'crds.gen.yaml#/components/schemas/InstancePreset'
+        '400':
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: Source instance not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '409':
+          description: Preset with the given name already exists
           content:
             application/json:
               schema:

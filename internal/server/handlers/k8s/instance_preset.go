@@ -20,11 +20,13 @@ import (
 	"fmt"
 
 	corev1 "k8s.io/api/core/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
 	corev1alpha1 "github.com/openeverest/openeverest/v2/api/core/v1alpha1"
 	monitoringv1alpha1 "github.com/openeverest/openeverest/v2/api/monitoring/v1alpha1"
+	"github.com/openeverest/openeverest/v2/pkg/common"
 )
 
 // ListInstancePresets returns list of instance presets, optionally filtered by provider.
@@ -63,6 +65,67 @@ func (h *k8sHandler) ResolveInstancePreset(ctx context.Context, cluster, name, n
 	resolved := preset.DeepCopy()
 
 	return h.resolveNamespaceDefaults(ctx, resolved, namespace)
+}
+
+// CreateInstancePreset creates a new instance preset.
+func (h *k8sHandler) CreateInstancePreset(ctx context.Context, cluster string, preset *corev1alpha1.InstancePreset) (*corev1alpha1.InstancePreset, error) {
+	if err := h.kubeConnector.CreateInstancePreset(ctx, preset); err != nil {
+		return nil, fmt.Errorf("failed to create instance preset: %w", err)
+	}
+	return preset, nil
+}
+
+// UpdateInstancePreset updates an existing instance preset.
+func (h *k8sHandler) UpdateInstancePreset(ctx context.Context, cluster string, preset *corev1alpha1.InstancePreset) (*corev1alpha1.InstancePreset, error) {
+	if err := h.kubeConnector.UpdateInstancePreset(ctx, preset); err != nil {
+		return nil, fmt.Errorf("failed to update instance preset: %w", err)
+	}
+	return preset, nil
+}
+
+// DeleteInstancePreset deletes an instance preset.
+func (h *k8sHandler) DeleteInstancePreset(ctx context.Context, cluster, name string) error {
+	preset, err := h.kubeConnector.GetInstancePreset(ctx, types.NamespacedName{Name: name})
+	if err != nil {
+		return fmt.Errorf("failed to get instance preset: %w", err)
+	}
+	if err := h.kubeConnector.DeleteInstancePreset(ctx, preset); err != nil {
+		return fmt.Errorf("failed to delete instance preset: %w", err)
+	}
+	return nil
+}
+
+// CreateInstancePresetFromInstance creates a new preset from an existing Instance.
+// It strips out namespace-scoped values and creates a cluster-scoped preset.
+func (h *k8sHandler) CreateInstancePresetFromInstance(ctx context.Context, cluster, namespace, instanceName, presetName string) (*corev1alpha1.InstancePreset, error) {
+	// Get the source instance
+	instance, err := h.kubeConnector.GetInstance(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      instanceName,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get source instance: %w", err)
+	}
+
+	// Create a new preset from the instance spec
+	preset := &corev1alpha1.InstancePreset{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: presetName,
+		},
+		Spec: corev1alpha1.InstancePresetSpec{
+			InstanceSpec: instance.Spec,
+		},
+	}
+
+	// Strip out namespace-scoped values
+	h.stripNamespaceScopedValues(&preset.Spec)
+
+	// Create the preset
+	if err := h.kubeConnector.CreateInstancePreset(ctx, preset); err != nil {
+		return nil, fmt.Errorf("failed to create preset: %w", err)
+	}
+
+	return preset, nil
 }
 
 // resolveNamespaceDefaults scans components and resolves
@@ -107,7 +170,7 @@ func (h *k8sHandler) resolveConfigFields(ctx context.Context, component corev1al
 		return component, nil
 	}
 
-	if isEmptyValue(component.Config.SecretRef) {
+	if common.IsEmptyValue(component.Config.SecretRef) {
 		defaultSecretName, err := h.findDefaultResource(ctx, namespace, "Secret", componentName)
 		if err != nil {
 			return component, err
@@ -146,7 +209,7 @@ func (h *k8sHandler) resolveMapFieldsRecursive(ctx context.Context, data map[str
 	var modified bool
 
 	for fieldName, value := range data {
-		resourceType := inferSupportedResourceType(fieldName)
+		resourceType := common.InferSupportedResourceType(fieldName)
 		if resourceType == "" {
 			if nested, ok := value.(map[string]any); ok {
 				m, err := h.resolveMapFieldsRecursive(ctx, nested, componentName, namespace)
@@ -160,7 +223,7 @@ func (h *k8sHandler) resolveMapFieldsRecursive(ctx context.Context, data map[str
 		}
 
 		// Try to resolve if value is empty
-		if !isEmptyValue(value) {
+		if !common.IsEmptyValue(value) {
 			continue
 		}
 
@@ -187,28 +250,46 @@ func (h *k8sHandler) resolveMapFieldsRecursive(ctx context.Context, data map[str
 	return modified, nil
 }
 
-// isEmptyValue checks if value is empty/null
-func isEmptyValue(value any) bool {
-	switch v := value.(type) {
-	case string:
-		return v == ""
-	case corev1.LocalObjectReference:
-		return v.Name == ""
-	case map[string]any:
-		// Empty object like {} or {"name": ""}
-		if len(v) == 0 {
-			return true
+// stripNamespaceScopedValues removes namespace-scoped references from a preset spec.
+func (h *k8sHandler) stripNamespaceScopedValues(spec *corev1alpha1.InstancePresetSpec) {
+	for name, component := range spec.Components {
+		// Clear Config refs
+		if component.Config != nil {
+			component.Config.SecretRef = corev1.LocalObjectReference{}
+			component.Config.ConfigMapRef = corev1.LocalObjectReference{}
 		}
-		if len(v) == 1 {
-			if nameVal, exists := v["name"]; exists {
-				if name, ok := nameVal.(string); ok {
-					return name == ""
+
+		// Strip namespace-scoped fields from CustomSpec
+		if component.CustomSpec != nil && len(component.CustomSpec.Raw) > 0 {
+			var data map[string]any
+			if err := json.Unmarshal(component.CustomSpec.Raw, &data); err == nil {
+				h.stripNamespacedRefsRecursive(data)
+				if cleanedRaw, err := json.Marshal(data); err == nil {
+					component.CustomSpec.Raw = cleanedRaw
 				}
 			}
 		}
-	}
 
-	return false
+		spec.Components[name] = component
+	}
+}
+
+// stripNamespacedRefsRecursive clears namespace-scoped field values in customSpec.
+func (h *k8sHandler) stripNamespacedRefsRecursive(data map[string]any) {
+	for key, value := range data {
+		// Find namespace-scoped fields using common utility
+		if common.InferSupportedResourceType(key) != "" {
+			// Stripping action: set to empty value
+			if refMap, ok := value.(map[string]any); ok {
+				refMap["name"] = ""
+			} else {
+				data[key] = ""
+			}
+		} else if nestedMap, ok := value.(map[string]any); ok {
+			// Recursively process nested maps
+			h.stripNamespacedRefsRecursive(nestedMap)
+		}
+	}
 }
 
 // findDefaultResource finds the default resource for a component field
@@ -227,6 +308,9 @@ func (h *k8sHandler) findDefaultResource(ctx context.Context, namespace, resourc
 	switch resourceType {
 	case "Secret":
 		mostRecent, err = h.findDefaultSecret(ctx, namespace, annotationKey)
+	case "ConfigMap":
+		// TODO: Implement findDefaultConfigMap when needed
+		return "", nil
 	case "MonitoringConfig":
 		mostRecent, err = h.findDefaultMonitoringConfig(ctx, namespace, annotationKey)
 	default:
@@ -238,27 +322,6 @@ func (h *k8sHandler) findDefaultResource(ctx context.Context, namespace, resourc
 	}
 
 	return mostRecent.GetName(), nil
-}
-
-// inferSupportedResourceType derives resource type from field name.
-// Returns empty string if field is not supported resource type.
-// secretRef -> Secret
-// monitoringConfigName -> MonitoringConfig
-func inferSupportedResourceType(fieldName string) string {
-	resolvableFields := map[string]string{
-		"secret":               "Secret",
-		"secretName":           "Secret",
-		"secretRef":            "Secret",
-		"monitoringConfig":     "MonitoringConfig",
-		"monitoringConfigName": "MonitoringConfig",
-		"monitoringConfigRef":  "MonitoringConfig",
-	}
-
-	if resourceType, ok := resolvableFields[fieldName]; ok {
-		return resourceType
-	}
-
-	return ""
 }
 
 // findDefaultSecret finds the most recent Secret with the annotation
