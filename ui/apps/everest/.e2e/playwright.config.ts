@@ -211,5 +211,13 @@ export default defineConfig({
       testDir: 'upgrade',
       dependencies: ['setup'],
     },
+    {
+      name: 'pr:visual',
+      use: {
+        storageState: STORAGE_STATE_FILE,
+      },
+      testDir: 'pr/visual',
+      dependencies: ['setup'],
+    },
   ],
 });
