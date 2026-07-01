@@ -81,11 +81,11 @@ jobs:
         run: |
           go tool helm install pmm --set secret.pmm_password='admin',service.type=ClusterIP percona/pmm --version $PMM_HELM_VER
 
-      - name: Echo PMM credentials
+      - name: Set PMM monitoring URL
         shell: bash
         run: |
           url=$(kubectl get svc/monitoring-service -o json | jq -r '.spec.clusterIP')
-          echo -n "MONITORING_URL=http://$url" >> $GITHUB_ENV
+          echo "MONITORING_URL=http://$url" >> $GITHUB_ENV
 
       - name: Build Everest API Server
         run: |
