@@ -48,9 +48,7 @@ const UIComponent: React.FC<ComponentProps> = ({ item, name }) => {
   const isPresetFrozen = formContext?.isPresetFrozen || false;
 
   const isDisabled =
-    !!loadingDefaultsForEdition ||
-    !!fieldParams?.disabled ||
-    isPresetFrozen;
+    !!loadingDefaultsForEdition || !!fieldParams?.disabled || isPresetFrozen;
   const resolvedValidation = resolveValidationForMode(validation, formMode);
   const errorObj = get(errors, name);
   const error = errorObj?.message as string | undefined;

@@ -157,10 +157,7 @@ export const BaseInfoStep = ({ loadingDefaultsForEdition }: StepProps) => {
           label={Messages.labels.k8sNamespace}
           loading={isLoading}
           options={namespaces}
-          disabled={
-            mode === FormMode.Restore ||
-            loadingDefaultsForEdition
-          }
+          disabled={mode === FormMode.Restore || loadingDefaultsForEdition}
           // onChange={onNamespaceChange}
           autoCompleteProps={{
             disableClearable: true,

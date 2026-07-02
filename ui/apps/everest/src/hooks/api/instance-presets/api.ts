@@ -13,7 +13,10 @@
 // limitations under the License.
 
 import { api } from 'api/api';
-import { GetInstancePresetsPayload, InstancePreset } from 'shared-types/api.types';
+import {
+  GetInstancePresetsPayload,
+  InstancePreset,
+} from 'shared-types/api.types';
 
 export const getInstancePresetsFn = async (
   clusterName: string,

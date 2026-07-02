@@ -20,9 +20,9 @@ import { InstancePreset } from 'shared-types/api.types';
 
 export const Messages = {
   labels: {
-    preset: 'Default Configuration',
+    preset: 'Template',
   },
-  noPresets: 'No default configurations available for this provider',
+  noPresets: 'No templates available for this provider',
 };
 
 interface PresetSelectorProps {
@@ -49,8 +49,13 @@ export const PresetSelector = ({ provider, disabled }: PresetSelectorProps) => {
       disabled={disabled || isLoading}
       options={presetOptions}
       autoCompleteProps={{
-        isOptionEqualToValue: (option: any, value: any) => {
-          return option.value === value?.value || option.value === value;
+        isOptionEqualToValue: (
+          option: { label: string; value: string },
+          value: { label: string; value: string } | string
+        ) => {
+          return (
+            option.value === (typeof value === 'string' ? value : value?.value)
+          );
         },
         noOptionsText: Messages.noPresets,
         disableClearable: false,

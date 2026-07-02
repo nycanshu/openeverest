@@ -29,7 +29,9 @@ export const createDbInstanceFn = async (
   data: CreateDbInstancePayload['spec'],
   presetName?: string
 ) => {
-  const metadata: any = { name: instanceName };
+  const metadata: { name: string; annotations?: Record<string, string> } = {
+    name: instanceName,
+  };
   if (presetName) {
     metadata.annotations = { [INSTANCE_PRESET_ANNOTATION]: presetName };
   }

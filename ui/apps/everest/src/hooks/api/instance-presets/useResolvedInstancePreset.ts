@@ -17,7 +17,10 @@ import { InstancePreset } from 'shared-types/api.types';
 import { resolveInstancePresetFn } from './api';
 import { useClusterName } from '../useClusterName';
 
-export const useResolvedInstancePreset = (name?: string, namespace?: string) => {
+export const useResolvedInstancePreset = (
+  name?: string,
+  namespace?: string
+) => {
   const clusterName = useClusterName();
 
   return useQuery<InstancePreset, Error>({

@@ -19,16 +19,16 @@ import { useResolvedInstancePreset } from 'hooks/api/instance-presets/useResolve
 
 /**
  * Hook to load a preset and populate form fields when a preset is selected.
- * 
+ *
  * When a preset is selected, this hook:
  * 1. Fetches the resolved preset with namespace-specific defaults applied
  * 2. Populates the form with the preset's Instance spec
  * 3. Triggers form field freezing via DatabaseFormContext.isPresetFrozen
- * 
+ *
  * The preset freezing feature disables all UI schema form fields except:
  * - The preset selector itself (to allow switching presets)
  * - Basic metadata fields that aren't part of the Instance spec
- * 
+ *
  * This aligns with RBAC deploy-only permissions: users with only "deploy"
  * permission can create instances from presets but cannot customize them.
  * The backend validates that deploy-only users' instances match their selected
@@ -63,11 +63,7 @@ export const usePresetLoader = () => {
     // 1. We have the resolved preset data
     // 2. We have both preset name and namespace
     // 3. This preset is different from the last loaded one (allow changing presets)
-    if (
-      !resolvedPreset?.spec ||
-      !presetName ||
-      !namespace
-    ) {
+    if (!resolvedPreset?.spec || !presetName || !namespace) {
       return;
     }
 
@@ -81,7 +77,7 @@ export const usePresetLoader = () => {
 
     // Get current form values to preserve base fields
     const currentValues = getValues();
-    
+
     // Populate form with preset values
     const spec = resolvedPreset.spec;
 
