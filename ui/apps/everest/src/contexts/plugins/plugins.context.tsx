@@ -111,6 +111,42 @@ async function loadPluginDescriptors(): Promise<PluginDescriptor[]> {
   }
 }
 
+// Verifies that a plugin bundle resolved the host-provided singletons through
+// the browser import map instead of bundling its own copies. A mismatch means
+// the plugin's bundler is not externalizing `@mui/material` (or React), which
+// would fork React context and break ThemeProvider inheritance, hooks, etc.
+async function assertSingletonsShared(pluginName: string): Promise<void> {
+  if (import.meta.env.PROD) return;
+  try {
+    const muiUrl = '/src/plugin-runtime/mui-material.ts';
+    const reactUrl = '/src/plugin-runtime/react.ts';
+    const [hostMui, hostReact, pluginMui, pluginReact] = await Promise.all([
+      import('@mui/material'),
+      import('react'),
+      import(/* @vite-ignore */ muiUrl),
+      import(/* @vite-ignore */ reactUrl),
+    ]);
+    if (hostMui.Button !== pluginMui.Button) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[plugins] "${pluginName}": @mui/material is not shared with the host. ` +
+          `Plugin components will not inherit the host theme. ` +
+          `Ensure the plugin's bundler externalizes @mui/material.`
+      );
+    }
+    if (hostReact.useState !== pluginReact.useState) {
+      // eslint-disable-next-line no-console
+      console.warn(
+        `[plugins] "${pluginName}": react is not shared with the host. ` +
+          `Hooks will fail with "Invalid Hook Call" errors. ` +
+          `Ensure the plugin's bundler externalizes react and react-dom.`
+      );
+    }
+  } catch {
+    // Best-effort check; ignore in environments where dynamic imports are stubbed.
+  }
+}
+
 export const PluginProvider = ({ children }: { children: ReactNode }) => {
   const [plugins, setPlugins] = useState<PluginRegistration[]>([]);
   const [loading, setLoading] = useState(true);
@@ -132,6 +168,7 @@ export const PluginProvider = ({ children }: { children: ReactNode }) => {
           const mod = await import(/* @vite-ignore */ descriptor.bundleUrl);
           const registerFn: PluginRegisterFn = mod.default || mod.register;
           if (typeof registerFn === 'function') {
+            void assertSingletonsShared(descriptor.name);
             // Build the allowed extension types set from the CR's declared extensionPoints.
             const allowedTypes = descriptor.extensionPoints?.length
               ? new Set(descriptor.extensionPoints.map((ep) => ep.type))

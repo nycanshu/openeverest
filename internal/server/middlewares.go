@@ -117,6 +117,8 @@ func (e *EverestServer) securityHeaders() echo.MiddlewareFunc {
 		Directives: map[string][]string{
 			cspbuilder.DefaultSrc: {CSPSelf},
 			cspbuilder.FontSrc:    {CSPSelf, "data:"},
+			cspbuilder.ImgSrc: {CSPSelf, "data:"},
+			cspbuilder.ScriptSrc: {CSPSelf, "$NONCE"},
 			cspbuilder.StyleSrc: {
 				CSPSelf,
 				// $NONCE will be replaced by the real nonce value

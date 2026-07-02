@@ -236,8 +236,18 @@ export interface InstanceEditFormSectionProps {
 /** The API object provided to a plugin's register() function by the host. */
 export interface PluginApi {
   /**
-   * The host's React instance. Plugins MUST use this instead of importing
-   * their own React to avoid duplicate-React issues with hooks.
+   * The host's React instance.
+   *
+   * @deprecated Since v0.2. Plugins should use a native `import React from 'react'`
+   * (or named imports like `import { useEffect } from 'react'`). The host exposes
+   * `react`, `react-dom`, `@mui/material`, `@emotion/react`, `@emotion/styled`,
+   * `react-router-dom`, and `@openeverest/plugin-sdk` as singletons via a browser
+   * import map, so bare-specifier imports in a plugin bundle resolve to the same
+   * module instance the host itself uses. This keeps React context (theme,
+   * router, auth, etc.) shared across the boundary.
+   *
+   * This field remains for backwards compatibility with plugins built against
+   * v0.1 of the SDK and will be removed in v1.0.
    */
   React: typeof import("react");
 

@@ -377,6 +377,144 @@ At shell startup:
 4. Shell renders registered components at the declared extension points.
 ```
 
+### 7.1.1 Import-map contract
+
+Singleton sharing is implemented as a **native browser import map** injected
+into the host `index.html` at build time by the
+`plugin-runtime-import-map` Vite plugin. There is **no** JavaScript-level
+module loader, no SystemJS, and no runtime shim registry — the browser
+resolves bare specifiers against the map before any plugin bundle executes.
+
+**Fixed singleton set.** The following bare specifiers (and their commonly
+imported subpaths) are exposed by the host. Extending the set is a breaking
+change to the plugin runtime contract because it changes what plugin
+bundles may safely mark as `external`:
+
+- `react`, `react-dom`, `react-dom/client`
+- `react/jsx-runtime`, `react/jsx-dev-runtime`
+- `@mui/material`, `@mui/material/styles`, `@mui/icons-material`
+- `@mui/x-date-pickers`
+- `@emotion/react`, `@emotion/styled`, `@emotion/cache`
+- `react-router-dom`
+- `@openeverest/plugin-sdk`
+
+The list is frozen at the SDK version boundary; plugins built against SDK
+`X.Y` may rely on exactly these specifiers being singletons.
+
+**Native import maps do not support prefix matching.** Every consumed
+subpath must have its own entry in the map (`@mui/material` and
+`@mui/material/styles` are two distinct entries; a `@mui/material/*`
+pattern is not supported by browsers). Two consequences:
+
+- Icons: `@mui/icons-material/AddCircle` is *not* covered by mapping
+  `@mui/icons-material`. Plugins that want icons should either (a) import
+  from `@mui/icons-material` (barrel) and rely on tree-shaking in the
+  plugin's own bundle, or (b) inline SVG paths wrapped in `SvgIcon` from
+  the (singleton) `@mui/material`. Option (b) is preferred for small
+  icon counts because it avoids depending on barrel exports through the
+  import map.
+- Any future singleton with deep-import subpaths (e.g. a new MUI package)
+  must enumerate each subpath explicitly in the plugin config.
+
+**Shim files, not raw package re-exports.** Each singleton is fronted by a
+tiny shim entry under `ui/apps/everest/src/plugin-runtime/*.ts`. The shim
+imports the underlying package and re-exports its public surface. The
+import map points at the compiled shim, not at the vendored package
+chunk. This layer exists because:
+
+1. It gives the host a single place to widen or narrow the public API
+   without repackaging every dependency.
+2. It bridges the CJS→ESM boundary (see below).
+3. It gives Rollup a stable `facadeModuleId` per singleton so the host's
+   `transformIndexHtml` step can look up the emitted hashed filename and
+   write it into the import map.
+
+**CJS/ESM interop — do not `export *` from CJS packages.** `react`,
+`react-dom`, and their JSX runtimes are shipped as CommonJS. Rollup's
+CJS interop does not propagate named exports through `export *
+from 'react'` in a way plugin bundles can consume — the compiled output
+either omits the names entirely or produces synthetic wrappers that fail
+at runtime with *"The requested module 'react' does not provide an export
+named 'useCallback'"*. The correct pattern in each shim is:
+
+```ts
+// react.ts (host shim)
+import React from 'react';
+export default React;
+export const {
+  useCallback, useContext, useDebugValue, useDeferredValue, useEffect,
+  useId, useImperativeHandle, useInsertionEffect, useLayoutEffect,
+  useMemo, useReducer, useRef, useState, useSyncExternalStore,
+  useTransition,
+  Children, Component, Fragment, Profiler, PureComponent, StrictMode,
+  Suspense, cloneElement, createContext, createElement, createRef,
+  forwardRef, isValidElement, lazy, memo, startTransition, version,
+} = React;
+```
+
+The explicit destructuring produces real ESM named exports that Rollup
+can emit as an `export { ... }` clause in the compiled shim, which the
+plugin bundle can then import by name. The same pattern applies to
+`react-dom`, `react-dom/client`, `react/jsx-runtime`, and
+`react/jsx-dev-runtime`. ESM-native packages (`@mui/material`, `@emotion/*`,
+`react-router-dom`) can use `export *` safely, but the explicit pattern
+is still preferred for stability under future dependency upgrades.
+
+**Rollup `preserveEntrySignatures: 'strict'` is required.** The shims are
+declared as additional Rollup `input` entries alongside the host's own
+`index.html`. In app-mode builds Rollup defaults
+`preserveEntrySignatures` to `'exports-only'`, which tree-shakes any
+exported binding no other module in the graph imports. Because plugin
+bundles are external consumers loaded at runtime through the browser
+import map, Rollup cannot see the imports at build time and strips
+every export from the shim chunks — the compiled chunk contains the
+destructured `const` declarations but no `export { ... }` clause. The
+`plugin-runtime-import-map` plugin forces `preserveEntrySignatures:
+'strict'` on the build config so the declared exports survive verbatim.
+
+**Manifest lookup at HTML transform time.** During build, the plugin's
+`transformIndexHtml` (order `post`) walks `ctx.bundle`, matches each
+chunk's `facadeModuleId` against the shim absolute paths, and writes the
+resulting hashed filenames into the import map. During dev, Vite serves
+the `.ts` shim sources directly and the map points at
+`/src/plugin-runtime/<name>.ts`; Vite's `optimizeDeps` guarantees the
+underlying package is served from a single pre-bundled chunk that both
+host and plugin share.
+
+**CSP compatibility.** The import-map `<script>` tag is inline and
+therefore rejected by any strict `script-src` CSP unless it carries the
+per-request nonce. The plugin's `transformIndexHtml` step:
+
+1. Reads the nonce from a `<meta name="csp-nonce" content="...">` marker
+   in the HTML (which the host's CSP middleware substitutes at request
+   time via a `$NONCE` placeholder).
+2. Emits the import-map `<script>` with `nonce="{{.CSPNonce}}"` so the
+   middleware's response-time substitution attaches the correct value.
+
+Plugin bundles themselves are loaded via `import(bundleUrl)` which does
+not require a nonce (dynamic ESM imports are governed by
+`script-src-elem` for the initial fetch and by module semantics
+thereafter). The host's CSP must include the plugin-hub origin (or its
+in-cluster proxy origin) in `script-src`.
+
+**Plugin build configuration.** Plugins mark every host singleton as
+external so their bundle contains only their own code plus bare-specifier
+imports the browser resolves through the map. The recommended
+`rollupOptions.external` predicate matches by exact bare specifier or
+prefix (`pkg` or `pkg/...`):
+
+```ts
+// plugin's vite.config.ts
+external: (id) => HOST_SINGLETONS.some(
+  (pkg) => id === pkg || id.startsWith(pkg + '/')
+),
+```
+
+`HOST_SINGLETONS` must be kept in sync with the host's singleton list
+above. A mismatch either bloats the plugin bundle (host package
+duplicated) or produces a runtime `Failed to resolve module specifier`
+error (plugin imports something the host didn't map).
+
 ### 7.2 `@everest/plugin-sdk`
 
 New package at `ui/packages/plugin-sdk`. Public surface:
@@ -414,6 +552,8 @@ Plugin authors produce a single ESM file with:
 - Default export: `register(api: PluginApi): void`
 - No bundled copies of `react`, `@mui/material`, or `react-router` — import them
   from the SDK re-exports so the import map resolves to the host's singleton.
+- Every host singleton (see §7.1.1) marked `external` in the plugin's Rollup
+  config, matched by exact specifier or `startsWith(pkg + '/')` prefix.
 - Target: `esnext` modules, no dynamic `require()`.
 
 ### 7.4 UI/UX consistency requirements
@@ -446,8 +586,13 @@ core UI — plugins feel native, not bolted on.
 - **Layout patterns.** Use MUI layout primitives (`Box`, `Stack`, `Grid`,
   `Container`) for page structure. Follow the host's existing spacing rhythm
   (typically `theme.spacing(2)` / `theme.spacing(3)` between sections).
-- **Icons.** Use `@mui/icons-material` (provided by the host). For custom icons
-  not in the MUI set, use inline SVG wrapped in `SvgIcon`.
+- **Icons.** Prefer inline SVG paths wrapped in `SvgIcon` from `@mui/material`
+  (a host singleton). `@mui/icons-material` is present in the singleton set
+  as a barrel entry, but native browser import maps do not support prefix
+  matching, so deep imports like `@mui/icons-material/AddCircle` are **not**
+  resolved by the host and will 404 at runtime. If a plugin needs many icons,
+  it may bundle `@mui/icons-material` into its own chunk (accepting the size
+  cost) rather than relying on the singleton.
 
 **Prohibited:**
 

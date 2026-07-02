@@ -16,10 +16,15 @@ import react from '@vitejs/plugin-react-swc';
 import * as path from 'path';
 import tsconfigPaths from 'vite-tsconfig-paths';
 import { defineConfig } from 'vitest/config';
+import { pluginRuntimeImportMap } from './vite-plugins/plugin-runtime-import-map';
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [tsconfigPaths({ root: '.' }), react()],
+  plugins: [
+    tsconfigPaths({ root: '.' }),
+    react(),
+    pluginRuntimeImportMap(),
+  ],
   server: {
     watch: {
       ignored: path.resolve(__dirname, '.e2e/**/*.*'),

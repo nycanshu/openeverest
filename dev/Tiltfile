@@ -90,6 +90,13 @@ print('Using Everest debug: {0}'.format(everest_debug))
 everest_operator_debug = str2bool(os.getenv('EVEREST_OPERATOR_DEBUG', 'False'))
 print('Using Everest Operator debug: {0}'.format(everest_operator_debug))
 
+# Check whether to deploy the bundled plugin-hub sub-chart. Disabled by
+# default so local plugin-hub development can run against this core from a
+# separate Tilt instance (see openeverest/plugin-hub/dev/Tiltfile) without
+# a naming collision on the Deployment/Service.
+plugin_hub_enabled = str2bool(os.getenv('PLUGIN_HUB_ENABLED', 'False'))
+print('Using bundled plugin-hub: {0}'.format(plugin_hub_enabled))
+
 # Check whether we need to create backup storage
 need_backup_storage=False
 for namespace in config_yaml['namespaces']:
@@ -236,6 +243,7 @@ everest_yaml = helm(
         'monitoring.crds.plain=false',
         'monitoring.namespaceOverride={0}'.format(EVEREST_MONITORING_NAMESPACE),
         'server.initialAdminPassword={0}'.format(UI_ADMIN_PASSWORD),
+        'plugins.hub.enabled={0}'.format('true' if plugin_hub_enabled else 'false'),
     ],
 )
 # we don't need the catalog source

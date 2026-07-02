@@ -29,5 +29,6 @@
       "@generated/api-types": ["../../../api/index.ts"]
     }
   },
-  "include": ["./src"]
+  "include": ["./src"],
+  "exclude": ["./src/plugin-runtime"]
 }

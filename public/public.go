@@ -18,9 +18,13 @@ package public
 
 import "embed"
 
-// Static stores the latest version of the everest FE app
+// Static stores the latest version of the everest FE app.
+// The "all:" prefix is required so that files starting with "_" (e.g. Vite's
+// _commonjsHelpers-*.js chunk) or "." are included in the embed. Without it,
+// go/embed silently drops them and the server returns 404 for chunks
+// referenced by other bundles.
 //
-//go:embed dist/*
+//go:embed all:dist
 var Static embed.FS
 
 // Index stores the latest version of the everest FE index.html
