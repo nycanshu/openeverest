@@ -20,11 +20,7 @@ import { pluginRuntimeImportMap } from './vite-plugins/plugin-runtime-import-map
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  plugins: [
-    tsconfigPaths({ root: '.' }),
-    react(),
-    pluginRuntimeImportMap(),
-  ],
+  plugins: [tsconfigPaths({ root: '.' }), react(), pluginRuntimeImportMap()],
   server: {
     watch: {
       ignored: path.resolve(__dirname, '.e2e/**/*.*'),

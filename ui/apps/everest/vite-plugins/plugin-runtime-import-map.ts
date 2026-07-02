@@ -55,9 +55,7 @@ export function pluginRuntimeImportMap(): Plugin {
         typeof existingInput === 'string'
           ? { main: existingInput }
           : Array.isArray(existingInput)
-            ? Object.fromEntries(
-                existingInput.map((f, i) => [`entry-${i}`, f])
-              )
+            ? Object.fromEntries(existingInput.map((f, i) => [`entry-${i}`, f]))
             : ((existingInput as Record<string, string> | undefined) ?? {
                 main: path.resolve(process.cwd(), 'index.html'),
               });
