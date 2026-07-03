@@ -2,19 +2,19 @@ version: "2"
 linters:
   default: all
   disable:
-    - err113
-    - exhaustruct
-    - godox
-    - gomoddirectives
-    - gomodguard
-    - lll
-    - mnd
-    - nlreturn
-    - perfsprint
-    - tagalign
-    - varnamelen
-    - wrapcheck
-    - wsl
+    - err113           # not useful after migration to the standard errors
+    - exhaustruct      # not useful
+    - godox            # fails to be nolint-ed when necessary
+    - gomoddirectives  # we have been forced to use a replacement for k8s.io/client-go, see https://github.com/percona/everest/pull/901
+    - gomodguard       # deprecated since v2.12.0; replaced by gomodguard_v2 which is enabled via default: all
+    - lll              # generated signatures are long
+    - mnd              # not useful
+    - nlreturn         # too many empty lines makes methods too long
+    - perfsprint       # keep the format for consistency
+    - tagalign         # not useful
+    - varnamelen       # it's useful sometime to have a one-letter name
+    - wrapcheck        # forces to wrap errors everywhere
+    - wsl              # too many empty lines makes methods too long
   settings:
     cyclop:
       max-complexity: 15
