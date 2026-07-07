@@ -336,10 +336,12 @@ test.describe('Instance Preset tests', () => {
 
     await test.step('create preset from instance', async () => {
       const response = await request.post(
-        `/v1/clusters/${CLUSTER_NAME}/namespaces/${EVEREST_CI_NAMESPACE}/instances/${SOURCE_INSTANCE_NAME}/create-preset`,
+        `/v1/clusters/${CLUSTER_NAME}/instance-presets/from-instance`,
         {
           data: {
-            presetName: FROM_INSTANCE_PRESET_NAME,
+            name: FROM_INSTANCE_PRESET_NAME,
+            instanceName: SOURCE_INSTANCE_NAME,
+            instanceNamespace: EVEREST_CI_NAMESPACE,
           },
         }
       );

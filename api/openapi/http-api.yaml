@@ -508,6 +508,49 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  '/clusters/{cluster}/instance-presets/from-instance':
+    x-everest-resource-name: instance-presets
+    post:
+      tags:
+        - Preset
+      summary: Create instance preset from instance
+      description: |
+        This API creates a new instance preset from an existing instance.
+        The preset will be populated with the instance's spec, with namespace-scoped
+        fields cleared (secrets, monitoring configs, etc.).
+      operationId: createInstancePresetFromInstance
+      parameters:
+        - name: cluster
+          in: path
+          required: true
+          description: The name of the cluster
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateInstancePresetFromInstanceParams'
+      responses:
+        '201':
+          description: Instance preset created from instance
+          content:
+            application/json:
+              schema:
+                $ref: 'crds.gen.yaml#/components/schemas/InstancePreset'
+        '404':
+          description: Instance not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        default:
+          description: Error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   '/clusters/{cluster}/instance-presets/{name}':
     x-everest-resource-name: instance-presets
     get:
@@ -663,67 +706,6 @@ paths:
                 $ref: 'crds.gen.yaml#/components/schemas/InstancePreset'
         '404':
           description: Instance preset not found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-        default:
-          description: Error
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  '/clusters/{cluster}/namespaces/{namespace}/instances/{instance}/create-preset':
-    x-everest-resource-name: instance-presets
-    post:
-      tags:
-        - Preset
-      summary: Create instance preset from instance
-      description: |
-        This API creates a new instance preset from an existing instance.
-        The preset will be populated with the instance's spec, with namespace-scoped
-        fields cleared (secrets, monitoring configs, etc.).
-      operationId: createInstancePresetFromInstance
-      parameters:
-        - name: cluster
-          in: path
-          required: true
-          description: The name of the cluster
-          schema:
-            type: string
-        - name: namespace
-          in: path
-          required: true
-          description: The namespace of the instance
-          schema:
-            type: string
-        - name: instance
-          in: path
-          required: true
-          description: The name of the instance
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - presetName
-              properties:
-                presetName:
-                  type: string
-                  description: The name for the new preset
-      responses:
-        '201':
-          description: Instance preset created from instance
-          content:
-            application/json:
-              schema:
-                $ref: 'crds.gen.yaml#/components/schemas/InstancePreset'
-        '404':
-          description: Instance not found
           content:
             application/json:
               schema:
@@ -2181,6 +2163,23 @@ components:
           type: string
         password:
           type: string
+    CreateInstancePresetFromInstanceParams:
+      type: object
+      description: Parameters for creating an instance preset from an existing instance
+      properties:
+        name:
+          type: string
+          description: The name for the new preset
+        instanceName:
+          type: string
+          description: The name of the source instance
+        instanceNamespace:
+          type: string
+          description: The namespace of the source instance
+      required:
+        - name
+        - instanceName
+        - instanceNamespace
     CreateBackupStorageParams:
       type: object
       description: Backup storage parameters

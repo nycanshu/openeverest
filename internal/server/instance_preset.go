@@ -98,15 +98,13 @@ func (e *EverestServer) DeleteInstancePreset(c echo.Context, cluster string, nam
 }
 
 // CreateInstancePresetFromInstance creates a new preset from an existing instance.
-func (e *EverestServer) CreateInstancePresetFromInstance(c echo.Context, cluster string, namespace string, instance string) error {
-	var req struct {
-		PresetName string `json:"presetName"`
-	}
+func (e *EverestServer) CreateInstancePresetFromInstance(c echo.Context, cluster string) error {
+	var req api.CreateInstancePresetFromInstanceParams
 	if err := c.Bind(&req); err != nil {
 		return err
 	}
 
-	result, err := e.handler.CreateInstancePresetFromInstance(c.Request().Context(), cluster, namespace, instance, req.PresetName)
+	result, err := e.handler.CreateInstancePresetFromInstance(c.Request().Context(), cluster, req.InstanceNamespace, req.InstanceName, req.Name)
 	if err != nil {
 		e.l.Errorf("CreateInstancePresetFromInstance failed: %v", err)
 		return err
