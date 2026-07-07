@@ -76,6 +76,8 @@ type KubernetesConnector interface {
 	DeleteCatalogSource(ctx context.Context, obj *olmv1alpha1.CatalogSource) error
 	// GetConfigMap returns k8s configmap that matches the criteria.
 	GetConfigMap(ctx context.Context, key ctrlclient.ObjectKey) (*corev1.ConfigMap, error)
+	// ListConfigMaps returns list of configmaps that match the criteria.
+	ListConfigMaps(ctx context.Context, opts ...ctrlclient.ListOption) (*corev1.ConfigMapList, error)
 	// CreateConfigMap creates k8s configmap.
 	CreateConfigMap(ctx context.Context, config *corev1.ConfigMap) (*corev1.ConfigMap, error)
 	// UpdateConfigMap updates k8s configmap.
