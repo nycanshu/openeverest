@@ -367,6 +367,12 @@ type KubernetesConnector interface {
 	ListInstancePresets(ctx context.Context, opts ...ctrlclient.ListOption) (*v1alpha1.InstancePresetList, error)
 	// GetInstancePreset returns instance preset that matches the criteria.
 	GetInstancePreset(ctx context.Context, key ctrlclient.ObjectKey) (*v1alpha1.InstancePreset, error)
+	// CreateInstancePreset creates an instance preset.
+	CreateInstancePreset(ctx context.Context, preset *v1alpha1.InstancePreset) error
+	// UpdateInstancePreset updates an instance preset.
+	UpdateInstancePreset(ctx context.Context, preset *v1alpha1.InstancePreset) error
+	// DeleteInstancePreset deletes an instance preset.
+	DeleteInstancePreset(ctx context.Context, key ctrlclient.ObjectKey) error
 	// WatchBackups returns a watch.Interface that streams
 	// DatabaseClusterBackup events across all namespaces.
 	WatchBackups(ctx context.Context) (watch.Interface, error)

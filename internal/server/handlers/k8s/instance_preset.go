@@ -21,6 +21,7 @@ import (
 
 	corev1 "k8s.io/api/core/v1"
 	storagev1 "k8s.io/api/storage/v1"
+	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/types"
 	ctrlclient "sigs.k8s.io/controller-runtime/pkg/client"
 
@@ -417,4 +418,112 @@ func convertStorageClassesToObjects(items []storagev1.StorageClass) []ctrlclient
 		result[i] = &items[i]
 	}
 	return result
+}
+
+// CreateInstancePreset creates an instance preset.
+func (h *k8sHandler) CreateInstancePreset(ctx context.Context, cluster string, preset *corev1alpha1.InstancePreset) (*corev1alpha1.InstancePreset, error) {
+	if err := h.kubeConnector.CreateInstancePreset(ctx, preset); err != nil {
+		return nil, fmt.Errorf("failed to create instance preset: %w", err)
+	}
+
+	return h.kubeConnector.GetInstancePreset(ctx, types.NamespacedName{Name: preset.Name})
+}
+
+// UpdateInstancePreset updates an instance preset.
+func (h *k8sHandler) UpdateInstancePreset(ctx context.Context, cluster string, preset *corev1alpha1.InstancePreset) (*corev1alpha1.InstancePreset, error) {
+	if err := h.kubeConnector.UpdateInstancePreset(ctx, preset); err != nil {
+		return nil, fmt.Errorf("failed to update instance preset: %w", err)
+	}
+
+	return h.kubeConnector.GetInstancePreset(ctx, types.NamespacedName{Name: preset.Name})
+}
+
+// DeleteInstancePreset deletes an instance preset.
+func (h *k8sHandler) DeleteInstancePreset(ctx context.Context, cluster, name string) error {
+	if err := h.kubeConnector.DeleteInstancePreset(ctx, types.NamespacedName{Name: name}); err != nil {
+		if ctrlclient.IgnoreNotFound(err) != nil {
+			return fmt.Errorf("failed to delete instance preset: %w", err)
+		}
+	}
+
+	return nil
+}
+
+// CreateInstancePresetFromInstance creates a new InstancePreset from an existing Instance.
+func (h *k8sHandler) CreateInstancePresetFromInstance(ctx context.Context, cluster, namespace, instanceName, presetName string) (*corev1alpha1.InstancePreset, error) {
+	// Get the instance
+	instance, err := h.kubeConnector.GetInstance(ctx, types.NamespacedName{
+		Namespace: namespace,
+		Name:      instanceName,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to get instance: %w", err)
+	}
+
+	// Create preset from instance spec
+	preset := &corev1alpha1.InstancePreset{
+		ObjectMeta: metav1.ObjectMeta{
+			Name: presetName,
+		},
+		Spec: corev1alpha1.InstancePresetSpec{
+			InstanceSpec: instance.Spec,
+		},
+	}
+
+	// Clear namespace-scoped fields that shouldn't be in the preset
+	preset.Spec = h.clearNamespaceScopedFields(preset.Spec)
+
+	// Create the preset
+	if err := h.kubeConnector.CreateInstancePreset(ctx, preset); err != nil {
+		return nil, fmt.Errorf("failed to create instance preset: %w", err)
+	}
+
+	return h.kubeConnector.GetInstancePreset(ctx, types.NamespacedName{Name: presetName})
+}
+
+// clearNamespaceScopedFields clears namespace-scoped fields from the preset spec.
+// This ensures the preset doesn't contain references to namespace-specific resources.
+func (h *k8sHandler) clearNamespaceScopedFields(spec corev1alpha1.InstancePresetSpec) corev1alpha1.InstancePresetSpec {
+	// Clear namespace-scoped fields from components
+	for componentName, component := range spec.Components {
+		// Clear Config.SecretRef
+		if component.Config != nil && !isEmptyValue(component.Config.SecretRef) {
+			component.Config.SecretRef.Name = ""
+		}
+
+		// Clear customSpec namespace-scoped fields
+		if component.CustomSpec != nil && len(component.CustomSpec.Raw) > 0 {
+			var data map[string]any
+			if err := json.Unmarshal(component.CustomSpec.Raw, &data); err == nil {
+				h.clearMapFieldsRecursive(data)
+				if clearedRaw, err := json.Marshal(data); err == nil {
+					component.CustomSpec.Raw = clearedRaw
+				}
+			}
+		}
+
+		spec.Components[componentName] = component
+	}
+
+	return spec
+}
+
+// clearMapFieldsRecursive walks customSpec and clears fields matching patterns
+func (h *k8sHandler) clearMapFieldsRecursive(data map[string]any) {
+	for fieldName, value := range data {
+		resourceType := inferSupportedResourceType(fieldName)
+		if resourceType != "" {
+			// Clear the field value
+			if refMap, ok := value.(map[string]any); ok {
+				refMap["name"] = ""
+			} else {
+				data[fieldName] = ""
+			}
+			continue
+		}
+
+		if nested, ok := value.(map[string]any); ok {
+			h.clearMapFieldsRecursive(nested)
+		}
+	}
 }
