@@ -19,6 +19,7 @@ export enum FormMode {
   Edit = 'edit',
   Restore = 'restore',
   Import = 'import',
+  Preset = 'preset',
 }
 
 export type ComponentModeOverrides = Partial<
@@ -89,6 +90,11 @@ type SelectFieldParamsBase = CommonFieldParams & {
   displayEmpty?: boolean;
   defaultOpen?: boolean;
   readOnly?: boolean;
+  // Instance Preset support: when set, a cluster-scoped data-source select
+  // (e.g. StorageClass) offers an empty "use cluster default" option so the
+  // preset value may intentionally be left blank.
+  allowEmptyOption?: boolean;
+  emptyOptionLabel?: string;
 };
 
 export type SelectFieldParams =

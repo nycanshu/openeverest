@@ -20,6 +20,8 @@ import { postprocessSchemaData } from '../utils/postprocess/postprocess-schema';
 import { getSectionStepId } from '../utils/section-step-id';
 import { UIGenerator } from '../ui-generator';
 import { applyModeOverrides } from '../utils/preprocess/apply-mode-overrides';
+import { applyPresetOverrides } from '../utils/preprocess/apply-preset-overrides';
+import { FormMode } from '../ui-generator.types';
 
 /**
  * Core form-engine hook.
@@ -53,10 +55,15 @@ export const useFormEngine = (config: FormEngineConfig): FormEngineResult => {
   } = useUiGenerator(stableUiSchema, selectedTopology);
 
   // 1b. Apply mode overrides (e.g. disable fields in restore mode)
-  const effectiveSections = useMemo(
-    () => (formMode ? applyModeOverrides(sections, formMode) : sections),
-    [sections, formMode]
-  );
+  const effectiveSections = useMemo(() => {
+    const withMode = formMode
+      ? applyModeOverrides(sections, formMode)
+      : sections;
+    // Instance Preset: relax namespace/cluster-scoped data-source fields.
+    return formMode === FormMode.Preset
+      ? applyPresetOverrides(withMode)
+      : withMode;
+  }, [sections, formMode]);
 
   // 2. Build generated steps from schema sections
   const sectionKeys = useMemo(

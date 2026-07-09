@@ -37,10 +37,25 @@ export interface EmptyStateFallback {
   component: React.ComponentType<EmptyStateFallbackProps>;
 }
 
+/**
+ * Scope of the Kubernetes resources a data-source provider resolves.
+ *
+ * - `namespace`: resources live in a namespace (MonitoringConfig, Secret,
+ *   ConfigMap). For Instance Presets (which are cluster-scoped and carry no
+ *   namespace), these fields are hidden and left empty.
+ * - `cluster`: resources are cluster-scoped (StorageClass). For Instance
+ *   Presets these remain selectable but may be left empty to defer to the
+ *   cluster default.
+ */
+export type ProviderScope = 'namespace' | 'cluster';
+
 export interface ProviderRegistryEntry {
   useOptions: (params: ProviderParams) => ProviderOptions;
   description: string;
   emptyStateFallback: EmptyStateFallback | null;
+  // Scope of the resolved resources. Used to relax Instance Preset forms:
+  // namespace-scoped fields are hidden/emptied, cluster-scoped fields allow empty.
+  scope?: ProviderScope;
   // TODO: Add lifecycle hooks — beforeFetch, afterFetch, onError
   // TODO: Add optional `validate` callback for dev-time schema validation
 }

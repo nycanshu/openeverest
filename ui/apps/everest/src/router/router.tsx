@@ -28,6 +28,8 @@ import {
   DatabasePage,
   DbDetails,
   DbClusterView,
+  InstancePresets,
+  InstancePresetFormPage,
   // LoadBalancerConfigDetails,
   // LoadBalancerConfiguration,
   Login,
@@ -118,6 +120,22 @@ const router = createBrowserRouter([
             element: <PluginTabHost />,
           },
         ],
+      },
+      {
+        path: 'instance-presets',
+        element: withSuspense(<InstancePresets />),
+      },
+      {
+        path: 'instance-presets/new',
+        element: withSuspense(<InstancePresetFormPage />),
+      },
+      {
+        path: 'instance-presets/:name',
+        element: withSuspense(<InstancePresetFormPage />),
+      },
+      {
+        path: 'instance-presets/:name/edit',
+        element: withSuspense(<InstancePresetFormPage />),
       },
       {
         index: true,

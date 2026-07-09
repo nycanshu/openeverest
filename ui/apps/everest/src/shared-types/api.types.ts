@@ -43,3 +43,40 @@ export type UpdateDbInstancePayload =
 
 export type GetNamespacesPayload =
   HttpApi.components['schemas']['NamespaceList'];
+
+// InstancePreset is a cluster-scoped configuration template that mirrors the
+// Instance spec (InstancePresetSpec inlines InstanceSpec on the backend), so
+// its spec is structurally identical to an Instance. The generated Instance
+// metadata is an empty object, so a usable ObjectMeta-like metadata is declared
+// here for the UI (name, annotations, etc.).
+export type InstancePresetMetadata = {
+  name?: string;
+  annotations?: Record<string, string>;
+  labels?: Record<string, string>;
+  creationTimestamp?: string;
+  resourceVersion?: string;
+  [key: string]: unknown;
+};
+
+export type InstancePreset = {
+  apiVersion?: string;
+  kind?: string;
+  metadata?: InstancePresetMetadata;
+  spec?: Instance['spec'];
+  status?: {
+    conditions?: unknown[];
+  };
+};
+
+export type InstancePresetList = {
+  apiVersion?: string;
+  kind?: string;
+  metadata?: Record<string, unknown>;
+  items: InstancePreset[];
+};
+
+export type CreateInstancePresetFromInstanceParams = {
+  name: string;
+  instanceName: string;
+  instanceNamespace: string;
+};

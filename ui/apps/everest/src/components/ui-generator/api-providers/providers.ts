@@ -21,10 +21,12 @@ providerRegistry.register('monitoringConfigs', {
   description: 'MonitoringConfig names in the current namespace.',
   useOptions: useMonitoringConfigsOptions,
   emptyStateFallback: { component: MonitoringEmptyFallback },
+  scope: 'namespace',
 });
 
 providerRegistry.register('storageClasses', {
   description: 'StorageClass names available on the cluster.',
   useOptions: useStorageClassesOptions,
   emptyStateFallback: null,
+  scope: 'cluster',
 });

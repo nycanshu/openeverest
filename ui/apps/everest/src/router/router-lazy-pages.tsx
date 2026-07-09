@@ -30,6 +30,18 @@ export const DatabasePage = lazy(() =>
   }))
 );
 
+export const InstancePresets = lazy(() =>
+  import('pages/instance-presets').then((module) => ({
+    default: module.InstancePresets,
+  }))
+);
+
+export const InstancePresetFormPage = lazy(() =>
+  import('pages/instance-preset-form').then((module) => ({
+    default: module.InstancePresetFormPage,
+  }))
+);
+
 export const UIGeneratorBuilder = lazy(() =>
   import('pages/ui-generator-builder/ui-generator-builder').then((module) => ({
     default: module.UIGeneratorBuilder,

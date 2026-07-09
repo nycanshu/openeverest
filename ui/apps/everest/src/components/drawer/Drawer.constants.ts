@@ -15,6 +15,7 @@
 // limitations under the License.
 import StorageIcon from '@mui/icons-material/Storage';
 import SettingsIcon from '@mui/icons-material/Settings';
+import TuneIcon from '@mui/icons-material/Tune';
 // import SchemaIcon from '@mui/icons-material/Schema';
 import { EverestRoute } from './Drawer.types';
 import { SettingsTabs } from 'pages/settings/settings.types';
@@ -26,6 +27,11 @@ export const ROUTES: EverestRoute[] = [
     to: '/databases',
     icon: StorageIcon,
     text: 'Databases',
+  },
+  {
+    to: '/instance-presets',
+    icon: TuneIcon,
+    text: 'Instance Presets',
   },
   {
     to: `settings/${SettingsTabs.storageLocations}`,

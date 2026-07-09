@@ -16,6 +16,7 @@ import type {
   ProviderRegistryEntry,
   ProviderOptions,
   ProviderParams,
+  ProviderScope,
 } from './types';
 
 class ApiProviderRegistry {
@@ -50,6 +51,15 @@ class ApiProviderRegistry {
 
 // Singleton registry instance
 export const providerRegistry = new ApiProviderRegistry();
+
+/**
+ * Returns the scope (`namespace` | `cluster`) of a registered data-source
+ * provider, or undefined when the provider is unknown or has no declared scope.
+ * Used by the Instance Preset form to relax namespace/cluster-scoped fields.
+ */
+export const getProviderScope = (
+  providerKey: string
+): ProviderScope | undefined => providerRegistry.get(providerKey)?.scope;
 
 export const useProviderOptions = (
   providerKey: string,
