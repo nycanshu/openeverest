@@ -5,6 +5,7 @@ on:
   push:
     branches:
       - "mui-update-*"
+      - "copilot/mui-update-*"
     paths:
       - "ui/**"
       - ".github/workflows/dev-fe-visual.yaml"
