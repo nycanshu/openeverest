@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import { getProviderScope } from '../../api-providers/registry';
+import { isStorageClassProvider } from '../../api-providers/registry';
 import {
   Component,
   ComponentGroup,
@@ -27,17 +27,17 @@ export const EMPTY_STORAGE_CLASS_LABEL = 'Use cluster default';
  * Transforms a preprocessed UI schema so it is valid for an Instance Preset.
  *
  * Instance Presets are cluster-scoped and carry no namespace, so fields backed
- * by a data-source provider are relaxed based on that provider's scope:
+ * by a data-source provider are relaxed by special-casing StorageClass:
  *
- * - Namespace-scoped fields (MonitoringConfig, Secret, ConfigMap) are converted
- *   to `hidden`, with their validation and data-source stripped. They are not
- *   rendered, are not prefetched, and their value stays empty — any schema
- *   validation that required a namespace-scoped value is therefore ignored.
+ * - StorageClass (the one cluster-scoped data source) stays selectable but has
+ *   `required` relaxed and gains an empty "use cluster default" option, so a
+ *   preset may be installed with an empty StorageClass (resolved to the cluster
+ *   default when an Instance is later created).
  *
- * - Cluster-scoped fields (StorageClass) stay selectable but have `required`
- *   relaxed and gain an empty "use cluster default" option, so a preset may be
- *   installed with an empty StorageClass (resolved to the cluster default when
- *   an Instance is later created).
+ * - Every other data source is treated as namespace-scoped and is converted to
+ *   `hidden`, with its validation and data-source stripped. It is not rendered,
+ *   not prefetched, and its value stays empty — any schema validation that
+ *   required a namespace-scoped value is therefore ignored.
  *
  * Must run after applyModeOverrides so that its output is not overwritten.
  */
@@ -61,21 +61,11 @@ const applyToComponent = (
     return component;
   }
 
-  const scope = getProviderScope(component.dataSource.provider);
-
-  // Namespace-scoped → hide + strip validation and data-source.
-  if (scope === 'namespace') {
-    const rest = { ...component } as Record<string, unknown>;
-    delete rest.dataSource;
-    delete rest.validation;
-    return {
-      ...rest,
-      uiType: 'hidden',
-    } as unknown as Component;
-  }
-
-  // Cluster-scoped → keep selectable, relax required, allow empty value.
-  if (scope === 'cluster') {
+  // StorageClass is the one cluster-scoped data source: keep it selectable,
+  // relax `required`, and allow an empty "use cluster default" choice via the
+  // shared displayEmpty mechanism. It stays populated from the API even without
+  // a namespace.
+  if (isStorageClassProvider(component.dataSource.provider)) {
     return {
       ...component,
       validation: component.validation
@@ -84,13 +74,20 @@ const applyToComponent = (
       fieldParams: {
         ...component.fieldParams,
         displayEmpty: true,
-        allowEmptyOption: true,
         emptyOptionLabel: EMPTY_STORAGE_CLASS_LABEL,
       },
     } as Component;
   }
 
-  return component;
+  // Every other data source is namespace-scoped → hide it and strip its
+  // validation and data-source.
+  const rest = { ...component } as Record<string, unknown>;
+  delete rest.dataSource;
+  delete rest.validation;
+  return {
+    ...rest,
+    uiType: 'hidden',
+  } as unknown as Component;
 };
 
 const applyToComponents = (

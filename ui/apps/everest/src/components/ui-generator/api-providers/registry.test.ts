@@ -26,4 +26,27 @@ describe('ApiProviderRegistry', () => {
       useProviderOptions('nonExistent', { namespace: 'ns', cluster: 'cl' })
     ).toThrow('Unknown API provider');
   });
+
+  it('useProviderOptions returns a stable reference when disabled', () => {
+    // Regression: a fresh object/array on every call gave consumers a new
+    // `options` reference each render, causing an infinite render loop in
+    // namespace-less forms (Instance Presets). The disabled result must be
+    // referentially stable so dependent effects settle.
+    const params = { namespace: '', cluster: '' };
+    const first = useProviderOptions('monitoringConfigs', params, {
+      enabled: false,
+    });
+    const second = useProviderOptions('storageClasses', params, {
+      enabled: false,
+    });
+
+    expect(first).toBe(second);
+    expect(first.options).toBe(second.options);
+    expect(first).toMatchObject({
+      options: [],
+      isLoading: false,
+      error: null,
+      isEmpty: true,
+    });
+  });
 });

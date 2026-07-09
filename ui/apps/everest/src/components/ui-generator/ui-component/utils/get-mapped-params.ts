@@ -132,6 +132,11 @@ const mapSelectFieldParams = (fieldParams: SelectFieldParams) => {
     selectProps as Record<string, unknown>
   ) as Partial<SelectProps>;
 
+  // `emptyOptionLabel` is consumed by renderSelectOptions to label the injected
+  // empty menu item; strip it so it is not forwarded to the MUI <Select> as an
+  // unknown prop.
+  delete (selectFieldProps as Record<string, unknown>).emptyOptionLabel;
+
   return {
     label,
     options,

@@ -52,4 +52,41 @@ describe('getReconciledDataSourceValue', () => {
   it('returns first option when current value is non-string and options are available', () => {
     expect(getReconciledDataSourceValue(123, options)).toBe('first');
   });
+
+  describe('allowEmpty (e.g. "use cluster default")', () => {
+    const opts = [
+      { label: 'standard', value: 'standard' },
+      { label: 'fast', value: 'fast' },
+    ];
+
+    it('leaves an empty value untouched when allowEmpty is set', () => {
+      // Regression: without allowEmpty this auto-selects the first option and,
+      // for namespace-less preset forms, previously caused a render loop.
+      expect(
+        getReconciledDataSourceValue('', opts, { allowEmpty: true })
+      ).toBeNull();
+    });
+
+    it('leaves undefined untouched when allowEmpty is set', () => {
+      expect(
+        getReconciledDataSourceValue(undefined, opts, { allowEmpty: true })
+      ).toBeNull();
+    });
+
+    it('auto-selects the first option for an empty value when allowEmpty is not set', () => {
+      expect(getReconciledDataSourceValue('', opts)).toBe('standard');
+    });
+
+    it('still reconciles an invalid value to the first option even with allowEmpty', () => {
+      expect(
+        getReconciledDataSourceValue('stale', opts, { allowEmpty: true })
+      ).toBe('standard');
+    });
+
+    it('keeps a valid non-empty selection with allowEmpty', () => {
+      expect(
+        getReconciledDataSourceValue('fast', opts, { allowEmpty: true })
+      ).toBeNull();
+    });
+  });
 });

@@ -15,7 +15,11 @@
 import React, { useEffect, useMemo } from 'react';
 import { useFormContext } from 'react-hook-form';
 import type { Component } from '../../ui-generator.types';
-import { providerRegistry, useProviderOptions } from '../registry';
+import {
+  isStorageClassProvider,
+  providerRegistry,
+  useProviderOptions,
+} from '../registry';
 import { useUiGeneratorContext } from '../../ui-generator-context';
 import { useClusterName } from 'hooks/api/useClusterName';
 import type { DataSourceFieldProps } from './data-source-field.types';
@@ -31,7 +35,13 @@ export const DataSourceField: React.FC<DataSourceFieldProps> = ({
   const { getValues, setValue } = useFormContext();
   const { dataSource, ...baseComponent } = item;
 
-  const hasValidContext = !!namespace && !!cluster;
+  // StorageClass is special-cased: it is the one cluster-scoped data source, so
+  // it resolves against the cluster only and does NOT require a namespace. This
+  // lets it stay populated from the API in namespace-less contexts such as
+  // Instance Presets. Every other data source is treated as namespace-scoped
+  // and still requires both a namespace and a cluster.
+  const isStorageClass = isStorageClassProvider(dataSource.provider);
+  const hasValidContext = isStorageClass ? !!cluster : !!namespace && !!cluster;
 
   const { options, isLoading, error, isEmpty } = useProviderOptions(
     dataSource.provider,
@@ -42,36 +52,26 @@ export const DataSourceField: React.FC<DataSourceFieldProps> = ({
     { enabled: hasValidContext }
   );
 
-  // Instance Preset support: cluster-scoped selects (e.g. StorageClass) may
-  // offer an empty "use cluster default" option so the value can stay blank.
-  const fieldParamsRecord = baseComponent.fieldParams as Record<
-    string,
-    unknown
-  >;
-  const allowEmptyOption = !!fieldParamsRecord?.allowEmptyOption;
-  const emptyOptionLabel =
-    (fieldParamsRecord?.emptyOptionLabel as string | undefined) ?? '';
-
-  const effectiveOptions = useMemo(
-    () =>
-      allowEmptyOption
-        ? [{ label: emptyOptionLabel, value: '' }, ...options]
-        : options,
-    [allowEmptyOption, emptyOptionLabel, options]
-  );
+  // A select that opts into an empty option (fieldParams.displayEmpty) may
+  // intentionally stay blank — e.g. an Instance Preset leaving StorageClass to
+  // the cluster default. In that case reconciliation must treat an empty value
+  // as valid instead of auto-selecting the first option. The empty menu item
+  // itself is rendered by the shared displayEmpty path (see renderSelectOptions).
+  const allowEmptyValue = !!(
+    baseComponent.fieldParams as Record<string, unknown>
+  )?.displayEmpty;
 
   useEffect(() => {
     if (isLoading || !name) return;
 
-    const nextValue = getReconciledDataSourceValue(
-      getValues(name),
-      effectiveOptions
-    );
+    const nextValue = getReconciledDataSourceValue(getValues(name), options, {
+      allowEmpty: allowEmptyValue,
+    });
 
     if (nextValue !== null) {
       setValue(name, nextValue, { shouldValidate: true });
     }
-  }, [isLoading, effectiveOptions, name, getValues, setValue]);
+  }, [isLoading, options, allowEmptyValue, name, getValues, setValue]);
 
   const patchedItem = useMemo(() => {
     const originalHelperText = (
@@ -82,7 +82,7 @@ export const DataSourceField: React.FC<DataSourceFieldProps> = ({
       ? 'Loading...'
       : error
         ? 'Failed to load options'
-        : isEmpty && !allowEmptyOption
+        : isEmpty && !allowEmptyValue
           ? (originalHelperText ?? 'No options available')
           : originalHelperText;
 
@@ -90,7 +90,7 @@ export const DataSourceField: React.FC<DataSourceFieldProps> = ({
       ...baseComponent,
       fieldParams: {
         ...baseComponent.fieldParams,
-        options: effectiveOptions,
+        options,
         disabled:
           isLoading ||
           !!error ||
@@ -98,14 +98,7 @@ export const DataSourceField: React.FC<DataSourceFieldProps> = ({
         ...(helperText !== undefined ? { helperText } : {}),
       },
     } as Component;
-  }, [
-    baseComponent,
-    effectiveOptions,
-    isLoading,
-    error,
-    isEmpty,
-    allowEmptyOption,
-  ]);
+  }, [baseComponent, options, isLoading, error, isEmpty, allowEmptyValue]);
 
   const FallbackComponent = useMemo(() => {
     const entry = providerRegistry.get(dataSource.provider);
@@ -113,11 +106,7 @@ export const DataSourceField: React.FC<DataSourceFieldProps> = ({
   }, [dataSource.provider]);
 
   const showFallback =
-    isEmpty &&
-    !isLoading &&
-    !allowEmptyOption &&
-    !!FallbackComponent &&
-    !!namespace;
+    isEmpty && !isLoading && !!FallbackComponent && !!namespace;
 
   // We always render the children (Select/Controller) and hide them with
   // display:none instead of conditionally unmounting. This keeps the RHF

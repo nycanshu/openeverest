@@ -50,6 +50,7 @@ import {
   useFormEngine,
   useStepNavigation,
 } from 'components/ui-generator/form-engine';
+import { ComponentErrorBoundary } from 'components/ui-generator/component-error-boundary';
 import { FormMode } from 'components/ui-generator/ui-generator.types';
 import { StepHeader } from 'pages/database-form/database-form-body/steps-old/step-header/step-header';
 import { PresetBaseStep } from './preset-base-step';
@@ -370,7 +371,12 @@ const PresetFormInner = ({
                 style={{ border: 'none', padding: 0, margin: 0, minWidth: 0 }}
               >
                 {StepComponent && (
-                  <StepComponent loadingDefaultsForEdition={false} />
+                  <ComponentErrorBoundary
+                    key={currentStep?.id}
+                    componentName={currentStep?.label || 'this step'}
+                  >
+                    <StepComponent loadingDefaultsForEdition={false} />
+                  </ComponentErrorBoundary>
                 )}
               </fieldset>
               <Stack direction="row" sx={{ pt: 4 }}>

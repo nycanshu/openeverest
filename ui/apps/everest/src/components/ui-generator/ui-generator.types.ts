@@ -90,10 +90,9 @@ type SelectFieldParamsBase = CommonFieldParams & {
   displayEmpty?: boolean;
   defaultOpen?: boolean;
   readOnly?: boolean;
-  // Instance Preset support: when set, a cluster-scoped data-source select
-  // (e.g. StorageClass) offers an empty "use cluster default" option so the
-  // preset value may intentionally be left blank.
-  allowEmptyOption?: boolean;
+  // Label for the empty option rendered when `displayEmpty` is set on an
+  // optional select (e.g. an Instance Preset's "use cluster default"
+  // StorageClass). Defaults to "None" when omitted.
   emptyOptionLabel?: string;
 };
 

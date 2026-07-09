@@ -85,9 +85,10 @@ export const renderSelectOptions = (
   const optionsNodes: React.ReactNode[] = [];
 
   if (shouldInjectEmptyOption(item, options)) {
+    const emptyLabel = item.fieldParams.emptyOptionLabel ?? 'None';
     optionsNodes.push(
       <MenuItem key={`${name}-empty`} value="">
-        None
+        {emptyLabel}
       </MenuItem>
     );
   }

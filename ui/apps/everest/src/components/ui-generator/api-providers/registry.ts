@@ -16,7 +16,6 @@ import type {
   ProviderRegistryEntry,
   ProviderOptions,
   ProviderParams,
-  ProviderScope,
 } from './types';
 
 class ApiProviderRegistry {
@@ -53,13 +52,43 @@ class ApiProviderRegistry {
 export const providerRegistry = new ApiProviderRegistry();
 
 /**
- * Returns the scope (`namespace` | `cluster`) of a registered data-source
- * provider, or undefined when the provider is unknown or has no declared scope.
- * Used by the Instance Preset form to relax namespace/cluster-scoped fields.
+ * Provider key for the StorageClass data source.
+ *
+ * StorageClass is the one data source that is cluster-scoped rather than
+ * namespace-scoped: it resolves against the Kubernetes cluster and does not
+ * need a namespace. Instance Presets are namespace-less, so this key is used to
+ * special-case StorageClass — it stays populated from the API and may be left
+ * empty ("use cluster default"), while every other (namespace-scoped) data
+ * source is hidden in a preset. Keeping the key in one place avoids scattering
+ * the magic string across the form pipeline.
  */
-export const getProviderScope = (
-  providerKey: string
-): ProviderScope | undefined => providerRegistry.get(providerKey)?.scope;
+export const STORAGE_CLASS_PROVIDER = 'storageClasses';
+
+/**
+ * True when a data-source provider key refers to the cluster-scoped StorageClass
+ * source. Every other provider is treated as namespace-scoped.
+ */
+export const isStorageClassProvider = (providerKey: string): boolean =>
+  providerKey === STORAGE_CLASS_PROVIDER;
+
+/**
+ * Stable, shared result for the disabled (`enabled: false`) state.
+ *
+ * Returning a freshly built object/array here on every render would hand each
+ * consumer a new `options` reference, defeating their useMemo/useEffect
+ * dependency checks. In namespace-less forms (e.g. Instance Presets) that pass
+ * `enabled: false`, that previously caused an infinite render loop: the
+ * data-source reconciliation effect re-ran on every render and called
+ * setValue(), which re-rendered, and so on. A module-level constant keeps the
+ * reference identity stable so those effects settle after the first run.
+ */
+const DISABLED_PROVIDER_OPTIONS: ProviderOptions = {
+  options: [],
+  isLoading: false,
+  error: null,
+  isEmpty: true,
+  rawData: undefined,
+};
 
 export const useProviderOptions = (
   providerKey: string,
@@ -76,13 +105,7 @@ export const useProviderOptions = (
   }
 
   if (options?.enabled === false) {
-    return {
-      options: [],
-      isLoading: false,
-      error: null,
-      isEmpty: true,
-      rawData: undefined,
-    };
+    return DISABLED_PROVIDER_OPTIONS;
   }
 
   return entry.useOptions(params);

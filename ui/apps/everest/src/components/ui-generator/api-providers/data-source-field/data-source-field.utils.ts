@@ -19,23 +19,33 @@ type OptionValue = { value: string };
 
 export const getReconciledDataSourceValue = (
   current: unknown,
-  options: OptionValue[]
+  options: OptionValue[],
+  opts?: { allowEmpty?: boolean }
 ): string | null => {
   const validValues = options.map((o) => o.value);
   const currentStr = typeof current === 'string' ? current : '';
 
-  if (currentStr && !validValues.includes(currentStr)) {
-    return options.length > 0 ? options[0].value : '';
+  // When empty is an allowed, intentional choice — e.g. a select with
+  // displayEmpty such as an Instance Preset's "use cluster default"
+  // StorageClass — leave an empty value untouched instead of auto-selecting
+  // the first option.
+  if (opts?.allowEmpty && currentStr === '') {
+    return null;
   }
 
-  if (
-    (currentStr === '' || current === undefined || current === null) &&
-    options.length > 0
-  ) {
+  // The current value is already valid: nothing to reconcile. Returning null
+  // avoids a redundant setValue() that would re-trigger the effect each render.
+  if (validValues.includes(currentStr)) {
+    return null;
+  }
+
+  // Invalid or unset: fall back to the first option when one exists, otherwise
+  // clear a stale non-empty value.
+  if (options.length > 0) {
     return options[0].value;
   }
 
-  return null;
+  return currentStr ? '' : null;
 };
 
 export const hasDataSource = (

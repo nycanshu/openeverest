@@ -20,9 +20,12 @@ import { FieldType } from '../../ui-generator.types';
 
 const mockUseProviderOptions = vi.fn();
 const mockRegistryGet = vi.fn();
+let mockNamespace: string | undefined = 'ns';
 
 vi.mock('../registry', () => ({
   useProviderOptions: (...args: unknown[]) => mockUseProviderOptions(...args),
+  STORAGE_CLASS_PROVIDER: 'storageClasses',
+  isStorageClassProvider: (key: string) => key === 'storageClasses',
   providerRegistry: {
     get: (...args: unknown[]) => mockRegistryGet(...args),
     has: () => false,
@@ -32,12 +35,16 @@ vi.mock('../registry', () => ({
 }));
 
 vi.mock('../../ui-generator-context', () => ({
-  useUiGeneratorContext: () => ({ namespace: 'ns' }),
+  useUiGeneratorContext: () => ({ namespace: mockNamespace }),
 }));
 
 vi.mock('hooks/api/useClusterName', () => ({
   useClusterName: () => 'main',
 }));
+
+beforeEach(() => {
+  mockNamespace = 'ns';
+});
 
 const makeItem = (): ComponentWithDataSource => ({
   uiType: FieldType.Select,
@@ -214,6 +221,75 @@ describe('DataSourceField', () => {
     await waitFor(() => {
       expect(isDirty).toBe(false);
     });
+  });
+
+  it('enables the StorageClass provider even without a namespace', () => {
+    mockNamespace = undefined;
+    mockUseProviderOptions.mockReturnValue({
+      options: [{ label: 'standard', value: 'standard' }],
+      isLoading: false,
+      error: null,
+      isEmpty: false,
+    });
+
+    const Harness = () => {
+      const methods = useForm({
+        defaultValues: { spec: { storageClass: '' } },
+      });
+      return (
+        <FormProvider {...methods}>
+          <DataSourceField item={makeItem()} name="spec.storageClass">
+            {() => <div />}
+          </DataSourceField>
+        </FormProvider>
+      );
+    };
+
+    render(<Harness />);
+
+    expect(mockUseProviderOptions).toHaveBeenCalledWith(
+      'storageClasses',
+      expect.objectContaining({ cluster: 'main', namespace: '' }),
+      { enabled: true }
+    );
+  });
+
+  it('disables a namespace-scoped provider when the namespace is missing', () => {
+    mockNamespace = undefined;
+    mockUseProviderOptions.mockReturnValue({
+      options: [],
+      isLoading: false,
+      error: null,
+      isEmpty: true,
+    });
+
+    const monitoringItem: ComponentWithDataSource = {
+      uiType: FieldType.Select,
+      path: 'spec.monitoring',
+      fieldParams: { label: 'Monitoring' },
+      dataSource: { provider: 'monitoringConfigs' },
+    };
+
+    const Harness = () => {
+      const methods = useForm({
+        defaultValues: { spec: { monitoring: '' } },
+      });
+      return (
+        <FormProvider {...methods}>
+          <DataSourceField item={monitoringItem} name="spec.monitoring">
+            {() => <div />}
+          </DataSourceField>
+        </FormProvider>
+      );
+    };
+
+    render(<Harness />);
+
+    expect(mockUseProviderOptions).toHaveBeenCalledWith(
+      'monitoringConfigs',
+      expect.objectContaining({ namespace: '' }),
+      { enabled: false }
+    );
   });
 
   describe('empty state fallback', () => {

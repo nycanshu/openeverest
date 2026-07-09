@@ -30,10 +30,11 @@ import {
   TopologyUISchemas,
 } from '../../ui-generator.types';
 
-// Populate the provider scopes the overrides rely on. Guarded so the test is
-// robust whether or not the real providers module has already registered them.
+// Register the providers the overrides rely on. Detection is by provider key
+// (StorageClass vs everything else). Guarded so the test is robust whether or
+// not the real providers module has already registered them.
 beforeAll(() => {
-  const stub = (scope: 'namespace' | 'cluster') =>
+  const stub = () =>
     ({
       description: 'test',
       useOptions: () => ({
@@ -44,15 +45,14 @@ beforeAll(() => {
         rawData: undefined,
       }),
       emptyStateFallback: null,
-      scope,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
     }) as any;
 
   if (!providerRegistry.has('monitoringConfigs')) {
-    providerRegistry.register('monitoringConfigs', stub('namespace'));
+    providerRegistry.register('monitoringConfigs', stub());
   }
   if (!providerRegistry.has('storageClasses')) {
-    providerRegistry.register('storageClasses', stub('cluster'));
+    providerRegistry.register('storageClasses', stub());
   }
 });
 
@@ -109,9 +109,9 @@ describe('applyPresetOverrides', () => {
     expect(comp.uiType).toBe(FieldType.Text);
     expect(comp.dataSource).toBeDefined();
     expect(comp.validation?.required).toBe(false);
-    expect(fieldParams.allowEmptyOption).toBe(true);
     expect(fieldParams.displayEmpty).toBe(true);
     expect(fieldParams.emptyOptionLabel).toBe(EMPTY_STORAGE_CLASS_LABEL);
+    expect(fieldParams.allowEmptyOption).toBeUndefined();
   });
 
   it('leaves fields without a data source untouched', () => {
