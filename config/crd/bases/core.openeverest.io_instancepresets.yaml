@@ -1347,10 +1347,39 @@ spec:
                     required:
                     - backupName
                     type: object
+                  external:
+                    description: |-
+                      External references an external storage location for import.
+                      Required when type=External.
+                    properties:
+                      backupClassName:
+                        description: |-
+                          BackupClassName references the BackupClass that defines the import method.
+                          The BackupClass must have spec.importJob set.
+                        minLength: 1
+                        type: string
+                      config:
+                        description: |-
+                          Config contains all import configuration including path and credentials.
+                          Validated against BackupClass.spec.importConfig.openAPIV3Schema.
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                      storageName:
+                        description: |-
+                          StorageName references a BackupStorage CR in the same namespace
+                          that contains S3 credentials and endpoint configuration.
+                        minLength: 1
+                        type: string
+                    required:
+                    - backupClassName
+                    - config
+                    - storageName
+                    type: object
                   type:
                     description: Type selects the data source kind.
                     enum:
                     - Backup
+                    - External
                     type: string
                 required:
                 - type
@@ -1358,6 +1387,8 @@ spec:
                 x-kubernetes-validations:
                 - message: backup must be set when type is Backup
                   rule: 'self.type == ''Backup'' ? has(self.backup) : true'
+                - message: external must be set when type is External
+                  rule: 'self.type == ''External'' ? has(self.external) : true'
               deletionPolicy:
                 allOf:
                 - enum:

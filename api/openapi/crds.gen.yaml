@@ -258,6 +258,163 @@ components:
               - ProviderManaged
               - Job
               type: string
+            importConfig:
+              description: |-
+                ImportConfig contains the OpenAPI v3 schema describing the import-time
+                configuration accepted by this class. Instance.spec.dataSource.external.config
+                is validated against this schema when type=External.
+              properties:
+                openAPIV3Schema:
+                  description: OpenAPIV3Schema is the OpenAPI v3 schema of the backup
+                    class.
+                  x-kubernetes-preserve-unknown-fields: true
+              type: object
+            importJob:
+              description: |-
+                ImportJob describes the job spawned to perform an initial data import
+                when an Instance is created with spec.dataSource.type=External.
+
+                ImportJob is intentionally a top-level sibling of Job rather than a
+                field on JobModeSpec: JobModeSpec.Backup is required, so a BackupClass
+                that exists purely as an import method (no backup/restore capability)
+                would otherwise be forced to declare a meaningless backup job.
+              properties:
+                cleanupJobSpec:
+                  description: |-
+                    CleanupJobSpec is the optional specification of a cleanup job that runs
+                    when the parent Backup or Restore CR is deleted.
+                  properties:
+                    command:
+                      description: Command is the command to run the backup class.
+                      items:
+                        type: string
+                      type: array
+                    image:
+                      description: Image is the image of the backup class.
+                      type: string
+                  type: object
+                clusterPermissions:
+                  description: |-
+                    ClusterPermissions are cluster-scoped PolicyRules granted via a
+                    generated ClusterRole and ClusterRoleBinding.
+                  items:
+                    description: |-
+                      PolicyRule holds information that describes a policy rule, but does not contain information
+                      about who the rule applies to or which namespace the rule applies to.
+                    properties:
+                      apiGroups:
+                        description: |-
+                          APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
+                          the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      nonResourceURLs:
+                        description: |-
+                          NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+                          Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
+                          Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      resourceNames:
+                        description: ResourceNames is an optional white list of names
+                          that the rule applies to.  An empty set means that everything
+                          is allowed.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      resources:
+                        description: Resources is a list of resources this rule applies
+                          to. '*' represents all resources.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      verbs:
+                        description: Verbs is a list of Verbs that apply to ALL the
+                          ResourceKinds contained in this rule. '*' represents all
+                          verbs.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                    required:
+                    - verbs
+                    type: object
+                  type: array
+                jobSpec:
+                  description: JobSpec is the specification of the backup or restore
+                    job.
+                  properties:
+                    command:
+                      description: Command is the command to run the backup class.
+                      items:
+                        type: string
+                      type: array
+                    image:
+                      description: Image is the image of the backup class.
+                      type: string
+                  type: object
+                permissions:
+                  description: |-
+                    Permissions are namespace-scoped PolicyRules granted to the job pod via
+                    a generated Role and RoleBinding.
+                  items:
+                    description: |-
+                      PolicyRule holds information that describes a policy rule, but does not contain information
+                      about who the rule applies to or which namespace the rule applies to.
+                    properties:
+                      apiGroups:
+                        description: |-
+                          APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
+                          the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      nonResourceURLs:
+                        description: |-
+                          NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+                          Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
+                          Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      resourceNames:
+                        description: ResourceNames is an optional white list of names
+                          that the rule applies to.  An empty set means that everything
+                          is allowed.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      resources:
+                        description: Resources is a list of resources this rule applies
+                          to. '*' represents all resources.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                      verbs:
+                        description: Verbs is a list of Verbs that apply to ALL the
+                          ResourceKinds contained in this rule. '*' represents all
+                          verbs.
+                        items:
+                          type: string
+                        type: array
+                        x-kubernetes-list-type: atomic
+                    required:
+                    - verbs
+                    type: object
+                  type: array
+              required:
+              - jobSpec
+              type: object
             instanceConstraints:
               description: |-
                 InstanceConstraints defines compatibility requirements that must be
@@ -651,10 +808,13 @@ components:
           - executionMode
           type: object
           x-kubernetes-validations:
-          - message: spec.job is required when executionMode is Job
-            rule: self.executionMode != 'Job' || has(self.job)
+          - message: spec.job or spec.importJob is required when executionMode is
+              Job
+            rule: self.executionMode != 'Job' || has(self.job) || has(self.importJob)
           - message: spec.job is only allowed when executionMode is Job
             rule: '!has(self.job) || self.executionMode == ''Job'''
+          - message: spec.importJob is only allowed when executionMode is Job
+            rule: '!has(self.importJob) || self.executionMode == ''Job'''
           - message: spec.providerManaged is only allowed when executionMode is ProviderManaged
             rule: '!has(self.providerManaged) || self.executionMode == ''ProviderManaged'''
         status:
@@ -2466,10 +2626,39 @@ components:
                   required:
                   - backupName
                   type: object
+                external:
+                  description: |-
+                    External references an external storage location for import.
+                    Required when type=External.
+                  properties:
+                    backupClassName:
+                      description: |-
+                        BackupClassName references the BackupClass that defines the import method.
+                        The BackupClass must have spec.importJob set.
+                      minLength: 1
+                      type: string
+                    config:
+                      description: |-
+                        Config contains all import configuration including path and credentials.
+                        Validated against BackupClass.spec.importConfig.openAPIV3Schema.
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    storageName:
+                      description: |-
+                        StorageName references a BackupStorage CR in the same namespace
+                        that contains S3 credentials and endpoint configuration.
+                      minLength: 1
+                      type: string
+                  required:
+                  - backupClassName
+                  - config
+                  - storageName
+                  type: object
                 type:
                   description: Type selects the data source kind.
                   enum:
                   - Backup
+                  - External
                   type: string
               required:
               - type
@@ -2477,6 +2666,8 @@ components:
               x-kubernetes-validations:
               - message: backup must be set when type is Backup
                 rule: 'self.type == ''Backup'' ? has(self.backup) : true'
+              - message: external must be set when type is External
+                rule: 'self.type == ''External'' ? has(self.external) : true'
             deletionPolicy:
               allOf:
               - enum:
@@ -4098,10 +4289,39 @@ components:
                   required:
                   - backupName
                   type: object
+                external:
+                  description: |-
+                    External references an external storage location for import.
+                    Required when type=External.
+                  properties:
+                    backupClassName:
+                      description: |-
+                        BackupClassName references the BackupClass that defines the import method.
+                        The BackupClass must have spec.importJob set.
+                      minLength: 1
+                      type: string
+                    config:
+                      description: |-
+                        Config contains all import configuration including path and credentials.
+                        Validated against BackupClass.spec.importConfig.openAPIV3Schema.
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    storageName:
+                      description: |-
+                        StorageName references a BackupStorage CR in the same namespace
+                        that contains S3 credentials and endpoint configuration.
+                      minLength: 1
+                      type: string
+                  required:
+                  - backupClassName
+                  - config
+                  - storageName
+                  type: object
                 type:
                   description: Type selects the data source kind.
                   enum:
                   - Backup
+                  - External
                   type: string
               required:
               - type
@@ -4109,6 +4329,8 @@ components:
               x-kubernetes-validations:
               - message: backup must be set when type is Backup
                 rule: 'self.type == ''Backup'' ? has(self.backup) : true'
+              - message: external must be set when type is External
+                rule: 'self.type == ''External'' ? has(self.external) : true'
             deletionPolicy:
               allOf:
               - enum:
@@ -4957,10 +5179,39 @@ components:
                   required:
                   - backupName
                   type: object
+                external:
+                  description: |-
+                    External references an external storage location for import.
+                    Required when type=External.
+                  properties:
+                    backupClassName:
+                      description: |-
+                        BackupClassName references the BackupClass that defines the import method.
+                        The BackupClass must have spec.importJob set.
+                      minLength: 1
+                      type: string
+                    config:
+                      description: |-
+                        Config contains all import configuration including path and credentials.
+                        Validated against BackupClass.spec.importConfig.openAPIV3Schema.
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    storageName:
+                      description: |-
+                        StorageName references a BackupStorage CR in the same namespace
+                        that contains S3 credentials and endpoint configuration.
+                      minLength: 1
+                      type: string
+                  required:
+                  - backupClassName
+                  - config
+                  - storageName
+                  type: object
                 type:
                   description: Type selects the data source kind.
                   enum:
                   - Backup
+                  - External
                   type: string
               required:
               - type
@@ -4968,6 +5219,8 @@ components:
               x-kubernetes-validations:
               - message: backup must be set when type is Backup
                 rule: 'self.type == ''Backup'' ? has(self.backup) : true'
+              - message: external must be set when type is External
+                rule: 'self.type == ''External'' ? has(self.external) : true'
             instanceName:
               description: |-
                 InstanceName is the name of the Instance to restore into. The Instance

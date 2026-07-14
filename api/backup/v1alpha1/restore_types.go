@@ -40,13 +40,16 @@ type RestoreSpec struct {
 // DataSourceType selects the kind of data source for initial seeding or
 // restore operations.
 //
-// +kubebuilder:validation:Enum=Backup
+// +kubebuilder:validation:Enum=Backup;External
 type DataSourceType string
 
 const (
 	// DataSourceTypeBackup seeds from an existing Backup CR in the same
 	// namespace.
 	DataSourceTypeBackup DataSourceType = "Backup"
+	// DataSourceTypeExternal seeds from an external storage location (e.g., S3)
+	// using an import job defined by a BackupClass.
+	DataSourceTypeExternal DataSourceType = "External"
 )
 
 // DataSourceBackup references an existing Backup CR as the data source.
@@ -80,6 +83,7 @@ type DataSourcePITR struct {
 // source-specific block is populated.
 //
 // +kubebuilder:validation:XValidation:rule="self.type == 'Backup' ? has(self.backup) : true",message="backup must be set when type is Backup"
+// +kubebuilder:validation:XValidation:rule="self.type == 'External' ? has(self.external) : true",message="external must be set when type is External"
 type DataSource struct {
 	// Type selects the data source kind.
 	// +kubebuilder:validation:Required
@@ -88,6 +92,29 @@ type DataSource struct {
 	// Required when type=Backup.
 	// +optional
 	Backup *DataSourceBackup `json:"backup,omitempty"`
+	// External references an external storage location for import.
+	// Required when type=External.
+	// +optional
+	External *DataSourceExternal `json:"external,omitempty"`
+}
+
+// DataSourceExternal references an external storage location for import.
+type DataSourceExternal struct {
+	// BackupClassName references the BackupClass that defines the import method.
+	// The BackupClass must have spec.importJob set.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	BackupClassName string `json:"backupClassName"`
+	// StorageName references a BackupStorage CR in the same namespace
+	// that contains S3 credentials and endpoint configuration.
+	// +kubebuilder:validation:Required
+	// +kubebuilder:validation:MinLength=1
+	StorageName string `json:"storageName"`
+	// Config contains all import configuration including path and credentials.
+	// Validated against BackupClass.spec.importConfig.openAPIV3Schema.
+	// +kubebuilder:pruning:PreserveUnknownFields
+	// +kubebuilder:validation:Required
+	Config *runtime.RawExtension `json:"config"`
 }
 
 // PITRType defines the type of point-in-time recovery.

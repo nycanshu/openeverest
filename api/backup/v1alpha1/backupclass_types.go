@@ -50,8 +50,9 @@ const (
 
 // BackupClassSpec defines the desired state of BackupClass.
 //
-// +kubebuilder:validation:XValidation:rule="self.executionMode != 'Job' || has(self.job)",message="spec.job is required when executionMode is Job"
+// +kubebuilder:validation:XValidation:rule="self.executionMode != 'Job' || has(self.job) || has(self.importJob)",message="spec.job or spec.importJob is required when executionMode is Job"
 // +kubebuilder:validation:XValidation:rule="!has(self.job) || self.executionMode == 'Job'",message="spec.job is only allowed when executionMode is Job"
+// +kubebuilder:validation:XValidation:rule="!has(self.importJob) || self.executionMode == 'Job'",message="spec.importJob is only allowed when executionMode is Job"
 // +kubebuilder:validation:XValidation:rule="!has(self.providerManaged) || self.executionMode == 'ProviderManaged'",message="spec.providerManaged is only allowed when executionMode is ProviderManaged"
 type BackupClassSpec struct {
 	// DisplayName is a human-readable name for the backup class.
@@ -81,6 +82,11 @@ type BackupClassSpec struct {
 	// against this schema.
 	// +optional
 	RestoreConfig BackupClassConfig `json:"restoreConfig,omitempty"`
+	// ImportConfig contains the OpenAPI v3 schema describing the import-time
+	// configuration accepted by this class. Instance.spec.dataSource.external.config
+	// is validated against this schema when type=External.
+	// +optional
+	ImportConfig BackupClassConfig `json:"importConfig,omitempty"`
 	// InstanceConstraints defines compatibility requirements that must be
 	// satisfied by an Instance before this backup class can be used with it.
 	// +optional
@@ -100,6 +106,16 @@ type BackupClassSpec struct {
 	// "ProviderManaged".
 	// +optional
 	Job *JobModeSpec `json:"job,omitempty"`
+
+	// ImportJob describes the job spawned to perform an initial data import
+	// when an Instance is created with spec.dataSource.type=External.
+	//
+	// ImportJob is intentionally a top-level sibling of Job rather than a
+	// field on JobModeSpec: JobModeSpec.Backup is required, so a BackupClass
+	// that exists purely as an import method (no backup/restore capability)
+	// would otherwise be forced to declare a meaningless backup job.
+	// +optional
+	ImportJob *JobExecution `json:"importJob,omitempty"`
 }
 
 // JobModeSpec bundles everything the in-tree controller needs to run backup

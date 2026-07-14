@@ -172,13 +172,16 @@ func (e InstalledExtensionStatusPhase) Valid() bool {
 
 // Defines values for InstanceSpecDataSourceType.
 const (
-	InstanceSpecDataSourceTypeBackup InstanceSpecDataSourceType = "Backup"
+	InstanceSpecDataSourceTypeBackup   InstanceSpecDataSourceType = "Backup"
+	InstanceSpecDataSourceTypeExternal InstanceSpecDataSourceType = "External"
 )
 
 // Valid indicates whether the value is a known member of the InstanceSpecDataSourceType enum.
 func (e InstanceSpecDataSourceType) Valid() bool {
 	switch e {
 	case InstanceSpecDataSourceTypeBackup:
+		return true
+	case InstanceSpecDataSourceTypeExternal:
 		return true
 	default:
 		return false
@@ -253,13 +256,16 @@ func (e InstanceStatusPhase) Valid() bool {
 
 // Defines values for InstancePresetSpecDataSourceType.
 const (
-	InstancePresetSpecDataSourceTypeBackup InstancePresetSpecDataSourceType = "Backup"
+	InstancePresetSpecDataSourceTypeBackup   InstancePresetSpecDataSourceType = "Backup"
+	InstancePresetSpecDataSourceTypeExternal InstancePresetSpecDataSourceType = "External"
 )
 
 // Valid indicates whether the value is a known member of the InstancePresetSpecDataSourceType enum.
 func (e InstancePresetSpecDataSourceType) Valid() bool {
 	switch e {
 	case InstancePresetSpecDataSourceTypeBackup:
+		return true
+	case InstancePresetSpecDataSourceTypeExternal:
 		return true
 	default:
 		return false
@@ -346,13 +352,16 @@ func (e ProviderStatusConditionsStatus) Valid() bool {
 
 // Defines values for RestoreSpecDataSourceType.
 const (
-	RestoreSpecDataSourceTypeBackup RestoreSpecDataSourceType = "Backup"
+	RestoreSpecDataSourceTypeBackup   RestoreSpecDataSourceType = "Backup"
+	RestoreSpecDataSourceTypeExternal RestoreSpecDataSourceType = "External"
 )
 
 // Valid indicates whether the value is a known member of the RestoreSpecDataSourceType enum.
 func (e RestoreSpecDataSourceType) Valid() bool {
 	switch e {
 	case RestoreSpecDataSourceTypeBackup:
+		return true
+	case RestoreSpecDataSourceTypeExternal:
 		return true
 	default:
 		return false
@@ -572,6 +581,86 @@ type BackupClass struct {
 
 		// ExecutionMode ExecutionMode selects between job-based and provider-managed execution.
 		ExecutionMode BackupClassSpecExecutionMode `json:"executionMode"`
+
+		// ImportConfig ImportConfig contains the OpenAPI v3 schema describing the import-time
+		// configuration accepted by this class. Instance.spec.dataSource.external.config
+		// is validated against this schema when type=External.
+		ImportConfig *struct {
+			// OpenAPIV3Schema OpenAPIV3Schema is the OpenAPI v3 schema of the backup class.
+			OpenAPIV3Schema interface{} `json:"openAPIV3Schema,omitempty"`
+		} `json:"importConfig,omitempty"`
+
+		// ImportJob ImportJob describes the job spawned to perform an initial data import
+		// when an Instance is created with spec.dataSource.type=External.
+		//
+		// ImportJob is intentionally a top-level sibling of Job rather than a
+		// field on JobModeSpec: JobModeSpec.Backup is required, so a BackupClass
+		// that exists purely as an import method (no backup/restore capability)
+		// would otherwise be forced to declare a meaningless backup job.
+		ImportJob *struct {
+			// CleanupJobSpec CleanupJobSpec is the optional specification of a cleanup job that runs
+			// when the parent Backup or Restore CR is deleted.
+			CleanupJobSpec *struct {
+				// Command Command is the command to run the backup class.
+				Command *[]string `json:"command,omitempty"`
+
+				// Image Image is the image of the backup class.
+				Image *string `json:"image,omitempty"`
+			} `json:"cleanupJobSpec,omitempty"`
+
+			// ClusterPermissions ClusterPermissions are cluster-scoped PolicyRules granted via a
+			// generated ClusterRole and ClusterRoleBinding.
+			ClusterPermissions *[]struct {
+				// ApiGroups APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
+				// the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+				ApiGroups *[]string `json:"apiGroups,omitempty"`
+
+				// NonResourceURLs NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+				// Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
+				// Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+				NonResourceURLs *[]string `json:"nonResourceURLs,omitempty"`
+
+				// ResourceNames ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
+				ResourceNames *[]string `json:"resourceNames,omitempty"`
+
+				// Resources Resources is a list of resources this rule applies to. '*' represents all resources.
+				Resources *[]string `json:"resources,omitempty"`
+
+				// Verbs Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
+				Verbs []string `json:"verbs"`
+			} `json:"clusterPermissions,omitempty"`
+
+			// JobSpec JobSpec is the specification of the backup or restore job.
+			JobSpec struct {
+				// Command Command is the command to run the backup class.
+				Command *[]string `json:"command,omitempty"`
+
+				// Image Image is the image of the backup class.
+				Image *string `json:"image,omitempty"`
+			} `json:"jobSpec"`
+
+			// Permissions Permissions are namespace-scoped PolicyRules granted to the job pod via
+			// a generated Role and RoleBinding.
+			Permissions *[]struct {
+				// ApiGroups APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
+				// the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+				ApiGroups *[]string `json:"apiGroups,omitempty"`
+
+				// NonResourceURLs NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+				// Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
+				// Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+				NonResourceURLs *[]string `json:"nonResourceURLs,omitempty"`
+
+				// ResourceNames ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
+				ResourceNames *[]string `json:"resourceNames,omitempty"`
+
+				// Resources Resources is a list of resources this rule applies to. '*' represents all resources.
+				Resources *[]string `json:"resources,omitempty"`
+
+				// Verbs Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
+				Verbs []string `json:"verbs"`
+			} `json:"permissions,omitempty"`
+		} `json:"importJob,omitempty"`
 
 		// InstanceConstraints InstanceConstraints defines compatibility requirements that must be
 		// satisfied by an Instance before this backup class can be used with it.
@@ -1831,6 +1920,22 @@ type Instance struct {
 				} `json:"pitr,omitempty"`
 			} `json:"backup,omitempty"`
 
+			// External External references an external storage location for import.
+			// Required when type=External.
+			External *struct {
+				// BackupClassName BackupClassName references the BackupClass that defines the import method.
+				// The BackupClass must have spec.importJob set.
+				BackupClassName string `json:"backupClassName"`
+
+				// Config Config contains all import configuration including path and credentials.
+				// Validated against BackupClass.spec.importConfig.openAPIV3Schema.
+				Config map[string]interface{} `json:"config"`
+
+				// StorageName StorageName references a BackupStorage CR in the same namespace
+				// that contains S3 credentials and endpoint configuration.
+				StorageName string `json:"storageName"`
+			} `json:"external,omitempty"`
+
 			// Type Type selects the data source kind.
 			Type InstanceSpecDataSourceType `json:"type"`
 		} `json:"dataSource,omitempty"`
@@ -2802,6 +2907,22 @@ type InstancePreset struct {
 				} `json:"pitr,omitempty"`
 			} `json:"backup,omitempty"`
 
+			// External External references an external storage location for import.
+			// Required when type=External.
+			External *struct {
+				// BackupClassName BackupClassName references the BackupClass that defines the import method.
+				// The BackupClass must have spec.importJob set.
+				BackupClassName string `json:"backupClassName"`
+
+				// Config Config contains all import configuration including path and credentials.
+				// Validated against BackupClass.spec.importConfig.openAPIV3Schema.
+				Config map[string]interface{} `json:"config"`
+
+				// StorageName StorageName references a BackupStorage CR in the same namespace
+				// that contains S3 credentials and endpoint configuration.
+				StorageName string `json:"storageName"`
+			} `json:"external,omitempty"`
+
 			// Type Type selects the data source kind.
 			Type InstancePresetSpecDataSourceType `json:"type"`
 		} `json:"dataSource,omitempty"`
@@ -3346,6 +3467,22 @@ type Restore struct {
 					Type interface{} `json:"type"`
 				} `json:"pitr,omitempty"`
 			} `json:"backup,omitempty"`
+
+			// External External references an external storage location for import.
+			// Required when type=External.
+			External *struct {
+				// BackupClassName BackupClassName references the BackupClass that defines the import method.
+				// The BackupClass must have spec.importJob set.
+				BackupClassName string `json:"backupClassName"`
+
+				// Config Config contains all import configuration including path and credentials.
+				// Validated against BackupClass.spec.importConfig.openAPIV3Schema.
+				Config map[string]interface{} `json:"config"`
+
+				// StorageName StorageName references a BackupStorage CR in the same namespace
+				// that contains S3 credentials and endpoint configuration.
+				StorageName string `json:"storageName"`
+			} `json:"external,omitempty"`
 
 			// Type Type selects the data source kind.
 			Type RestoreSpecDataSourceType `json:"type"`
