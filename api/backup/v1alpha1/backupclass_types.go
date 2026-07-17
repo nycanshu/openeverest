@@ -159,6 +159,15 @@ type ProviderManagedSpec struct {
 	// +optional
 	SupportsPITR bool `json:"supportsPITR,omitempty"`
 
+	// SupportsImport indicates whether this ProviderManaged class supports
+	// importing from external data sources (Instance.spec.dataSource.type=External).
+	// When true, the provider handles external imports by creating operator-native
+	// restore resources (e.g., PerconaServerMongoDBRestore) directly, without
+	// spawning a wrapper Job. The import configuration is validated against
+	// BackupClassSpec.ImportConfig.openAPIV3Schema.
+	// +optional
+	SupportsImport bool `json:"supportsImport,omitempty"`
+
 	// Limits caps how many storages, PITR-enabled storages, and schedules per
 	// storage an Instance may declare under .spec.backup when this class is
 	// selected. Unset fields mean "unlimited" (still subject to the core

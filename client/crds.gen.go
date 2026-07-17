@@ -846,6 +846,14 @@ type BackupClass struct {
 			// any provider-specific dialect is permitted.
 			PitrConfigSchema *map[string]interface{} `json:"pitrConfigSchema,omitempty"`
 
+			// SupportsImport SupportsImport indicates whether this ProviderManaged class supports
+			// importing from external data sources (Instance.spec.dataSource.type=External).
+			// When true, the provider handles external imports by creating operator-native
+			// restore resources (e.g., PerconaServerMongoDBRestore) directly, without
+			// spawning a wrapper Job. The import configuration is validated against
+			// BackupClassSpec.ImportConfig.openAPIV3Schema.
+			SupportsImport *bool `json:"supportsImport,omitempty"`
+
 			// SupportsPITR SupportsPITR indicates whether this class supports point-in-time recovery.
 			// Used by Restore validation when Restore.spec.dataSource.pitr is set.
 			SupportsPITR *bool `json:"supportsPITR,omitempty"`
@@ -1923,17 +1931,83 @@ type Instance struct {
 			// External External references an external storage location for import.
 			// Required when type=External.
 			External *struct {
-				// BackupClassName BackupClassName references the BackupClass that defines the import method.
-				// The BackupClass must have spec.importJob set.
-				BackupClassName string `json:"backupClassName"`
+				// BackupClassRef BackupClassRef references the BackupClass that defines the import method.
+				// The BackupClass must either:
+				// - Have executionMode=ProviderManaged with providerManaged.supportsImport=true, OR
+				// - Have executionMode=Job with importJob set
+				BackupClassRef struct {
+					// ApiVersion API version of the referent.
+					ApiVersion *string `json:"apiVersion,omitempty"`
+
+					// FieldPath If referring to a piece of an object instead of an entire object, this string
+					// should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+					// For example, if the object reference is to a container within a pod, this would take on a value like:
+					// "spec.containers{name}" (where "name" refers to the name of the container that triggered
+					// the event) or if no container name is specified "spec.containers[2]" (container with
+					// index 2 in this pod). This syntax is chosen only to have some well-defined way of
+					// referencing a part of an object.
+					FieldPath *string `json:"fieldPath,omitempty"`
+
+					// Kind Kind of the referent.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+					Kind *string `json:"kind,omitempty"`
+
+					// Name Name of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+					Name *string `json:"name,omitempty"`
+
+					// Namespace Namespace of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+					Namespace *string `json:"namespace,omitempty"`
+
+					// ResourceVersion Specific resourceVersion to which this reference is made, if any.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+					ResourceVersion *string `json:"resourceVersion,omitempty"`
+
+					// Uid UID of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+					Uid *string `json:"uid,omitempty"`
+				} `json:"backupClassRef"`
 
 				// Config Config contains all import configuration including path and credentials.
 				// Validated against BackupClass.spec.importConfig.openAPIV3Schema.
 				Config map[string]interface{} `json:"config"`
 
-				// StorageName StorageName references a BackupStorage CR in the same namespace
+				// StorageRef StorageRef references a BackupStorage CR in the same namespace
 				// that contains S3 credentials and endpoint configuration.
-				StorageName string `json:"storageName"`
+				StorageRef struct {
+					// ApiVersion API version of the referent.
+					ApiVersion *string `json:"apiVersion,omitempty"`
+
+					// FieldPath If referring to a piece of an object instead of an entire object, this string
+					// should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+					// For example, if the object reference is to a container within a pod, this would take on a value like:
+					// "spec.containers{name}" (where "name" refers to the name of the container that triggered
+					// the event) or if no container name is specified "spec.containers[2]" (container with
+					// index 2 in this pod). This syntax is chosen only to have some well-defined way of
+					// referencing a part of an object.
+					FieldPath *string `json:"fieldPath,omitempty"`
+
+					// Kind Kind of the referent.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+					Kind *string `json:"kind,omitempty"`
+
+					// Name Name of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+					Name *string `json:"name,omitempty"`
+
+					// Namespace Namespace of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+					Namespace *string `json:"namespace,omitempty"`
+
+					// ResourceVersion Specific resourceVersion to which this reference is made, if any.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+					ResourceVersion *string `json:"resourceVersion,omitempty"`
+
+					// Uid UID of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+					Uid *string `json:"uid,omitempty"`
+				} `json:"storageRef"`
 			} `json:"external,omitempty"`
 
 			// Type Type selects the data source kind.
@@ -2910,17 +2984,83 @@ type InstancePreset struct {
 			// External External references an external storage location for import.
 			// Required when type=External.
 			External *struct {
-				// BackupClassName BackupClassName references the BackupClass that defines the import method.
-				// The BackupClass must have spec.importJob set.
-				BackupClassName string `json:"backupClassName"`
+				// BackupClassRef BackupClassRef references the BackupClass that defines the import method.
+				// The BackupClass must either:
+				// - Have executionMode=ProviderManaged with providerManaged.supportsImport=true, OR
+				// - Have executionMode=Job with importJob set
+				BackupClassRef struct {
+					// ApiVersion API version of the referent.
+					ApiVersion *string `json:"apiVersion,omitempty"`
+
+					// FieldPath If referring to a piece of an object instead of an entire object, this string
+					// should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+					// For example, if the object reference is to a container within a pod, this would take on a value like:
+					// "spec.containers{name}" (where "name" refers to the name of the container that triggered
+					// the event) or if no container name is specified "spec.containers[2]" (container with
+					// index 2 in this pod). This syntax is chosen only to have some well-defined way of
+					// referencing a part of an object.
+					FieldPath *string `json:"fieldPath,omitempty"`
+
+					// Kind Kind of the referent.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+					Kind *string `json:"kind,omitempty"`
+
+					// Name Name of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+					Name *string `json:"name,omitempty"`
+
+					// Namespace Namespace of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+					Namespace *string `json:"namespace,omitempty"`
+
+					// ResourceVersion Specific resourceVersion to which this reference is made, if any.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+					ResourceVersion *string `json:"resourceVersion,omitempty"`
+
+					// Uid UID of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+					Uid *string `json:"uid,omitempty"`
+				} `json:"backupClassRef"`
 
 				// Config Config contains all import configuration including path and credentials.
 				// Validated against BackupClass.spec.importConfig.openAPIV3Schema.
 				Config map[string]interface{} `json:"config"`
 
-				// StorageName StorageName references a BackupStorage CR in the same namespace
+				// StorageRef StorageRef references a BackupStorage CR in the same namespace
 				// that contains S3 credentials and endpoint configuration.
-				StorageName string `json:"storageName"`
+				StorageRef struct {
+					// ApiVersion API version of the referent.
+					ApiVersion *string `json:"apiVersion,omitempty"`
+
+					// FieldPath If referring to a piece of an object instead of an entire object, this string
+					// should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+					// For example, if the object reference is to a container within a pod, this would take on a value like:
+					// "spec.containers{name}" (where "name" refers to the name of the container that triggered
+					// the event) or if no container name is specified "spec.containers[2]" (container with
+					// index 2 in this pod). This syntax is chosen only to have some well-defined way of
+					// referencing a part of an object.
+					FieldPath *string `json:"fieldPath,omitempty"`
+
+					// Kind Kind of the referent.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+					Kind *string `json:"kind,omitempty"`
+
+					// Name Name of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+					Name *string `json:"name,omitempty"`
+
+					// Namespace Namespace of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+					Namespace *string `json:"namespace,omitempty"`
+
+					// ResourceVersion Specific resourceVersion to which this reference is made, if any.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+					ResourceVersion *string `json:"resourceVersion,omitempty"`
+
+					// Uid UID of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+					Uid *string `json:"uid,omitempty"`
+				} `json:"storageRef"`
 			} `json:"external,omitempty"`
 
 			// Type Type selects the data source kind.
@@ -3471,17 +3611,83 @@ type Restore struct {
 			// External External references an external storage location for import.
 			// Required when type=External.
 			External *struct {
-				// BackupClassName BackupClassName references the BackupClass that defines the import method.
-				// The BackupClass must have spec.importJob set.
-				BackupClassName string `json:"backupClassName"`
+				// BackupClassRef BackupClassRef references the BackupClass that defines the import method.
+				// The BackupClass must either:
+				// - Have executionMode=ProviderManaged with providerManaged.supportsImport=true, OR
+				// - Have executionMode=Job with importJob set
+				BackupClassRef struct {
+					// ApiVersion API version of the referent.
+					ApiVersion *string `json:"apiVersion,omitempty"`
+
+					// FieldPath If referring to a piece of an object instead of an entire object, this string
+					// should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+					// For example, if the object reference is to a container within a pod, this would take on a value like:
+					// "spec.containers{name}" (where "name" refers to the name of the container that triggered
+					// the event) or if no container name is specified "spec.containers[2]" (container with
+					// index 2 in this pod). This syntax is chosen only to have some well-defined way of
+					// referencing a part of an object.
+					FieldPath *string `json:"fieldPath,omitempty"`
+
+					// Kind Kind of the referent.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+					Kind *string `json:"kind,omitempty"`
+
+					// Name Name of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+					Name *string `json:"name,omitempty"`
+
+					// Namespace Namespace of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+					Namespace *string `json:"namespace,omitempty"`
+
+					// ResourceVersion Specific resourceVersion to which this reference is made, if any.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+					ResourceVersion *string `json:"resourceVersion,omitempty"`
+
+					// Uid UID of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+					Uid *string `json:"uid,omitempty"`
+				} `json:"backupClassRef"`
 
 				// Config Config contains all import configuration including path and credentials.
 				// Validated against BackupClass.spec.importConfig.openAPIV3Schema.
 				Config map[string]interface{} `json:"config"`
 
-				// StorageName StorageName references a BackupStorage CR in the same namespace
+				// StorageRef StorageRef references a BackupStorage CR in the same namespace
 				// that contains S3 credentials and endpoint configuration.
-				StorageName string `json:"storageName"`
+				StorageRef struct {
+					// ApiVersion API version of the referent.
+					ApiVersion *string `json:"apiVersion,omitempty"`
+
+					// FieldPath If referring to a piece of an object instead of an entire object, this string
+					// should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+					// For example, if the object reference is to a container within a pod, this would take on a value like:
+					// "spec.containers{name}" (where "name" refers to the name of the container that triggered
+					// the event) or if no container name is specified "spec.containers[2]" (container with
+					// index 2 in this pod). This syntax is chosen only to have some well-defined way of
+					// referencing a part of an object.
+					FieldPath *string `json:"fieldPath,omitempty"`
+
+					// Kind Kind of the referent.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+					Kind *string `json:"kind,omitempty"`
+
+					// Name Name of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+					Name *string `json:"name,omitempty"`
+
+					// Namespace Namespace of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+					Namespace *string `json:"namespace,omitempty"`
+
+					// ResourceVersion Specific resourceVersion to which this reference is made, if any.
+					// More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+					ResourceVersion *string `json:"resourceVersion,omitempty"`
+
+					// Uid UID of the referent.
+					// More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+					Uid *string `json:"uid,omitempty"`
+				} `json:"storageRef"`
 			} `json:"external,omitempty"`
 
 			// Type Type selects the data source kind.

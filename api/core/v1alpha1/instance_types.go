@@ -26,7 +26,7 @@ import (
 )
 
 // InstanceSpec defines the desired state of Instance
-// +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || (has(self.backup) && self.backup.enabled)",message="spec.dataSource requires spec.backup.enabled=true with at least one storage so the provider can read the source backup"
+// +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'Backup' || (has(self.backup) && self.backup.enabled)",message="spec.dataSource.type=Backup requires spec.backup.enabled=true with at least one storage so the provider can read the source backup"
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.dataSource) || (has(self.dataSource) && self.dataSource == oldSelf.dataSource)",message="spec.dataSource is immutable once set"
 type InstanceSpec struct {
 	// Provider is the name of the database provider (e.g., "psmdb", "postgresql").

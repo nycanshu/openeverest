@@ -581,6 +581,15 @@ spec:
                       any provider-specific dialect is permitted.
                     type: object
                     x-kubernetes-preserve-unknown-fields: true
+                  supportsImport:
+                    description: |-
+                      SupportsImport indicates whether this ProviderManaged class supports
+                      importing from external data sources (Instance.spec.dataSource.type=External).
+                      When true, the provider handles external imports by creating operator-native
+                      restore resources (e.g., PerconaServerMongoDBRestore) directly, without
+                      spawning a wrapper Job. The import configuration is validated against
+                      BackupClassSpec.ImportConfig.openAPIV3Schema.
+                    type: boolean
                   supportsPITR:
                     description: |-
                       SupportsPITR indicates whether this class supports point-in-time recovery.

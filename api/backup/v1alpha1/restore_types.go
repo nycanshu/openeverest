@@ -100,16 +100,16 @@ type DataSource struct {
 
 // DataSourceExternal references an external storage location for import.
 type DataSourceExternal struct {
-	// BackupClassName references the BackupClass that defines the import method.
-	// The BackupClass must have spec.importJob set.
+	// BackupClassRef references the BackupClass that defines the import method.
+	// The BackupClass must either:
+	// - Have executionMode=ProviderManaged with providerManaged.supportsImport=true, OR
+	// - Have executionMode=Job with importJob set
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	BackupClassName string `json:"backupClassName"`
-	// StorageName references a BackupStorage CR in the same namespace
+	BackupClassRef corev1.ObjectReference `json:"backupClassRef"`
+	// StorageRef references a BackupStorage CR in the same namespace
 	// that contains S3 credentials and endpoint configuration.
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	StorageName string `json:"storageName"`
+	StorageRef corev1.ObjectReference `json:"storageRef"`
 	// Config contains all import configuration including path and credentials.
 	// Validated against BackupClass.spec.importConfig.openAPIV3Schema.
 	// +kubebuilder:pruning:PreserveUnknownFields

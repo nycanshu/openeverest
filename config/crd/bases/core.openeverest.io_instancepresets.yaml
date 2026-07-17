@@ -1352,28 +1352,108 @@ spec:
                       External references an external storage location for import.
                       Required when type=External.
                     properties:
-                      backupClassName:
+                      backupClassRef:
                         description: |-
-                          BackupClassName references the BackupClass that defines the import method.
-                          The BackupClass must have spec.importJob set.
-                        minLength: 1
-                        type: string
+                          BackupClassRef references the BackupClass that defines the import method.
+                          The BackupClass must either:
+                          - Have executionMode=ProviderManaged with providerManaged.supportsImport=true, OR
+                          - Have executionMode=Job with importJob set
+                        properties:
+                          apiVersion:
+                            description: API version of the referent.
+                            type: string
+                          fieldPath:
+                            description: |-
+                              If referring to a piece of an object instead of an entire object, this string
+                              should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                              For example, if the object reference is to a container within a pod, this would take on a value like:
+                              "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                              the event) or if no container name is specified "spec.containers[2]" (container with
+                              index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                              referencing a part of an object.
+                            type: string
+                          kind:
+                            description: |-
+                              Kind of the referent.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                            type: string
+                          name:
+                            description: |-
+                              Name of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          namespace:
+                            description: |-
+                              Namespace of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                            type: string
+                          resourceVersion:
+                            description: |-
+                              Specific resourceVersion to which this reference is made, if any.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                            type: string
+                          uid:
+                            description: |-
+                              UID of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
                       config:
                         description: |-
                           Config contains all import configuration including path and credentials.
                           Validated against BackupClass.spec.importConfig.openAPIV3Schema.
                         type: object
                         x-kubernetes-preserve-unknown-fields: true
-                      storageName:
+                      storageRef:
                         description: |-
-                          StorageName references a BackupStorage CR in the same namespace
+                          StorageRef references a BackupStorage CR in the same namespace
                           that contains S3 credentials and endpoint configuration.
-                        minLength: 1
-                        type: string
+                        properties:
+                          apiVersion:
+                            description: API version of the referent.
+                            type: string
+                          fieldPath:
+                            description: |-
+                              If referring to a piece of an object instead of an entire object, this string
+                              should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
+                              For example, if the object reference is to a container within a pod, this would take on a value like:
+                              "spec.containers{name}" (where "name" refers to the name of the container that triggered
+                              the event) or if no container name is specified "spec.containers[2]" (container with
+                              index 2 in this pod). This syntax is chosen only to have some well-defined way of
+                              referencing a part of an object.
+                            type: string
+                          kind:
+                            description: |-
+                              Kind of the referent.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
+                            type: string
+                          name:
+                            description: |-
+                              Name of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                            type: string
+                          namespace:
+                            description: |-
+                              Namespace of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
+                            type: string
+                          resourceVersion:
+                            description: |-
+                              Specific resourceVersion to which this reference is made, if any.
+                              More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
+                            type: string
+                          uid:
+                            description: |-
+                              UID of the referent.
+                              More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
+                            type: string
+                        type: object
+                        x-kubernetes-map-type: atomic
                     required:
-                    - backupClassName
+                    - backupClassRef
                     - config
-                    - storageName
+                    - storageRef
                     type: object
                   type:
                     description: Type selects the data source kind.
@@ -1455,9 +1535,10 @@ spec:
                 type: string
             type: object
             x-kubernetes-validations:
-            - message: spec.dataSource requires spec.backup.enabled=true with at least
-                one storage so the provider can read the source backup
-              rule: '!has(self.dataSource) || (has(self.backup) && self.backup.enabled)'
+            - message: spec.dataSource.type=Backup requires spec.backup.enabled=true
+                with at least one storage so the provider can read the source backup
+              rule: '!has(self.dataSource) || self.dataSource.type != ''Backup'' ||
+                (has(self.backup) && self.backup.enabled)'
             - message: spec.dataSource is immutable once set
               rule: '!has(oldSelf.dataSource) || (has(self.dataSource) && self.dataSource
                 == oldSelf.dataSource)'
