@@ -2139,14 +2139,18 @@ export interface components {
                     };
                 };
                 /**
-                 * @description DataSource allows creating a new Instance from an existing
-                 *     Backup CR of another Instance.
+                 * @description DataSource allows populating a new Instance with data from an existing
+                 *     Backup CR (type=Backup) or an external backup source (type=External).
                  *
-                 *     Only ProviderManaged BackupClasses are supported. The referenced Backup
-                 *     must be in the same namespace, in Succeeded state, and its BackupClass
-                 *     must list the Instance's provider in SupportedProviders. Instance must
-                 *     also have backup enabled and include a storage entry that matches the
-                 *     storage used by the source Backup so the provider can access the data.
+                 *     For type=Backup: The referenced Backup must be in the same namespace, in
+                 *     Succeeded state, and its BackupClass must list the Instance's provider in
+                 *     SupportedProviders. Only ProviderManaged BackupClasses are supported.
+                 *
+                 *     For type=External: The Instance imports data from an external source
+                 *     (e.g., S3 path).
+                 *
+                 *     Both types require the Instance to have backup enabled with at least one
+                 *     storage entry so the provider can access the backup data.
                  */
                 dataSource?: {
                     /**
@@ -2177,97 +2181,24 @@ export interface components {
                      */
                     external?: {
                         /**
-                         * @description BackupClassRef references the BackupClass that defines the import method.
-                         *     The BackupClass must either:
-                         *     - Have executionMode=ProviderManaged with providerManaged.supportsImport=true, OR
-                         *     - Have executionMode=Job with importJob set
-                         */
-                        backupClassRef: {
-                            /** @description API version of the referent. */
-                            apiVersion?: string;
-                            /**
-                             * @description If referring to a piece of an object instead of an entire object, this string
-                             *     should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                             *     For example, if the object reference is to a container within a pod, this would take on a value like:
-                             *     "spec.containers{name}" (where "name" refers to the name of the container that triggered
-                             *     the event) or if no container name is specified "spec.containers[2]" (container with
-                             *     index 2 in this pod). This syntax is chosen only to have some well-defined way of
-                             *     referencing a part of an object.
-                             */
-                            fieldPath?: string;
-                            /**
-                             * @description Kind of the referent.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                             */
-                            kind?: string;
-                            /**
-                             * @description Name of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                             */
-                            name?: string;
-                            /**
-                             * @description Namespace of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
-                             */
-                            namespace?: string;
-                            /**
-                             * @description Specific resourceVersion to which this reference is made, if any.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
-                             */
-                            resourceVersion?: string;
-                            /**
-                             * @description UID of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
-                             */
-                            uid?: string;
-                        };
-                        /**
-                         * @description Config contains all import configuration including path and credentials.
+                         * @description Parameters contains all import configuration including path and credentials.
                          *     Validated against BackupClass.spec.importConfig.openAPIV3Schema.
                          */
-                        config: Record<string, never>;
+                        parameters: Record<string, never>;
                         /**
-                         * @description StorageRef references a BackupStorage CR in the same namespace
-                         *     that contains S3 credentials and endpoint configuration.
+                         * @description StorageRef references a BackupStorage by name.
+                         *     The referenced storage provides the BackupStorage configuration for the import.
                          */
                         storageRef: {
-                            /** @description API version of the referent. */
-                            apiVersion?: string;
-                            /**
-                             * @description If referring to a piece of an object instead of an entire object, this string
-                             *     should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                             *     For example, if the object reference is to a container within a pod, this would take on a value like:
-                             *     "spec.containers{name}" (where "name" refers to the name of the container that triggered
-                             *     the event) or if no container name is specified "spec.containers[2]" (container with
-                             *     index 2 in this pod). This syntax is chosen only to have some well-defined way of
-                             *     referencing a part of an object.
-                             */
-                            fieldPath?: string;
-                            /**
-                             * @description Kind of the referent.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                             */
-                            kind?: string;
                             /**
                              * @description Name of the referent.
+                             *     This field is effectively required, but due to backwards compatibility is
+                             *     allowed to be empty. Instances of this type with an empty value here are
+                             *     almost certainly wrong.
                              *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                             * @default
                              */
                             name?: string;
-                            /**
-                             * @description Namespace of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
-                             */
-                            namespace?: string;
-                            /**
-                             * @description Specific resourceVersion to which this reference is made, if any.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
-                             */
-                            resourceVersion?: string;
-                            /**
-                             * @description UID of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
-                             */
-                            uid?: string;
                         };
                     };
                     /**
@@ -3383,14 +3314,18 @@ export interface components {
                     };
                 };
                 /**
-                 * @description DataSource allows creating a new Instance from an existing
-                 *     Backup CR of another Instance.
+                 * @description DataSource allows populating a new Instance with data from an existing
+                 *     Backup CR (type=Backup) or an external backup source (type=External).
                  *
-                 *     Only ProviderManaged BackupClasses are supported. The referenced Backup
-                 *     must be in the same namespace, in Succeeded state, and its BackupClass
-                 *     must list the Instance's provider in SupportedProviders. Instance must
-                 *     also have backup enabled and include a storage entry that matches the
-                 *     storage used by the source Backup so the provider can access the data.
+                 *     For type=Backup: The referenced Backup must be in the same namespace, in
+                 *     Succeeded state, and its BackupClass must list the Instance's provider in
+                 *     SupportedProviders. Only ProviderManaged BackupClasses are supported.
+                 *
+                 *     For type=External: The Instance imports data from an external source
+                 *     (e.g., S3 path).
+                 *
+                 *     Both types require the Instance to have backup enabled with at least one
+                 *     storage entry so the provider can access the backup data.
                  */
                 dataSource?: {
                     /**
@@ -3421,97 +3356,24 @@ export interface components {
                      */
                     external?: {
                         /**
-                         * @description BackupClassRef references the BackupClass that defines the import method.
-                         *     The BackupClass must either:
-                         *     - Have executionMode=ProviderManaged with providerManaged.supportsImport=true, OR
-                         *     - Have executionMode=Job with importJob set
-                         */
-                        backupClassRef: {
-                            /** @description API version of the referent. */
-                            apiVersion?: string;
-                            /**
-                             * @description If referring to a piece of an object instead of an entire object, this string
-                             *     should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                             *     For example, if the object reference is to a container within a pod, this would take on a value like:
-                             *     "spec.containers{name}" (where "name" refers to the name of the container that triggered
-                             *     the event) or if no container name is specified "spec.containers[2]" (container with
-                             *     index 2 in this pod). This syntax is chosen only to have some well-defined way of
-                             *     referencing a part of an object.
-                             */
-                            fieldPath?: string;
-                            /**
-                             * @description Kind of the referent.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                             */
-                            kind?: string;
-                            /**
-                             * @description Name of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                             */
-                            name?: string;
-                            /**
-                             * @description Namespace of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
-                             */
-                            namespace?: string;
-                            /**
-                             * @description Specific resourceVersion to which this reference is made, if any.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
-                             */
-                            resourceVersion?: string;
-                            /**
-                             * @description UID of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
-                             */
-                            uid?: string;
-                        };
-                        /**
-                         * @description Config contains all import configuration including path and credentials.
+                         * @description Parameters contains all import configuration including path and credentials.
                          *     Validated against BackupClass.spec.importConfig.openAPIV3Schema.
                          */
-                        config: Record<string, never>;
+                        parameters: Record<string, never>;
                         /**
-                         * @description StorageRef references a BackupStorage CR in the same namespace
-                         *     that contains S3 credentials and endpoint configuration.
+                         * @description StorageRef references a BackupStorage by name.
+                         *     The referenced storage provides the BackupStorage configuration for the import.
                          */
                         storageRef: {
-                            /** @description API version of the referent. */
-                            apiVersion?: string;
-                            /**
-                             * @description If referring to a piece of an object instead of an entire object, this string
-                             *     should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                             *     For example, if the object reference is to a container within a pod, this would take on a value like:
-                             *     "spec.containers{name}" (where "name" refers to the name of the container that triggered
-                             *     the event) or if no container name is specified "spec.containers[2]" (container with
-                             *     index 2 in this pod). This syntax is chosen only to have some well-defined way of
-                             *     referencing a part of an object.
-                             */
-                            fieldPath?: string;
-                            /**
-                             * @description Kind of the referent.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                             */
-                            kind?: string;
                             /**
                              * @description Name of the referent.
+                             *     This field is effectively required, but due to backwards compatibility is
+                             *     allowed to be empty. Instances of this type with an empty value here are
+                             *     almost certainly wrong.
                              *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                             * @default
                              */
                             name?: string;
-                            /**
-                             * @description Namespace of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
-                             */
-                            namespace?: string;
-                            /**
-                             * @description Specific resourceVersion to which this reference is made, if any.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
-                             */
-                            resourceVersion?: string;
-                            /**
-                             * @description UID of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
-                             */
-                            uid?: string;
                         };
                     };
                     /**
@@ -3956,97 +3818,24 @@ export interface components {
                      */
                     external?: {
                         /**
-                         * @description BackupClassRef references the BackupClass that defines the import method.
-                         *     The BackupClass must either:
-                         *     - Have executionMode=ProviderManaged with providerManaged.supportsImport=true, OR
-                         *     - Have executionMode=Job with importJob set
-                         */
-                        backupClassRef: {
-                            /** @description API version of the referent. */
-                            apiVersion?: string;
-                            /**
-                             * @description If referring to a piece of an object instead of an entire object, this string
-                             *     should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                             *     For example, if the object reference is to a container within a pod, this would take on a value like:
-                             *     "spec.containers{name}" (where "name" refers to the name of the container that triggered
-                             *     the event) or if no container name is specified "spec.containers[2]" (container with
-                             *     index 2 in this pod). This syntax is chosen only to have some well-defined way of
-                             *     referencing a part of an object.
-                             */
-                            fieldPath?: string;
-                            /**
-                             * @description Kind of the referent.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                             */
-                            kind?: string;
-                            /**
-                             * @description Name of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
-                             */
-                            name?: string;
-                            /**
-                             * @description Namespace of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
-                             */
-                            namespace?: string;
-                            /**
-                             * @description Specific resourceVersion to which this reference is made, if any.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
-                             */
-                            resourceVersion?: string;
-                            /**
-                             * @description UID of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
-                             */
-                            uid?: string;
-                        };
-                        /**
-                         * @description Config contains all import configuration including path and credentials.
+                         * @description Parameters contains all import configuration including path and credentials.
                          *     Validated against BackupClass.spec.importConfig.openAPIV3Schema.
                          */
-                        config: Record<string, never>;
+                        parameters: Record<string, never>;
                         /**
-                         * @description StorageRef references a BackupStorage CR in the same namespace
-                         *     that contains S3 credentials and endpoint configuration.
+                         * @description StorageRef references a BackupStorage by name.
+                         *     The referenced storage provides the BackupStorage configuration for the import.
                          */
                         storageRef: {
-                            /** @description API version of the referent. */
-                            apiVersion?: string;
-                            /**
-                             * @description If referring to a piece of an object instead of an entire object, this string
-                             *     should contain a valid JSON/Go field access statement, such as desiredState.manifest.containers[2].
-                             *     For example, if the object reference is to a container within a pod, this would take on a value like:
-                             *     "spec.containers{name}" (where "name" refers to the name of the container that triggered
-                             *     the event) or if no container name is specified "spec.containers[2]" (container with
-                             *     index 2 in this pod). This syntax is chosen only to have some well-defined way of
-                             *     referencing a part of an object.
-                             */
-                            fieldPath?: string;
-                            /**
-                             * @description Kind of the referent.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#types-kinds
-                             */
-                            kind?: string;
                             /**
                              * @description Name of the referent.
+                             *     This field is effectively required, but due to backwards compatibility is
+                             *     allowed to be empty. Instances of this type with an empty value here are
+                             *     almost certainly wrong.
                              *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#names
+                             * @default
                              */
                             name?: string;
-                            /**
-                             * @description Namespace of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/namespaces/
-                             */
-                            namespace?: string;
-                            /**
-                             * @description Specific resourceVersion to which this reference is made, if any.
-                             *     More info: https://git.k8s.io/community/contributors/devel/sig-architecture/api-conventions.md#concurrency-control-and-consistency
-                             */
-                            resourceVersion?: string;
-                            /**
-                             * @description UID of the referent.
-                             *     More info: https://kubernetes.io/docs/concepts/overview/working-with-objects/names/#uids
-                             */
-                            uid?: string;
                         };
                     };
                     /**

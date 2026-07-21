@@ -87,14 +87,18 @@ type InstanceSpec struct {
 	// +optional
 	DeletionPolicy InstanceDeletionPolicy `json:"deletionPolicy,omitempty"`
 
-	// DataSource allows creating a new Instance from an existing
-	// Backup CR of another Instance.
+	// DataSource allows populating a new Instance with data from an existing
+	// Backup CR (type=Backup) or an external backup source (type=External).
 	//
-	// Only ProviderManaged BackupClasses are supported. The referenced Backup
-	// must be in the same namespace, in Succeeded state, and its BackupClass
-	// must list the Instance's provider in SupportedProviders. Instance must
-	// also have backup enabled and include a storage entry that matches the
-	// storage used by the source Backup so the provider can access the data.
+	// For type=Backup: The referenced Backup must be in the same namespace, in
+	// Succeeded state, and its BackupClass must list the Instance's provider in
+	// SupportedProviders. Only ProviderManaged BackupClasses are supported.
+	//
+	// For type=External: The Instance imports data from an external source
+	// (e.g., S3 path).
+	//
+	// Both types require the Instance to have backup enabled with at least one
+	// storage entry so the provider can access the backup data.
 	// +optional
 	DataSource *backupv1alpha1.DataSource `json:"dataSource,omitempty"`
 }

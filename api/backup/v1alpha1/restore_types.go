@@ -100,23 +100,24 @@ type DataSource struct {
 	External *DataSourceExternal `json:"external,omitempty"`
 }
 
-// DataSourceExternal references an external storage location for import.
+// DataSourceExternal references an external storage parameters for import.
+//
+// Both ProviderManaged and Job mode BackupClasses use the BackupClass and
+// BackupStorage from spec.backup.classRef and the storage entry matching
+// storageName respectively. The Instance must have backup enabled.
+//
+// For ProviderManaged: the provider creates an operator-native restore CR.
+// For Job mode: the provider spawns an import Job using the BackupClass config.
 type DataSourceExternal struct {
-	// BackupClassRef references the BackupClass that defines the import method.
-	// The BackupClass must either:
-	// - Have executionMode=ProviderManaged with providerManaged.supportsImport=true, OR
-	// - Have executionMode=Job with importJob set
+	// StorageRef references a BackupStorage by name.
+	// The referenced storage provides the BackupStorage configuration for the import.
 	// +kubebuilder:validation:Required
-	BackupClassRef corev1.ObjectReference `json:"backupClassRef"`
-	// StorageRef references a BackupStorage CR in the same namespace
-	// that contains S3 credentials and endpoint configuration.
-	// +kubebuilder:validation:Required
-	StorageRef corev1.ObjectReference `json:"storageRef"`
-	// Config contains all import configuration including path and credentials.
+	StorageRef corev1.LocalObjectReference `json:"storageRef"`
+	// Parameters contains all import configuration including path and credentials.
 	// Validated against BackupClass.spec.importConfig.openAPIV3Schema.
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Required
-	Config *runtime.RawExtension `json:"config"`
+	Parameters *runtime.RawExtension `json:"parameters"`
 }
 
 // PITRType defines the type of point-in-time recovery.
