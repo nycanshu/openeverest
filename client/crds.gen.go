@@ -658,14 +658,14 @@ type BackupClass struct {
 			} `json:"permissions,omitempty"`
 		} `json:"importJob,omitempty"`
 
-		// ImportParameterSchema ImportParameterSchema declares the OpenAPI v3 schema describing the import-time
+		// ImportParametersSchema ImportParametersSchema declares the OpenAPI v3 schema describing the import-time
 		// parameters accepted by this class. Instance.spec.dataSource.external.parameters
 		// is validated against it.
-		ImportParameterSchema *struct {
+		ImportParametersSchema *struct {
 			// OpenAPIV3Schema OpenAPIV3Schema is the OpenAPI v3 schema describing the accepted
 			// parameters payload.
 			OpenAPIV3Schema interface{} `json:"openAPIV3Schema,omitempty"`
-		} `json:"importParameterSchema,omitempty"`
+		} `json:"importParametersSchema,omitempty"`
 
 		// InstanceConstraints InstanceConstraints defines compatibility requirements that must be
 		// satisfied by an Instance before this backup class can be used with it.

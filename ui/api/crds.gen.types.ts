@@ -280,11 +280,11 @@ export interface components {
                     }[];
                 };
                 /**
-                 * @description ImportParameterSchema declares the OpenAPI v3 schema describing the import-time
+                 * @description ImportParametersSchema declares the OpenAPI v3 schema describing the import-time
                  *     parameters accepted by this class. Instance.spec.dataSource.external.parameters
                  *     is validated against it.
                  */
-                importParameterSchema?: {
+                importParametersSchema?: {
                     /**
                      * @description OpenAPIV3Schema is the OpenAPI v3 schema describing the accepted
                      *     parameters payload.

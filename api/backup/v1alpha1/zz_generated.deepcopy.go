@@ -177,7 +177,7 @@ func (in *BackupClassSpec) DeepCopyInto(out *BackupClassSpec) {
 	}
 	in.ParametersSchema.DeepCopyInto(&out.ParametersSchema)
 	in.RestoreParametersSchema.DeepCopyInto(&out.RestoreParametersSchema)
-	in.ImportParameterSchema.DeepCopyInto(&out.ImportParameterSchema)
+	in.ImportParametersSchema.DeepCopyInto(&out.ImportParametersSchema)
 	in.InstanceConstraints.DeepCopyInto(&out.InstanceConstraints)
 	if in.UISchema != nil {
 		in, out := &in.UISchema, &out.UISchema

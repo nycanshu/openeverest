@@ -200,9 +200,9 @@ spec:
                 required:
                 - jobSpec
                 type: object
-              importParameterSchema:
+              importParametersSchema:
                 description: |-
-                  ImportParameterSchema declares the OpenAPI v3 schema describing the import-time
+                  ImportParametersSchema declares the OpenAPI v3 schema describing the import-time
                   parameters accepted by this class. Instance.spec.dataSource.external.parameters
                   is validated against it.
                 properties:

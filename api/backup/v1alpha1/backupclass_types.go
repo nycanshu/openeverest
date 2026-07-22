@@ -79,11 +79,11 @@ type BackupClassSpec struct {
 	// is validated against it.
 	// +optional
 	RestoreParametersSchema common.ParametersSchema `json:"restoreParametersSchema,omitempty"`
-	// ImportParameterSchema declares the OpenAPI v3 schema describing the import-time
+	// ImportParametersSchema declares the OpenAPI v3 schema describing the import-time
 	// parameters accepted by this class. Instance.spec.dataSource.external.parameters
 	// is validated against it.
 	// +optional
-	ImportParameterSchema common.ParametersSchema `json:"importParameterSchema,omitempty"`
+	ImportParametersSchema common.ParametersSchema `json:"importParametersSchema,omitempty"`
 	// InstanceConstraints defines compatibility requirements that must be
 	// satisfied by an Instance before this backup class can be used with it.
 	// +optional
