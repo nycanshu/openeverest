@@ -190,11 +190,16 @@ func resolveRestoreOwnership(
 }
 
 func backupClassNameForRestore(ctx context.Context, c client.Client, restore *backupv1alpha1.Restore) (string, error) {
-	if restore.Spec.DataSource.Backup != nil && restore.Spec.DataSource.Backup.BackupRef.Name != "" {
+	ds := restore.Spec.DataSource
+	switch ds.Type {
+	case backupv1alpha1.DataSourceTypeBackup:
+		if ds.Backup == nil || ds.Backup.BackupRef.Name == "" {
+			return "", nil
+		}
 		backup := &backupv1alpha1.Backup{}
 		if err := c.Get(ctx, client.ObjectKey{
 			Namespace: restore.Namespace,
-			Name:      restore.Spec.DataSource.Backup.BackupRef.Name,
+			Name:      ds.Backup.BackupRef.Name,
 		}, backup); err != nil {
 			if apierrors.IsNotFound(err) {
 				return "", nil
@@ -202,8 +207,34 @@ func backupClassNameForRestore(ctx context.Context, c client.Client, restore *ba
 			return "", fmt.Errorf("failed to get referenced Backup: %w", err)
 		}
 		return backup.Spec.ClassRef.Name, nil
+
+	case backupv1alpha1.DataSourceTypeProviderManagedImport:
+		// For ProviderManagedImport, get the BackupClass from the Instance's backup config.
+		instance := &corev1alpha1.Instance{}
+		if err := c.Get(ctx, client.ObjectKey{
+			Namespace: restore.Namespace,
+			Name:      restore.Spec.InstanceRef.Name,
+		}, instance); err != nil {
+			if apierrors.IsNotFound(err) {
+				return "", nil
+			}
+			return "", fmt.Errorf("failed to get Instance: %w", err)
+		}
+		if instance.Spec.Backup == nil || instance.Spec.Backup.ClassRef.Name == "" {
+			return "", nil
+		}
+		return instance.Spec.Backup.ClassRef.Name, nil
+
+	case backupv1alpha1.DataSourceTypeJobImport:
+		// For JobImport, get the BackupClass from the dataSource's classRef.
+		if ds.JobImport == nil || ds.JobImport.ClassRef.Name == "" {
+			return "", nil
+		}
+		return ds.JobImport.ClassRef.Name, nil
+
+	default:
+		return "", nil
 	}
-	return "", nil
 }
 
 func (r *restoreRuntimeReconciler) updateStatus(

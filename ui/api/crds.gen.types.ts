@@ -206,83 +206,10 @@ export interface components {
                  */
                 executionMode: "ProviderManaged" | "Job";
                 /**
-                 * @description ImportJob describes the job spawned to perform an initial data import
-                 *     when an Instance is created with spec.dataSource.type=External.
-                 *
-                 *     ImportJob is intentionally a top-level sibling of Job rather than a
-                 *     field on JobModeSpec: JobModeSpec.Backup is required, so a BackupClass
-                 *     that exists purely as an import method (no backup/restore capability)
-                 *     would otherwise be forced to declare a meaningless backup job.
-                 */
-                importJob?: {
-                    /**
-                     * @description CleanupJobSpec is the optional specification of a cleanup job that runs
-                     *     when the parent Backup or Restore CR is deleted.
-                     */
-                    cleanupJobSpec?: {
-                        /** @description Command is the command to run the backup class. */
-                        command?: string[];
-                        /** @description Image is the image of the backup class. */
-                        image?: string;
-                    };
-                    /**
-                     * @description ClusterPermissions are cluster-scoped PolicyRules granted via a
-                     *     generated ClusterRole and ClusterRoleBinding.
-                     */
-                    clusterPermissions?: {
-                        /**
-                         * @description APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
-                         *     the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
-                         */
-                        apiGroups?: string[];
-                        /**
-                         * @description NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
-                         *     Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
-                         *     Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
-                         */
-                        nonResourceURLs?: string[];
-                        /** @description ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed. */
-                        resourceNames?: string[];
-                        /** @description Resources is a list of resources this rule applies to. '*' represents all resources. */
-                        resources?: string[];
-                        /** @description Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs. */
-                        verbs: string[];
-                    }[];
-                    /** @description JobSpec is the specification of the backup or restore job. */
-                    jobSpec: {
-                        /** @description Command is the command to run the backup class. */
-                        command?: string[];
-                        /** @description Image is the image of the backup class. */
-                        image?: string;
-                    };
-                    /**
-                     * @description Permissions are namespace-scoped PolicyRules granted to the job pod via
-                     *     a generated Role and RoleBinding.
-                     */
-                    permissions?: {
-                        /**
-                         * @description APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
-                         *     the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
-                         */
-                        apiGroups?: string[];
-                        /**
-                         * @description NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
-                         *     Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
-                         *     Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
-                         */
-                        nonResourceURLs?: string[];
-                        /** @description ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed. */
-                        resourceNames?: string[];
-                        /** @description Resources is a list of resources this rule applies to. '*' represents all resources. */
-                        resources?: string[];
-                        /** @description Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs. */
-                        verbs: string[];
-                    }[];
-                };
-                /**
                  * @description ImportParametersSchema declares the OpenAPI v3 schema describing the import-time
-                 *     parameters accepted by this class. Instance.spec.dataSource.external.parameters
-                 *     is validated against it.
+                 *     parameters accepted by this class. Validated against:
+                 *     - Instance.spec.dataSource.providerManagedImport.parameters (for ProviderManaged classes)
+                 *     - Instance.spec.dataSource.jobImport.parameters (for Job classes)
                  */
                 importParametersSchema?: {
                     /**
@@ -310,7 +237,73 @@ export interface components {
                  */
                 job?: {
                     /** @description Backup describes the job spawned per Backup CR. */
-                    backup: {
+                    backup?: {
+                        /**
+                         * @description CleanupJobSpec is the optional specification of a cleanup job that runs
+                         *     when the parent Backup or Restore CR is deleted.
+                         */
+                        cleanupJobSpec?: {
+                            /** @description Command is the command to run the backup class. */
+                            command?: string[];
+                            /** @description Image is the image of the backup class. */
+                            image?: string;
+                        };
+                        /**
+                         * @description ClusterPermissions are cluster-scoped PolicyRules granted via a
+                         *     generated ClusterRole and ClusterRoleBinding.
+                         */
+                        clusterPermissions?: {
+                            /**
+                             * @description APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
+                             *     the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+                             */
+                            apiGroups?: string[];
+                            /**
+                             * @description NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+                             *     Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
+                             *     Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+                             */
+                            nonResourceURLs?: string[];
+                            /** @description ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed. */
+                            resourceNames?: string[];
+                            /** @description Resources is a list of resources this rule applies to. '*' represents all resources. */
+                            resources?: string[];
+                            /** @description Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs. */
+                            verbs: string[];
+                        }[];
+                        /** @description JobSpec is the specification of the backup or restore job. */
+                        jobSpec: {
+                            /** @description Command is the command to run the backup class. */
+                            command?: string[];
+                            /** @description Image is the image of the backup class. */
+                            image?: string;
+                        };
+                        /**
+                         * @description Permissions are namespace-scoped PolicyRules granted to the job pod via
+                         *     a generated Role and RoleBinding.
+                         */
+                        permissions?: {
+                            /**
+                             * @description APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
+                             *     the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+                             */
+                            apiGroups?: string[];
+                            /**
+                             * @description NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+                             *     Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
+                             *     Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+                             */
+                            nonResourceURLs?: string[];
+                            /** @description ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed. */
+                            resourceNames?: string[];
+                            /** @description Resources is a list of resources this rule applies to. '*' represents all resources. */
+                            resources?: string[];
+                            /** @description Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs. */
+                            verbs: string[];
+                        }[];
+                    };
+                    /** @description Import describes the job spawned for JobImport data sources. */
+                    import?: {
                         /**
                          * @description CleanupJobSpec is the optional specification of a cleanup job that runs
                          *     when the parent Backup or Restore CR is deleted.
@@ -377,7 +370,7 @@ export interface components {
                     };
                     /**
                      * @description Restore describes the job spawned per Restore CR. When unset, restores
-                     *     are not supported by this class.
+                     *     are not supported by this class. Requires Backup to be set.
                      */
                     restore?: {
                         /**
@@ -511,11 +504,11 @@ export interface components {
                     };
                     /**
                      * @description SupportsImport indicates whether this ProviderManaged class supports
-                     *     importing from external data sources (Instance.spec.dataSource.type=External).
-                     *     When true, the provider handles external imports by creating operator-native
+                     *     importing from external data sources (Instance.spec.dataSource.type=ProviderManagedImport).
+                     *     When true, the provider handles imports by creating operator-native
                      *     restore resources (e.g., PerconaServerMongoDBRestore) directly, without
                      *     spawning a wrapper Job. The import configuration is validated against
-                     *     BackupClassSpec.ImportConfig.openAPIV3Schema.
+                     *     BackupClassSpec.ImportParametersSchema.
                      */
                     supportsImport?: boolean;
                     /**
@@ -1734,10 +1727,31 @@ export interface components {
                         };
                     };
                     /**
-                     * @description External references an external storage location for import.
-                     *     Required when type=External.
+                     * @description JobImport imports from external storage using an independent Job-mode BackupClass.
+                     *     Required when type=JobImport.
                      */
-                    external?: {
+                    jobImport?: {
+                        /** @description ClassRef references a Job-mode BackupClass with job.import configured. */
+                        classRef: {
+                            /** @description Name of the referenced object. */
+                            name: string;
+                        };
+                        /**
+                         * @description Parameters contains all import configuration including path and credentials.
+                         *     Validated against BackupClass.spec.importParameterSchema.
+                         */
+                        parameters: Record<string, never>;
+                        /** @description StorageRef references a BackupStorage by name. */
+                        storageRef: {
+                            /** @description Name of the referenced object. */
+                            name: string;
+                        };
+                    };
+                    /**
+                     * @description ProviderManagedImport imports from external storage using backup infrastructure.
+                     *     Required when type=ProviderManagedImport.
+                     */
+                    providerManagedImport?: {
                         /**
                          * @description Parameters contains all import configuration including path and credentials.
                          *     Validated against BackupClass.spec.importParameterSchema.
@@ -1745,7 +1759,7 @@ export interface components {
                         parameters: Record<string, never>;
                         /**
                          * @description StorageRef references a BackupStorage by name.
-                         *     The referenced storage provides the BackupStorage configuration for the import.
+                         *     Must match an entry in spec.backup.storages.
                          */
                         storageRef: {
                             /** @description Name of the referenced object. */
@@ -1756,7 +1770,7 @@ export interface components {
                      * @description Type selects the data source kind.
                      * @enum {string}
                      */
-                    type: "Backup" | "External";
+                    type: "Backup" | "ProviderManagedImport" | "JobImport";
                 };
                 /**
                  * @description DeletionPolicy controls what happens to Backup and Restore CRs that
@@ -2835,10 +2849,31 @@ export interface components {
                         };
                     };
                     /**
-                     * @description External references an external storage location for import.
-                     *     Required when type=External.
+                     * @description JobImport imports from external storage using an independent Job-mode BackupClass.
+                     *     Required when type=JobImport.
                      */
-                    external?: {
+                    jobImport?: {
+                        /** @description ClassRef references a Job-mode BackupClass with job.import configured. */
+                        classRef: {
+                            /** @description Name of the referenced object. */
+                            name: string;
+                        };
+                        /**
+                         * @description Parameters contains all import configuration including path and credentials.
+                         *     Validated against BackupClass.spec.importParameterSchema.
+                         */
+                        parameters: Record<string, never>;
+                        /** @description StorageRef references a BackupStorage by name. */
+                        storageRef: {
+                            /** @description Name of the referenced object. */
+                            name: string;
+                        };
+                    };
+                    /**
+                     * @description ProviderManagedImport imports from external storage using backup infrastructure.
+                     *     Required when type=ProviderManagedImport.
+                     */
+                    providerManagedImport?: {
                         /**
                          * @description Parameters contains all import configuration including path and credentials.
                          *     Validated against BackupClass.spec.importParameterSchema.
@@ -2846,7 +2881,7 @@ export interface components {
                         parameters: Record<string, never>;
                         /**
                          * @description StorageRef references a BackupStorage by name.
-                         *     The referenced storage provides the BackupStorage configuration for the import.
+                         *     Must match an entry in spec.backup.storages.
                          */
                         storageRef: {
                             /** @description Name of the referenced object. */
@@ -2857,7 +2892,7 @@ export interface components {
                      * @description Type selects the data source kind.
                      * @enum {string}
                      */
-                    type: "Backup" | "External";
+                    type: "Backup" | "ProviderManagedImport" | "JobImport";
                 };
                 /**
                  * @description DeletionPolicy controls what happens to Backup and Restore CRs that
@@ -3462,10 +3497,31 @@ export interface components {
                         };
                     };
                     /**
-                     * @description External references an external storage location for import.
-                     *     Required when type=External.
+                     * @description JobImport imports from external storage using an independent Job-mode BackupClass.
+                     *     Required when type=JobImport.
                      */
-                    external?: {
+                    jobImport?: {
+                        /** @description ClassRef references a Job-mode BackupClass with job.import configured. */
+                        classRef: {
+                            /** @description Name of the referenced object. */
+                            name: string;
+                        };
+                        /**
+                         * @description Parameters contains all import configuration including path and credentials.
+                         *     Validated against BackupClass.spec.importParameterSchema.
+                         */
+                        parameters: Record<string, never>;
+                        /** @description StorageRef references a BackupStorage by name. */
+                        storageRef: {
+                            /** @description Name of the referenced object. */
+                            name: string;
+                        };
+                    };
+                    /**
+                     * @description ProviderManagedImport imports from external storage using backup infrastructure.
+                     *     Required when type=ProviderManagedImport.
+                     */
+                    providerManagedImport?: {
                         /**
                          * @description Parameters contains all import configuration including path and credentials.
                          *     Validated against BackupClass.spec.importParameterSchema.
@@ -3473,7 +3529,7 @@ export interface components {
                         parameters: Record<string, never>;
                         /**
                          * @description StorageRef references a BackupStorage by name.
-                         *     The referenced storage provides the BackupStorage configuration for the import.
+                         *     Must match an entry in spec.backup.storages.
                          */
                         storageRef: {
                             /** @description Name of the referenced object. */
@@ -3484,7 +3540,7 @@ export interface components {
                      * @description Type selects the data source kind.
                      * @enum {string}
                      */
-                    type: "Backup" | "External";
+                    type: "Backup" | "ProviderManagedImport" | "JobImport";
                 };
                 /**
                  * @description InstanceRef references the Instance to restore into. The Instance

@@ -1000,6 +1000,181 @@ func hasInstanceStorage(b *v1alpha1.InstanceBackupSpec, name string) bool {
 }
 
 // =============================================================================
+// IMPORT HELPERS — initial seeding from ProviderManagedImport and JobImport
+// =============================================================================
+
+// ImportRestoreSuffix is appended to the Instance name to form the
+// import restore CR name.
+const ImportRestoreSuffix = "-import"
+
+// ImportBackupRefs returns the resolved BackupClass and BackupStorage for
+// import data sources (ProviderManagedImport or JobImport).
+//
+// For ProviderManagedImport: Uses spec.backup.classRef as the single source
+// of truth. Requires backup to be enabled and storageRef must match an entry
+// in spec.backup.storages.
+//
+// For JobImport: Uses the specified classRef directly. Does not require
+// backup to be enabled; storageRef references any BackupStorage.
+//
+// Returns an error if the dataSource type is not an import type or if
+// required references cannot be resolved.
+func (c *Context) ImportBackupRefs() (*backupv1alpha1.BackupClass, *backupv1alpha1.BackupStorage, error) {
+	ds := c.in.Spec.DataSource
+	if ds == nil {
+		return nil, nil, fmt.Errorf("spec.dataSource is required")
+	}
+
+	switch ds.Type {
+	case backupv1alpha1.DataSourceTypeProviderManagedImport:
+		return c.providerManagedImportBackupRefs()
+	case backupv1alpha1.DataSourceTypeJobImport:
+		return c.jobImportBackupRefs()
+	default:
+		return nil, nil, fmt.Errorf("dataSource type %q is not an import type", ds.Type)
+	}
+}
+
+// providerManagedImportBackupRefs resolves BackupClass and BackupStorage for
+// ProviderManagedImport using spec.backup infrastructure.
+func (c *Context) providerManagedImportBackupRefs() (*backupv1alpha1.BackupClass, *backupv1alpha1.BackupStorage, error) {
+	ds := c.in.Spec.DataSource
+	if ds.ProviderManagedImport == nil {
+		return nil, nil, fmt.Errorf("spec.dataSource.providerManagedImport is required")
+	}
+
+	requestedStorage := ds.ProviderManagedImport.StorageRef.Name
+	if requestedStorage == "" {
+		return nil, nil, fmt.Errorf("spec.dataSource.providerManagedImport.storageRef.name is required")
+	}
+
+	backupCfg := c.in.Spec.Backup
+	if backupCfg == nil || !backupCfg.Enabled {
+		return nil, nil, fmt.Errorf("spec.backup must be enabled for ProviderManagedImport")
+	}
+
+	if backupCfg.ClassRef.Name == "" {
+		return nil, nil, fmt.Errorf("spec.backup.classRef.name is required for ProviderManagedImport")
+	}
+
+	// Find the storage entry matching the requested name in spec.backup.storages
+	var storageRefName string
+	for _, s := range backupCfg.Storages {
+		if s.StorageRef.Name == requestedStorage {
+			storageRefName = s.StorageRef.Name
+			break
+		}
+	}
+	if storageRefName == "" {
+		return nil, nil, fmt.Errorf("storageRef %q not found in spec.backup.storages", requestedStorage)
+	}
+
+	bc, err := c.BackupClass(backupCfg.ClassRef.Name)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get BackupClass %q: %w", backupCfg.ClassRef.Name, err)
+	}
+
+	storage, err := c.BackupStorage(storageRefName)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get BackupStorage %q: %w", storageRefName, err)
+	}
+
+	return bc, storage, nil
+}
+
+// jobImportBackupRefs resolves BackupClass and BackupStorage for JobImport.
+func (c *Context) jobImportBackupRefs() (*backupv1alpha1.BackupClass, *backupv1alpha1.BackupStorage, error) {
+	ds := c.in.Spec.DataSource
+	if ds.JobImport == nil {
+		return nil, nil, fmt.Errorf("spec.dataSource.jobImport is required")
+	}
+
+	if ds.JobImport.ClassRef.Name == "" {
+		return nil, nil, fmt.Errorf("spec.dataSource.jobImport.classRef.name is required")
+	}
+
+	requestedStorage := ds.JobImport.StorageRef.Name
+	if requestedStorage == "" {
+		return nil, nil, fmt.Errorf("spec.dataSource.jobImport.storageRef.name is required")
+	}
+
+	bc, err := c.BackupClass(ds.JobImport.ClassRef.Name)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get BackupClass %q: %w", ds.JobImport.ClassRef.Name, err)
+	}
+
+	storage, err := c.BackupStorage(requestedStorage)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to get BackupStorage %q: %w", requestedStorage, err)
+	}
+
+	return bc, storage, nil
+}
+
+// ReconcileImportDataSource creates a Restore CR for ProviderManagedImport or
+// JobImport data sources. The provider's SyncRestore handles the actual execution.
+//
+// Returns Done=true when no import is configured or the restore reached a
+// terminal state. Providers should report InstancePhaseRestoring while Done is false.
+func (c *Context) ReconcileImportDataSource() (DataSourceStatus, error) {
+	ds := c.in.Spec.DataSource
+	if ds == nil || (ds.Type != backupv1alpha1.DataSourceTypeProviderManagedImport && ds.Type != backupv1alpha1.DataSourceTypeJobImport) {
+		s := DataSourceStatus{Done: true, State: DataSourceStateNone}
+		c.SetDataSourceStatus(s)
+		return s, nil
+	}
+
+	// Create or update the Restore CR
+	restoreName := c.in.Name + ImportRestoreSuffix
+	restore := &backupv1alpha1.Restore{
+		ObjectMeta: metav1.ObjectMeta{
+			Name:      restoreName,
+			Namespace: c.in.Namespace,
+		},
+	}
+	if _, err := controllerutil.CreateOrUpdate(c.ctx, c.client, restore, func() error {
+		if restore.Labels == nil {
+			restore.Labels = map[string]string{}
+		}
+		restore.Labels["app.kubernetes.io/managed-by"] = "everest"
+		restore.Labels["app.kubernetes.io/instance"] = c.in.Name
+		restore.Labels["app.kubernetes.io/component"] = "import"
+		restore.Spec.InstanceRef = apicommon.ObjectRef{Name: c.in.Name}
+		restore.Spec.DataSource = *ds.DeepCopy()
+		return controllerutil.SetControllerReference(c.in, restore, c.client.Scheme())
+	}); err != nil {
+		return DataSourceStatus{}, fmt.Errorf("create or update import Restore %q: %w", restoreName, err)
+	}
+
+	// Translate Restore status into DataSourceStatus
+	var s DataSourceStatus
+	s.RestoreName = restoreName
+	switch restore.Status.State {
+	case backupv1alpha1.RestoreStateSucceeded:
+		s.Done = true
+		s.State = DataSourceStateSucceeded
+		s.Reason = v1alpha1.ReasonDataSourceSucceeded
+		s.Message = fmt.Sprintf("Import completed successfully via Restore %q", restoreName)
+	case backupv1alpha1.RestoreStateFailed:
+		s.Done = true
+		s.State = DataSourceStateFailed
+		s.Reason = v1alpha1.ReasonDataSourceFailed
+		s.Message = fmt.Sprintf("Import Restore %q failed: %s", restoreName, restore.Status.Message)
+	default:
+		s.Done = false
+		s.State = DataSourceStateRestoring
+		s.Reason = v1alpha1.ReasonDataSourceRestoring
+		if restore.Status.Message != "" {
+			s.Message = restore.Status.Message
+		} else {
+			s.Message = fmt.Sprintf("Import Restore %q in progress (state=%q)", restoreName, restore.Status.State)
+		}
+	}
+	c.SetDataSourceStatus(s)
+	return s, nil
+}
+
+// =============================================================================
 // WATCH HANDLER HELPERS
 // =============================================================================
 

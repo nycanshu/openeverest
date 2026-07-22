@@ -292,157 +292,12 @@ components:
               - ProviderManaged
               - Job
               type: string
-            importJob:
-              description: |-
-                ImportJob describes the job spawned to perform an initial data import
-                when an Instance is created with spec.dataSource.type=External.
-
-                ImportJob is intentionally a top-level sibling of Job rather than a
-                field on JobModeSpec: JobModeSpec.Backup is required, so a BackupClass
-                that exists purely as an import method (no backup/restore capability)
-                would otherwise be forced to declare a meaningless backup job.
-              properties:
-                cleanupJobSpec:
-                  description: |-
-                    CleanupJobSpec is the optional specification of a cleanup job that runs
-                    when the parent Backup or Restore CR is deleted.
-                  properties:
-                    command:
-                      description: Command is the command to run the backup class.
-                      items:
-                        type: string
-                      type: array
-                    image:
-                      description: Image is the image of the backup class.
-                      type: string
-                  type: object
-                clusterPermissions:
-                  description: |-
-                    ClusterPermissions are cluster-scoped PolicyRules granted via a
-                    generated ClusterRole and ClusterRoleBinding.
-                  items:
-                    description: |-
-                      PolicyRule holds information that describes a policy rule, but does not contain information
-                      about who the rule applies to or which namespace the rule applies to.
-                    properties:
-                      apiGroups:
-                        description: |-
-                          APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
-                          the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                      nonResourceURLs:
-                        description: |-
-                          NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
-                          Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
-                          Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                      resourceNames:
-                        description: ResourceNames is an optional white list of names
-                          that the rule applies to.  An empty set means that everything
-                          is allowed.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                      resources:
-                        description: Resources is a list of resources this rule applies
-                          to. '*' represents all resources.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                      verbs:
-                        description: Verbs is a list of Verbs that apply to ALL the
-                          ResourceKinds contained in this rule. '*' represents all
-                          verbs.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                    required:
-                    - verbs
-                    type: object
-                  type: array
-                jobSpec:
-                  description: JobSpec is the specification of the backup or restore
-                    job.
-                  properties:
-                    command:
-                      description: Command is the command to run the backup class.
-                      items:
-                        type: string
-                      type: array
-                    image:
-                      description: Image is the image of the backup class.
-                      type: string
-                  type: object
-                permissions:
-                  description: |-
-                    Permissions are namespace-scoped PolicyRules granted to the job pod via
-                    a generated Role and RoleBinding.
-                  items:
-                    description: |-
-                      PolicyRule holds information that describes a policy rule, but does not contain information
-                      about who the rule applies to or which namespace the rule applies to.
-                    properties:
-                      apiGroups:
-                        description: |-
-                          APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
-                          the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                      nonResourceURLs:
-                        description: |-
-                          NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
-                          Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
-                          Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                      resourceNames:
-                        description: ResourceNames is an optional white list of names
-                          that the rule applies to.  An empty set means that everything
-                          is allowed.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                      resources:
-                        description: Resources is a list of resources this rule applies
-                          to. '*' represents all resources.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                      verbs:
-                        description: Verbs is a list of Verbs that apply to ALL the
-                          ResourceKinds contained in this rule. '*' represents all
-                          verbs.
-                        items:
-                          type: string
-                        type: array
-                        x-kubernetes-list-type: atomic
-                    required:
-                    - verbs
-                    type: object
-                  type: array
-              required:
-              - jobSpec
-              type: object
             importParametersSchema:
               description: |-
                 ImportParametersSchema declares the OpenAPI v3 schema describing the import-time
-                parameters accepted by this class. Instance.spec.dataSource.external.parameters
-                is validated against it.
+                parameters accepted by this class. Validated against:
+                - Instance.spec.dataSource.providerManagedImport.parameters (for ProviderManaged classes)
+                - Instance.spec.dataSource.jobImport.parameters (for Job classes)
               properties:
                 openAPIV3Schema:
                   description: |-
@@ -609,10 +464,9 @@ components:
                   required:
                   - jobSpec
                   type: object
-                restore:
-                  description: |-
-                    Restore describes the job spawned per Restore CR. When unset, restores
-                    are not supported by this class.
+                import:
+                  description: Import describes the job spawned for JobImport data
+                    sources.
                   properties:
                     cleanupJobSpec:
                       description: |-
@@ -750,9 +604,153 @@ components:
                   required:
                   - jobSpec
                   type: object
-              required:
-              - backup
+                restore:
+                  description: |-
+                    Restore describes the job spawned per Restore CR. When unset, restores
+                    are not supported by this class. Requires Backup to be set.
+                  properties:
+                    cleanupJobSpec:
+                      description: |-
+                        CleanupJobSpec is the optional specification of a cleanup job that runs
+                        when the parent Backup or Restore CR is deleted.
+                      properties:
+                        command:
+                          description: Command is the command to run the backup class.
+                          items:
+                            type: string
+                          type: array
+                        image:
+                          description: Image is the image of the backup class.
+                          type: string
+                      type: object
+                    clusterPermissions:
+                      description: |-
+                        ClusterPermissions are cluster-scoped PolicyRules granted via a
+                        generated ClusterRole and ClusterRoleBinding.
+                      items:
+                        description: |-
+                          PolicyRule holds information that describes a policy rule, but does not contain information
+                          about who the rule applies to or which namespace the rule applies to.
+                        properties:
+                          apiGroups:
+                            description: |-
+                              APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
+                              the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          nonResourceURLs:
+                            description: |-
+                              NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+                              Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
+                              Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          resourceNames:
+                            description: ResourceNames is an optional white list of
+                              names that the rule applies to.  An empty set means
+                              that everything is allowed.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          resources:
+                            description: Resources is a list of resources this rule
+                              applies to. '*' represents all resources.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          verbs:
+                            description: Verbs is a list of Verbs that apply to ALL
+                              the ResourceKinds contained in this rule. '*' represents
+                              all verbs.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                        required:
+                        - verbs
+                        type: object
+                      type: array
+                    jobSpec:
+                      description: JobSpec is the specification of the backup or restore
+                        job.
+                      properties:
+                        command:
+                          description: Command is the command to run the backup class.
+                          items:
+                            type: string
+                          type: array
+                        image:
+                          description: Image is the image of the backup class.
+                          type: string
+                      type: object
+                    permissions:
+                      description: |-
+                        Permissions are namespace-scoped PolicyRules granted to the job pod via
+                        a generated Role and RoleBinding.
+                      items:
+                        description: |-
+                          PolicyRule holds information that describes a policy rule, but does not contain information
+                          about who the rule applies to or which namespace the rule applies to.
+                        properties:
+                          apiGroups:
+                            description: |-
+                              APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
+                              the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          nonResourceURLs:
+                            description: |-
+                              NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+                              Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
+                              Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          resourceNames:
+                            description: ResourceNames is an optional white list of
+                              names that the rule applies to.  An empty set means
+                              that everything is allowed.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          resources:
+                            description: Resources is a list of resources this rule
+                              applies to. '*' represents all resources.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                          verbs:
+                            description: Verbs is a list of Verbs that apply to ALL
+                              the ResourceKinds contained in this rule. '*' represents
+                              all verbs.
+                            items:
+                              type: string
+                            type: array
+                            x-kubernetes-list-type: atomic
+                        required:
+                        - verbs
+                        type: object
+                      type: array
+                  required:
+                  - jobSpec
+                  type: object
               type: object
+              x-kubernetes-validations:
+              - message: at least one of backup or import must be set
+                rule: has(self.backup) || has(self.import)
+              - message: restore requires backup to be set
+                rule: '!has(self.restore) || has(self.backup)'
             parametersSchema:
               description: |-
                 ParametersSchema declares the OpenAPI v3 schema describing the
@@ -823,11 +821,11 @@ components:
                 supportsImport:
                   description: |-
                     SupportsImport indicates whether this ProviderManaged class supports
-                    importing from external data sources (Instance.spec.dataSource.type=External).
-                    When true, the provider handles external imports by creating operator-native
+                    importing from external data sources (Instance.spec.dataSource.type=ProviderManagedImport).
+                    When true, the provider handles imports by creating operator-native
                     restore resources (e.g., PerconaServerMongoDBRestore) directly, without
                     spawning a wrapper Job. The import configuration is validated against
-                    BackupClassSpec.ImportConfig.openAPIV3Schema.
+                    BackupClassSpec.ImportParametersSchema.
                   type: boolean
                 supportsPITR:
                   description: |-
@@ -868,13 +866,10 @@ components:
           - executionMode
           type: object
           x-kubernetes-validations:
-          - message: spec.job or spec.importJob is required when executionMode is
-              Job
-            rule: self.executionMode != 'Job' || has(self.job) || has(self.importJob)
+          - message: spec.job is required when executionMode is Job
+            rule: self.executionMode != 'Job' || has(self.job)
           - message: spec.job is only allowed when executionMode is Job
             rule: '!has(self.job) || self.executionMode == ''Job'''
-          - message: spec.importJob is only allowed when executionMode is Job
-            rule: '!has(self.importJob) || self.executionMode == ''Job'''
           - message: spec.providerManaged is only allowed when executionMode is ProviderManaged
             rule: '!has(self.providerManaged) || self.executionMode == ''ProviderManaged'''
         status:
@@ -2699,10 +2694,53 @@ components:
                   required:
                   - backupRef
                   type: object
-                external:
+                jobImport:
                   description: |-
-                    External references an external storage location for import.
-                    Required when type=External.
+                    JobImport imports from external storage using an independent Job-mode BackupClass.
+                    Required when type=JobImport.
+                  properties:
+                    classRef:
+                      description: ClassRef references a Job-mode BackupClass with
+                        job.import configured.
+                      properties:
+                        name:
+                          description: Name of the referenced object.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                          type: string
+                      required:
+                      - name
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    parameters:
+                      description: |-
+                        Parameters contains all import configuration including path and credentials.
+                        Validated against BackupClass.spec.importParameterSchema.
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    storageRef:
+                      description: StorageRef references a BackupStorage by name.
+                      properties:
+                        name:
+                          description: Name of the referenced object.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                          type: string
+                      required:
+                      - name
+                      type: object
+                      x-kubernetes-map-type: atomic
+                  required:
+                  - classRef
+                  - parameters
+                  - storageRef
+                  type: object
+                providerManagedImport:
+                  description: |-
+                    ProviderManagedImport imports from external storage using backup infrastructure.
+                    Required when type=ProviderManagedImport.
                   properties:
                     parameters:
                       description: |-
@@ -2713,7 +2751,7 @@ components:
                     storageRef:
                       description: |-
                         StorageRef references a BackupStorage by name.
-                        The referenced storage provides the BackupStorage configuration for the import.
+                        Must match an entry in spec.backup.storages.
                       properties:
                         name:
                           description: Name of the referenced object.
@@ -2733,7 +2771,8 @@ components:
                   description: Type selects the data source kind.
                   enum:
                   - Backup
-                  - External
+                  - ProviderManagedImport
+                  - JobImport
                   type: string
               required:
               - type
@@ -2741,8 +2780,11 @@ components:
               x-kubernetes-validations:
               - message: backup must be set when type is Backup
                 rule: 'self.type == ''Backup'' ? has(self.backup) : true'
-              - message: external must be set when type is External
-                rule: 'self.type == ''External'' ? has(self.external) : true'
+              - message: providerManagedImport must be set when type is ProviderManagedImport
+                rule: 'self.type == ''ProviderManagedImport'' ? has(self.providerManagedImport)
+                  : true'
+              - message: jobImport must be set when type is JobImport
+                rule: 'self.type == ''JobImport'' ? has(self.jobImport) : true'
             deletionPolicy:
               allOf:
               - enum:
@@ -2828,6 +2870,9 @@ components:
               with at least one storage so the provider can read the source backup
             rule: '!has(self.dataSource) || self.dataSource.type != ''Backup'' ||
               (has(self.backup) && self.backup.enabled)'
+          - message: spec.dataSource.type=ProviderManagedImport requires spec.backup.enabled=true
+            rule: '!has(self.dataSource) || self.dataSource.type != ''ProviderManagedImport''
+              || (has(self.backup) && self.backup.enabled)'
           - message: spec.dataSource is immutable once set
             rule: '!has(oldSelf.dataSource) || (has(self.dataSource) && self.dataSource
               == oldSelf.dataSource)'
@@ -4398,10 +4443,53 @@ components:
                   required:
                   - backupRef
                   type: object
-                external:
+                jobImport:
                   description: |-
-                    External references an external storage location for import.
-                    Required when type=External.
+                    JobImport imports from external storage using an independent Job-mode BackupClass.
+                    Required when type=JobImport.
+                  properties:
+                    classRef:
+                      description: ClassRef references a Job-mode BackupClass with
+                        job.import configured.
+                      properties:
+                        name:
+                          description: Name of the referenced object.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                          type: string
+                      required:
+                      - name
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    parameters:
+                      description: |-
+                        Parameters contains all import configuration including path and credentials.
+                        Validated against BackupClass.spec.importParameterSchema.
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    storageRef:
+                      description: StorageRef references a BackupStorage by name.
+                      properties:
+                        name:
+                          description: Name of the referenced object.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                          type: string
+                      required:
+                      - name
+                      type: object
+                      x-kubernetes-map-type: atomic
+                  required:
+                  - classRef
+                  - parameters
+                  - storageRef
+                  type: object
+                providerManagedImport:
+                  description: |-
+                    ProviderManagedImport imports from external storage using backup infrastructure.
+                    Required when type=ProviderManagedImport.
                   properties:
                     parameters:
                       description: |-
@@ -4412,7 +4500,7 @@ components:
                     storageRef:
                       description: |-
                         StorageRef references a BackupStorage by name.
-                        The referenced storage provides the BackupStorage configuration for the import.
+                        Must match an entry in spec.backup.storages.
                       properties:
                         name:
                           description: Name of the referenced object.
@@ -4432,7 +4520,8 @@ components:
                   description: Type selects the data source kind.
                   enum:
                   - Backup
-                  - External
+                  - ProviderManagedImport
+                  - JobImport
                   type: string
               required:
               - type
@@ -4440,8 +4529,11 @@ components:
               x-kubernetes-validations:
               - message: backup must be set when type is Backup
                 rule: 'self.type == ''Backup'' ? has(self.backup) : true'
-              - message: external must be set when type is External
-                rule: 'self.type == ''External'' ? has(self.external) : true'
+              - message: providerManagedImport must be set when type is ProviderManagedImport
+                rule: 'self.type == ''ProviderManagedImport'' ? has(self.providerManagedImport)
+                  : true'
+              - message: jobImport must be set when type is JobImport
+                rule: 'self.type == ''JobImport'' ? has(self.jobImport) : true'
             deletionPolicy:
               allOf:
               - enum:
@@ -4527,6 +4619,9 @@ components:
               with at least one storage so the provider can read the source backup
             rule: '!has(self.dataSource) || self.dataSource.type != ''Backup'' ||
               (has(self.backup) && self.backup.enabled)'
+          - message: spec.dataSource.type=ProviderManagedImport requires spec.backup.enabled=true
+            rule: '!has(self.dataSource) || self.dataSource.type != ''ProviderManagedImport''
+              || (has(self.backup) && self.backup.enabled)'
           - message: spec.dataSource is immutable once set
             rule: '!has(oldSelf.dataSource) || (has(self.dataSource) && self.dataSource
               == oldSelf.dataSource)'
@@ -5368,10 +5463,53 @@ components:
                   required:
                   - backupRef
                   type: object
-                external:
+                jobImport:
                   description: |-
-                    External references an external storage location for import.
-                    Required when type=External.
+                    JobImport imports from external storage using an independent Job-mode BackupClass.
+                    Required when type=JobImport.
+                  properties:
+                    classRef:
+                      description: ClassRef references a Job-mode BackupClass with
+                        job.import configured.
+                      properties:
+                        name:
+                          description: Name of the referenced object.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                          type: string
+                      required:
+                      - name
+                      type: object
+                      x-kubernetes-map-type: atomic
+                    parameters:
+                      description: |-
+                        Parameters contains all import configuration including path and credentials.
+                        Validated against BackupClass.spec.importParameterSchema.
+                      type: object
+                      x-kubernetes-preserve-unknown-fields: true
+                    storageRef:
+                      description: StorageRef references a BackupStorage by name.
+                      properties:
+                        name:
+                          description: Name of the referenced object.
+                          maxLength: 253
+                          minLength: 1
+                          pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                          type: string
+                      required:
+                      - name
+                      type: object
+                      x-kubernetes-map-type: atomic
+                  required:
+                  - classRef
+                  - parameters
+                  - storageRef
+                  type: object
+                providerManagedImport:
+                  description: |-
+                    ProviderManagedImport imports from external storage using backup infrastructure.
+                    Required when type=ProviderManagedImport.
                   properties:
                     parameters:
                       description: |-
@@ -5382,7 +5520,7 @@ components:
                     storageRef:
                       description: |-
                         StorageRef references a BackupStorage by name.
-                        The referenced storage provides the BackupStorage configuration for the import.
+                        Must match an entry in spec.backup.storages.
                       properties:
                         name:
                           description: Name of the referenced object.
@@ -5402,7 +5540,8 @@ components:
                   description: Type selects the data source kind.
                   enum:
                   - Backup
-                  - External
+                  - ProviderManagedImport
+                  - JobImport
                   type: string
               required:
               - type
@@ -5410,8 +5549,11 @@ components:
               x-kubernetes-validations:
               - message: backup must be set when type is Backup
                 rule: 'self.type == ''Backup'' ? has(self.backup) : true'
-              - message: external must be set when type is External
-                rule: 'self.type == ''External'' ? has(self.external) : true'
+              - message: providerManagedImport must be set when type is ProviderManagedImport
+                rule: 'self.type == ''ProviderManagedImport'' ? has(self.providerManagedImport)
+                  : true'
+              - message: jobImport must be set when type is JobImport
+                rule: 'self.type == ''JobImport'' ? has(self.jobImport) : true'
             instanceRef:
               description: |-
                 InstanceRef references the Instance to restore into. The Instance

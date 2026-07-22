@@ -276,8 +276,11 @@ func (r *RestoreReconciler) resolveBackupClass(
 	var backupClassName string
 
 	ds := restore.Spec.DataSource
-	switch {
-	case ds.Backup != nil && ds.Backup.BackupRef.Name != "":
+	switch ds.Type {
+	case backupv1alpha1.DataSourceTypeBackup:
+		if ds.Backup == nil || ds.Backup.BackupRef.Name == "" {
+			return nil, fmt.Errorf("dataSource type is Backup but backup ref is not set")
+		}
 		// Resolve from the referenced Backup CR.
 		backup := &backupv1alpha1.Backup{}
 		if err := r.Client.Get(ctx, client.ObjectKey{
@@ -288,8 +291,29 @@ func (r *RestoreReconciler) resolveBackupClass(
 		}
 		backupClassName = backup.Spec.ClassRef.Name
 
+	case backupv1alpha1.DataSourceTypeProviderManagedImport:
+		// For ProviderManagedImport, get the BackupClass from the Instance's backup config.
+		instance := &corev1alpha1.Instance{}
+		if err := r.Client.Get(ctx, client.ObjectKey{
+			Name:      restore.Spec.InstanceRef.Name,
+			Namespace: restore.GetNamespace(),
+		}, instance); err != nil {
+			return nil, fmt.Errorf("failed to get instance %q: %w", restore.Spec.InstanceRef.Name, err)
+		}
+		if instance.Spec.Backup == nil || instance.Spec.Backup.ClassRef.Name == "" {
+			return nil, fmt.Errorf("instance %q does not have backup configuration", instance.Name)
+		}
+		backupClassName = instance.Spec.Backup.ClassRef.Name
+
+	case backupv1alpha1.DataSourceTypeJobImport:
+		// For JobImport, get the BackupClass from the dataSource's classRef.
+		if ds.JobImport == nil || ds.JobImport.ClassRef.Name == "" {
+			return nil, fmt.Errorf("dataSource type is JobImport but classRef is not set")
+		}
+		backupClassName = ds.JobImport.ClassRef.Name
+
 	default:
-		return nil, fmt.Errorf("dataSource must specify backup")
+		return nil, fmt.Errorf("unsupported dataSource type %q", ds.Type)
 	}
 
 	bc := &backupv1alpha1.BackupClass{}

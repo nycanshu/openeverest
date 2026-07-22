@@ -172,8 +172,9 @@ func (e InstalledExtensionStatusPhase) Valid() bool {
 
 // Defines values for InstanceSpecDataSourceType.
 const (
-	InstanceSpecDataSourceTypeBackup   InstanceSpecDataSourceType = "Backup"
-	InstanceSpecDataSourceTypeExternal InstanceSpecDataSourceType = "External"
+	InstanceSpecDataSourceTypeBackup                InstanceSpecDataSourceType = "Backup"
+	InstanceSpecDataSourceTypeJobImport             InstanceSpecDataSourceType = "JobImport"
+	InstanceSpecDataSourceTypeProviderManagedImport InstanceSpecDataSourceType = "ProviderManagedImport"
 )
 
 // Valid indicates whether the value is a known member of the InstanceSpecDataSourceType enum.
@@ -181,7 +182,9 @@ func (e InstanceSpecDataSourceType) Valid() bool {
 	switch e {
 	case InstanceSpecDataSourceTypeBackup:
 		return true
-	case InstanceSpecDataSourceTypeExternal:
+	case InstanceSpecDataSourceTypeJobImport:
+		return true
+	case InstanceSpecDataSourceTypeProviderManagedImport:
 		return true
 	default:
 		return false
@@ -256,8 +259,9 @@ func (e InstanceStatusPhase) Valid() bool {
 
 // Defines values for InstancePresetSpecDataSourceType.
 const (
-	InstancePresetSpecDataSourceTypeBackup   InstancePresetSpecDataSourceType = "Backup"
-	InstancePresetSpecDataSourceTypeExternal InstancePresetSpecDataSourceType = "External"
+	InstancePresetSpecDataSourceTypeBackup                InstancePresetSpecDataSourceType = "Backup"
+	InstancePresetSpecDataSourceTypeJobImport             InstancePresetSpecDataSourceType = "JobImport"
+	InstancePresetSpecDataSourceTypeProviderManagedImport InstancePresetSpecDataSourceType = "ProviderManagedImport"
 )
 
 // Valid indicates whether the value is a known member of the InstancePresetSpecDataSourceType enum.
@@ -265,7 +269,9 @@ func (e InstancePresetSpecDataSourceType) Valid() bool {
 	switch e {
 	case InstancePresetSpecDataSourceTypeBackup:
 		return true
-	case InstancePresetSpecDataSourceTypeExternal:
+	case InstancePresetSpecDataSourceTypeJobImport:
+		return true
+	case InstancePresetSpecDataSourceTypeProviderManagedImport:
 		return true
 	default:
 		return false
@@ -352,8 +358,9 @@ func (e ProviderStatusConditionsStatus) Valid() bool {
 
 // Defines values for RestoreSpecDataSourceType.
 const (
-	RestoreSpecDataSourceTypeBackup   RestoreSpecDataSourceType = "Backup"
-	RestoreSpecDataSourceTypeExternal RestoreSpecDataSourceType = "External"
+	RestoreSpecDataSourceTypeBackup                RestoreSpecDataSourceType = "Backup"
+	RestoreSpecDataSourceTypeJobImport             RestoreSpecDataSourceType = "JobImport"
+	RestoreSpecDataSourceTypeProviderManagedImport RestoreSpecDataSourceType = "ProviderManagedImport"
 )
 
 // Valid indicates whether the value is a known member of the RestoreSpecDataSourceType enum.
@@ -361,7 +368,9 @@ func (e RestoreSpecDataSourceType) Valid() bool {
 	switch e {
 	case RestoreSpecDataSourceTypeBackup:
 		return true
-	case RestoreSpecDataSourceTypeExternal:
+	case RestoreSpecDataSourceTypeJobImport:
+		return true
+	case RestoreSpecDataSourceTypeProviderManagedImport:
 		return true
 	default:
 		return false
@@ -586,81 +595,10 @@ type BackupClass struct {
 		// ExecutionMode ExecutionMode selects between job-based and provider-managed execution.
 		ExecutionMode BackupClassSpecExecutionMode `json:"executionMode"`
 
-		// ImportJob ImportJob describes the job spawned to perform an initial data import
-		// when an Instance is created with spec.dataSource.type=External.
-		//
-		// ImportJob is intentionally a top-level sibling of Job rather than a
-		// field on JobModeSpec: JobModeSpec.Backup is required, so a BackupClass
-		// that exists purely as an import method (no backup/restore capability)
-		// would otherwise be forced to declare a meaningless backup job.
-		ImportJob *struct {
-			// CleanupJobSpec CleanupJobSpec is the optional specification of a cleanup job that runs
-			// when the parent Backup or Restore CR is deleted.
-			CleanupJobSpec *struct {
-				// Command Command is the command to run the backup class.
-				Command *[]string `json:"command,omitempty"`
-
-				// Image Image is the image of the backup class.
-				Image *string `json:"image,omitempty"`
-			} `json:"cleanupJobSpec,omitempty"`
-
-			// ClusterPermissions ClusterPermissions are cluster-scoped PolicyRules granted via a
-			// generated ClusterRole and ClusterRoleBinding.
-			ClusterPermissions *[]struct {
-				// ApiGroups APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
-				// the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
-				ApiGroups *[]string `json:"apiGroups,omitempty"`
-
-				// NonResourceURLs NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
-				// Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
-				// Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
-				NonResourceURLs *[]string `json:"nonResourceURLs,omitempty"`
-
-				// ResourceNames ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
-				ResourceNames *[]string `json:"resourceNames,omitempty"`
-
-				// Resources Resources is a list of resources this rule applies to. '*' represents all resources.
-				Resources *[]string `json:"resources,omitempty"`
-
-				// Verbs Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
-				Verbs []string `json:"verbs"`
-			} `json:"clusterPermissions,omitempty"`
-
-			// JobSpec JobSpec is the specification of the backup or restore job.
-			JobSpec struct {
-				// Command Command is the command to run the backup class.
-				Command *[]string `json:"command,omitempty"`
-
-				// Image Image is the image of the backup class.
-				Image *string `json:"image,omitempty"`
-			} `json:"jobSpec"`
-
-			// Permissions Permissions are namespace-scoped PolicyRules granted to the job pod via
-			// a generated Role and RoleBinding.
-			Permissions *[]struct {
-				// ApiGroups APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
-				// the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
-				ApiGroups *[]string `json:"apiGroups,omitempty"`
-
-				// NonResourceURLs NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
-				// Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
-				// Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
-				NonResourceURLs *[]string `json:"nonResourceURLs,omitempty"`
-
-				// ResourceNames ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
-				ResourceNames *[]string `json:"resourceNames,omitempty"`
-
-				// Resources Resources is a list of resources this rule applies to. '*' represents all resources.
-				Resources *[]string `json:"resources,omitempty"`
-
-				// Verbs Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
-				Verbs []string `json:"verbs"`
-			} `json:"permissions,omitempty"`
-		} `json:"importJob,omitempty"`
-
 		// ImportParametersSchema ImportParametersSchema declares the OpenAPI v3 schema describing the import-time
-		// parameters accepted by this class. Instance.spec.dataSource.external.parameters
-		// is validated against it.
+		// parameters accepted by this class. Validated against:
+		// - Instance.spec.dataSource.providerManagedImport.parameters (for ProviderManaged classes)
+		// - Instance.spec.dataSource.jobImport.parameters (for Job classes)
 		ImportParametersSchema *struct {
 			// OpenAPIV3Schema OpenAPIV3Schema is the OpenAPI v3 schema describing the accepted
 			// parameters payload.
@@ -681,7 +619,7 @@ type BackupClass struct {
 		// "ProviderManaged".
 		Job *struct {
 			// Backup Backup describes the job spawned per Backup CR.
-			Backup struct {
+			Backup *struct {
 				// CleanupJobSpec CleanupJobSpec is the optional specification of a cleanup job that runs
 				// when the parent Backup or Restore CR is deleted.
 				CleanupJobSpec *struct {
@@ -744,10 +682,76 @@ type BackupClass struct {
 					// Verbs Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
 					Verbs []string `json:"verbs"`
 				} `json:"permissions,omitempty"`
-			} `json:"backup"`
+			} `json:"backup,omitempty"`
+
+			// Import Import describes the job spawned for JobImport data sources.
+			Import *struct {
+				// CleanupJobSpec CleanupJobSpec is the optional specification of a cleanup job that runs
+				// when the parent Backup or Restore CR is deleted.
+				CleanupJobSpec *struct {
+					// Command Command is the command to run the backup class.
+					Command *[]string `json:"command,omitempty"`
+
+					// Image Image is the image of the backup class.
+					Image *string `json:"image,omitempty"`
+				} `json:"cleanupJobSpec,omitempty"`
+
+				// ClusterPermissions ClusterPermissions are cluster-scoped PolicyRules granted via a
+				// generated ClusterRole and ClusterRoleBinding.
+				ClusterPermissions *[]struct {
+					// ApiGroups APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
+					// the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+					ApiGroups *[]string `json:"apiGroups,omitempty"`
+
+					// NonResourceURLs NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+					// Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
+					// Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+					NonResourceURLs *[]string `json:"nonResourceURLs,omitempty"`
+
+					// ResourceNames ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
+					ResourceNames *[]string `json:"resourceNames,omitempty"`
+
+					// Resources Resources is a list of resources this rule applies to. '*' represents all resources.
+					Resources *[]string `json:"resources,omitempty"`
+
+					// Verbs Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
+					Verbs []string `json:"verbs"`
+				} `json:"clusterPermissions,omitempty"`
+
+				// JobSpec JobSpec is the specification of the backup or restore job.
+				JobSpec struct {
+					// Command Command is the command to run the backup class.
+					Command *[]string `json:"command,omitempty"`
+
+					// Image Image is the image of the backup class.
+					Image *string `json:"image,omitempty"`
+				} `json:"jobSpec"`
+
+				// Permissions Permissions are namespace-scoped PolicyRules granted to the job pod via
+				// a generated Role and RoleBinding.
+				Permissions *[]struct {
+					// ApiGroups APIGroups is the name of the APIGroup that contains the resources.  If multiple API groups are specified, any action requested against one of
+					// the enumerated resources in any API group will be allowed. "" represents the core API group and "*" represents all API groups.
+					ApiGroups *[]string `json:"apiGroups,omitempty"`
+
+					// NonResourceURLs NonResourceURLs is a set of partial urls that a user should have access to.  *s are allowed, but only as the full, final step in the path
+					// Since non-resource URLs are not namespaced, this field is only applicable for ClusterRoles referenced from a ClusterRoleBinding.
+					// Rules can either apply to API resources (such as "pods" or "secrets") or non-resource URL paths (such as "/api"),  but not both.
+					NonResourceURLs *[]string `json:"nonResourceURLs,omitempty"`
+
+					// ResourceNames ResourceNames is an optional white list of names that the rule applies to.  An empty set means that everything is allowed.
+					ResourceNames *[]string `json:"resourceNames,omitempty"`
+
+					// Resources Resources is a list of resources this rule applies to. '*' represents all resources.
+					Resources *[]string `json:"resources,omitempty"`
+
+					// Verbs Verbs is a list of Verbs that apply to ALL the ResourceKinds contained in this rule. '*' represents all verbs.
+					Verbs []string `json:"verbs"`
+				} `json:"permissions,omitempty"`
+			} `json:"import,omitempty"`
 
 			// Restore Restore describes the job spawned per Restore CR. When unset, restores
-			// are not supported by this class.
+			// are not supported by this class. Requires Backup to be set.
 			Restore *struct {
 				// CleanupJobSpec CleanupJobSpec is the optional specification of a cleanup job that runs
 				// when the parent Backup or Restore CR is deleted.
@@ -863,11 +867,11 @@ type BackupClass struct {
 			} `json:"pitrParametersSchema,omitempty"`
 
 			// SupportsImport SupportsImport indicates whether this ProviderManaged class supports
-			// importing from external data sources (Instance.spec.dataSource.type=External).
-			// When true, the provider handles external imports by creating operator-native
+			// importing from external data sources (Instance.spec.dataSource.type=ProviderManagedImport).
+			// When true, the provider handles imports by creating operator-native
 			// restore resources (e.g., PerconaServerMongoDBRestore) directly, without
 			// spawning a wrapper Job. The import configuration is validated against
-			// BackupClassSpec.ImportConfig.openAPIV3Schema.
+			// BackupClassSpec.ImportParametersSchema.
 			SupportsImport *bool `json:"supportsImport,omitempty"`
 
 			// SupportsPITR SupportsPITR indicates whether this class supports point-in-time recovery.
@@ -1934,20 +1938,40 @@ type Instance struct {
 				} `json:"pitr,omitempty"`
 			} `json:"backup,omitempty"`
 
-			// External External references an external storage location for import.
-			// Required when type=External.
-			External *struct {
+			// JobImport JobImport imports from external storage using an independent Job-mode BackupClass.
+			// Required when type=JobImport.
+			JobImport *struct {
+				// ClassRef ClassRef references a Job-mode BackupClass with job.import configured.
+				ClassRef struct {
+					// Name Name of the referenced object.
+					Name string `json:"name"`
+				} `json:"classRef"`
+
 				// Parameters Parameters contains all import configuration including path and credentials.
 				// Validated against BackupClass.spec.importParameterSchema.
 				Parameters map[string]interface{} `json:"parameters"`
 
 				// StorageRef StorageRef references a BackupStorage by name.
-				// The referenced storage provides the BackupStorage configuration for the import.
 				StorageRef struct {
 					// Name Name of the referenced object.
 					Name string `json:"name"`
 				} `json:"storageRef"`
-			} `json:"external,omitempty"`
+			} `json:"jobImport,omitempty"`
+
+			// ProviderManagedImport ProviderManagedImport imports from external storage using backup infrastructure.
+			// Required when type=ProviderManagedImport.
+			ProviderManagedImport *struct {
+				// Parameters Parameters contains all import configuration including path and credentials.
+				// Validated against BackupClass.spec.importParameterSchema.
+				Parameters map[string]interface{} `json:"parameters"`
+
+				// StorageRef StorageRef references a BackupStorage by name.
+				// Must match an entry in spec.backup.storages.
+				StorageRef struct {
+					// Name Name of the referenced object.
+					Name string `json:"name"`
+				} `json:"storageRef"`
+			} `json:"providerManagedImport,omitempty"`
 
 			// Type Type selects the data source kind.
 			Type InstanceSpecDataSourceType `json:"type"`
@@ -2917,20 +2941,40 @@ type InstancePreset struct {
 				} `json:"pitr,omitempty"`
 			} `json:"backup,omitempty"`
 
-			// External External references an external storage location for import.
-			// Required when type=External.
-			External *struct {
+			// JobImport JobImport imports from external storage using an independent Job-mode BackupClass.
+			// Required when type=JobImport.
+			JobImport *struct {
+				// ClassRef ClassRef references a Job-mode BackupClass with job.import configured.
+				ClassRef struct {
+					// Name Name of the referenced object.
+					Name string `json:"name"`
+				} `json:"classRef"`
+
 				// Parameters Parameters contains all import configuration including path and credentials.
 				// Validated against BackupClass.spec.importParameterSchema.
 				Parameters map[string]interface{} `json:"parameters"`
 
 				// StorageRef StorageRef references a BackupStorage by name.
-				// The referenced storage provides the BackupStorage configuration for the import.
 				StorageRef struct {
 					// Name Name of the referenced object.
 					Name string `json:"name"`
 				} `json:"storageRef"`
-			} `json:"external,omitempty"`
+			} `json:"jobImport,omitempty"`
+
+			// ProviderManagedImport ProviderManagedImport imports from external storage using backup infrastructure.
+			// Required when type=ProviderManagedImport.
+			ProviderManagedImport *struct {
+				// Parameters Parameters contains all import configuration including path and credentials.
+				// Validated against BackupClass.spec.importParameterSchema.
+				Parameters map[string]interface{} `json:"parameters"`
+
+				// StorageRef StorageRef references a BackupStorage by name.
+				// Must match an entry in spec.backup.storages.
+				StorageRef struct {
+					// Name Name of the referenced object.
+					Name string `json:"name"`
+				} `json:"storageRef"`
+			} `json:"providerManagedImport,omitempty"`
 
 			// Type Type selects the data source kind.
 			Type InstancePresetSpecDataSourceType `json:"type"`
@@ -3513,20 +3557,40 @@ type Restore struct {
 				} `json:"pitr,omitempty"`
 			} `json:"backup,omitempty"`
 
-			// External External references an external storage location for import.
-			// Required when type=External.
-			External *struct {
+			// JobImport JobImport imports from external storage using an independent Job-mode BackupClass.
+			// Required when type=JobImport.
+			JobImport *struct {
+				// ClassRef ClassRef references a Job-mode BackupClass with job.import configured.
+				ClassRef struct {
+					// Name Name of the referenced object.
+					Name string `json:"name"`
+				} `json:"classRef"`
+
 				// Parameters Parameters contains all import configuration including path and credentials.
 				// Validated against BackupClass.spec.importParameterSchema.
 				Parameters map[string]interface{} `json:"parameters"`
 
 				// StorageRef StorageRef references a BackupStorage by name.
-				// The referenced storage provides the BackupStorage configuration for the import.
 				StorageRef struct {
 					// Name Name of the referenced object.
 					Name string `json:"name"`
 				} `json:"storageRef"`
-			} `json:"external,omitempty"`
+			} `json:"jobImport,omitempty"`
+
+			// ProviderManagedImport ProviderManagedImport imports from external storage using backup infrastructure.
+			// Required when type=ProviderManagedImport.
+			ProviderManagedImport *struct {
+				// Parameters Parameters contains all import configuration including path and credentials.
+				// Validated against BackupClass.spec.importParameterSchema.
+				Parameters map[string]interface{} `json:"parameters"`
+
+				// StorageRef StorageRef references a BackupStorage by name.
+				// Must match an entry in spec.backup.storages.
+				StorageRef struct {
+					// Name Name of the referenced object.
+					Name string `json:"name"`
+				} `json:"storageRef"`
+			} `json:"providerManagedImport,omitempty"`
 
 			// Type Type selects the data source kind.
 			Type RestoreSpecDataSourceType `json:"type"`

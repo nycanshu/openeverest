@@ -46,9 +46,8 @@ const (
 
 // BackupClassSpec defines the desired state of BackupClass.
 //
-// +kubebuilder:validation:XValidation:rule="self.executionMode != 'Job' || has(self.job) || has(self.importJob)",message="spec.job or spec.importJob is required when executionMode is Job"
+// +kubebuilder:validation:XValidation:rule="self.executionMode != 'Job' || has(self.job)",message="spec.job is required when executionMode is Job"
 // +kubebuilder:validation:XValidation:rule="!has(self.job) || self.executionMode == 'Job'",message="spec.job is only allowed when executionMode is Job"
-// +kubebuilder:validation:XValidation:rule="!has(self.importJob) || self.executionMode == 'Job'",message="spec.importJob is only allowed when executionMode is Job"
 // +kubebuilder:validation:XValidation:rule="!has(self.providerManaged) || self.executionMode == 'ProviderManaged'",message="spec.providerManaged is only allowed when executionMode is ProviderManaged"
 type BackupClassSpec struct {
 	// DisplayName is a human-readable name for the backup class.
@@ -80,8 +79,9 @@ type BackupClassSpec struct {
 	// +optional
 	RestoreParametersSchema common.ParametersSchema `json:"restoreParametersSchema,omitempty"`
 	// ImportParametersSchema declares the OpenAPI v3 schema describing the import-time
-	// parameters accepted by this class. Instance.spec.dataSource.external.parameters
-	// is validated against it.
+	// parameters accepted by this class. Validated against:
+	// - Instance.spec.dataSource.providerManagedImport.parameters (for ProviderManaged classes)
+	// - Instance.spec.dataSource.jobImport.parameters (for Job classes)
 	// +optional
 	ImportParametersSchema common.ParametersSchema `json:"importParametersSchema,omitempty"`
 	// InstanceConstraints defines compatibility requirements that must be
@@ -103,28 +103,27 @@ type BackupClassSpec struct {
 	// "ProviderManaged".
 	// +optional
 	Job *JobModeSpec `json:"job,omitempty"`
-
-	// ImportJob describes the job spawned to perform an initial data import
-	// when an Instance is created with spec.dataSource.type=External.
-	//
-	// ImportJob is intentionally a top-level sibling of Job rather than a
-	// field on JobModeSpec: JobModeSpec.Backup is required, so a BackupClass
-	// that exists purely as an import method (no backup/restore capability)
-	// would otherwise be forced to declare a meaningless backup job.
-	// +optional
-	ImportJob *JobExecution `json:"importJob,omitempty"`
 }
 
-// JobModeSpec bundles everything the in-tree controller needs to run backup
-// and restore operations as Kubernetes Jobs in ExecutionMode="Job".
+// JobModeSpec bundles everything the in-tree controller needs to run backup,
+// restore, and import operations as Kubernetes Jobs in ExecutionMode="Job".
+//
+// At least one of Backup or Import must be set. A class with only Import is
+// an import-only class (no backup/restore capability).
+//
+// +kubebuilder:validation:XValidation:rule="has(self.backup) || has(self.import)",message="at least one of backup or import must be set"
+// +kubebuilder:validation:XValidation:rule="!has(self.restore) || has(self.backup)",message="restore requires backup to be set"
 type JobModeSpec struct {
 	// Backup describes the job spawned per Backup CR.
-	// +kubebuilder:validation:Required
-	Backup JobExecution `json:"backup"`
+	// +optional
+	Backup *JobExecution `json:"backup,omitempty"`
 	// Restore describes the job spawned per Restore CR. When unset, restores
-	// are not supported by this class.
+	// are not supported by this class. Requires Backup to be set.
 	// +optional
 	Restore *JobExecution `json:"restore,omitempty"`
+	// Import describes the job spawned for JobImport data sources.
+	// +optional
+	Import *JobExecution `json:"import,omitempty"`
 }
 
 // JobExecution bundles the Kubernetes resources the controller needs to spawn
@@ -157,11 +156,11 @@ type ProviderManagedSpec struct {
 	SupportsPITR bool `json:"supportsPITR,omitempty"`
 
 	// SupportsImport indicates whether this ProviderManaged class supports
-	// importing from external data sources (Instance.spec.dataSource.type=External).
-	// When true, the provider handles external imports by creating operator-native
+	// importing from external data sources (Instance.spec.dataSource.type=ProviderManagedImport).
+	// When true, the provider handles imports by creating operator-native
 	// restore resources (e.g., PerconaServerMongoDBRestore) directly, without
 	// spawning a wrapper Job. The import configuration is validated against
-	// BackupClassSpec.ImportConfig.openAPIV3Schema.
+	// BackupClassSpec.ImportParametersSchema.
 	// +optional
 	SupportsImport bool `json:"supportsImport,omitempty"`
 

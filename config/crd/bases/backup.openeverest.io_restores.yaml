@@ -102,10 +102,53 @@ spec:
                     required:
                     - backupRef
                     type: object
-                  external:
+                  jobImport:
                     description: |-
-                      External references an external storage location for import.
-                      Required when type=External.
+                      JobImport imports from external storage using an independent Job-mode BackupClass.
+                      Required when type=JobImport.
+                    properties:
+                      classRef:
+                        description: ClassRef references a Job-mode BackupClass with
+                          job.import configured.
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        required:
+                        - name
+                        type: object
+                        x-kubernetes-map-type: atomic
+                      parameters:
+                        description: |-
+                          Parameters contains all import configuration including path and credentials.
+                          Validated against BackupClass.spec.importParameterSchema.
+                        type: object
+                        x-kubernetes-preserve-unknown-fields: true
+                      storageRef:
+                        description: StorageRef references a BackupStorage by name.
+                        properties:
+                          name:
+                            description: Name of the referenced object.
+                            maxLength: 253
+                            minLength: 1
+                            pattern: ^[a-z0-9]([-a-z0-9]*[a-z0-9])?(\.[a-z0-9]([-a-z0-9]*[a-z0-9])?)*$
+                            type: string
+                        required:
+                        - name
+                        type: object
+                        x-kubernetes-map-type: atomic
+                    required:
+                    - classRef
+                    - parameters
+                    - storageRef
+                    type: object
+                  providerManagedImport:
+                    description: |-
+                      ProviderManagedImport imports from external storage using backup infrastructure.
+                      Required when type=ProviderManagedImport.
                     properties:
                       parameters:
                         description: |-
@@ -116,7 +159,7 @@ spec:
                       storageRef:
                         description: |-
                           StorageRef references a BackupStorage by name.
-                          The referenced storage provides the BackupStorage configuration for the import.
+                          Must match an entry in spec.backup.storages.
                         properties:
                           name:
                             description: Name of the referenced object.
@@ -136,7 +179,8 @@ spec:
                     description: Type selects the data source kind.
                     enum:
                     - Backup
-                    - External
+                    - ProviderManagedImport
+                    - JobImport
                     type: string
                 required:
                 - type
@@ -144,8 +188,11 @@ spec:
                 x-kubernetes-validations:
                 - message: backup must be set when type is Backup
                   rule: 'self.type == ''Backup'' ? has(self.backup) : true'
-                - message: external must be set when type is External
-                  rule: 'self.type == ''External'' ? has(self.external) : true'
+                - message: providerManagedImport must be set when type is ProviderManagedImport
+                  rule: 'self.type == ''ProviderManagedImport'' ? has(self.providerManagedImport)
+                    : true'
+                - message: jobImport must be set when type is JobImport
+                  rule: 'self.type == ''JobImport'' ? has(self.jobImport) : true'
               instanceRef:
                 description: |-
                   InstanceRef references the Instance to restore into. The Instance
