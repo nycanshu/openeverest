@@ -15,26 +15,27 @@
 package v1alpha1
 
 import (
-	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/runtime"
+
+	common "github.com/openeverest/openeverest/v2/api/common/v1alpha1"
 )
 
 // RestoreSpec defines the desired state of Restore.
 type RestoreSpec struct {
-	// InstanceName is the name of the Instance to restore into. The Instance
+	// InstanceRef references the Instance to restore into. The Instance
 	// must already exist in the same namespace and use a provider listed in
 	// the BackupClass's SupportedProviders.
 	// +kubebuilder:validation:Required
-	InstanceName string `json:"instanceName"`
+	InstanceRef common.ObjectRef `json:"instanceRef"`
 	// DataSource defines where the backup data to restore from is located.
 	// +kubebuilder:validation:Required
 	DataSource DataSource `json:"dataSource"`
-	// Config is the restore-time configuration validated against the
-	// BackupClass's .spec.restoreConfig.openAPIV3Schema.
+	// Parameters is the restore-time structured configuration validated
+	// against the BackupClass's .spec.restoreParametersSchema.
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +optional
-	Config *runtime.RawExtension `json:"config,omitempty"`
+	Parameters *runtime.RawExtension `json:"parameters,omitempty"`
 }
 
 // DataSourceType selects the kind of data source for initial seeding or
@@ -54,10 +55,9 @@ const (
 
 // DataSourceBackup references an existing Backup CR as the data source.
 type DataSourceBackup struct {
-	// BackupName is the name of the Backup CR in the same namespace.
+	// BackupRef references the Backup CR in the same namespace.
 	// +kubebuilder:validation:Required
-	// +kubebuilder:validation:MinLength=1
-	BackupName string `json:"backupName"`
+	BackupRef common.ObjectRef `json:"backupRef"`
 	// PITR configures point-in-time recovery on top of this backup.
 	// The resolved BackupClass must advertise PITR support via
 	// .spec.providerManaged for this to be honoured.
@@ -112,9 +112,9 @@ type DataSourceExternal struct {
 	// StorageRef references a BackupStorage by name.
 	// The referenced storage provides the BackupStorage configuration for the import.
 	// +kubebuilder:validation:Required
-	StorageRef corev1.LocalObjectReference `json:"storageRef"`
+	StorageRef common.ObjectRef `json:"storageRef"`
 	// Parameters contains all import configuration including path and credentials.
-	// Validated against BackupClass.spec.importConfig.openAPIV3Schema.
+	// Validated against BackupClass.spec.importParameterSchema.
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Required
 	Parameters *runtime.RawExtension `json:"parameters"`
@@ -159,11 +159,11 @@ type RestoreStatus struct {
 	// provider created (e.g., PerconaServerMongoDBRestore). Populated only
 	// for ProviderManaged classes.
 	// +optional
-	OperatorRestoreRef *corev1.TypedLocalObjectReference `json:"operatorRestoreRef,omitempty"`
-	// JobName is the reference to the Job that is running the restore.
+	OperatorRestoreRef *common.TypedObjectRef `json:"operatorRestoreRef,omitempty"`
+	// JobRef references the Job that is running the restore.
 	// Populated only for Job classes.
 	// +optional
-	JobName string `json:"jobName,omitempty"`
+	JobRef *common.ObjectRef `json:"jobRef,omitempty"`
 	// StartedAt is the time when the restore started.
 	// +optional
 	StartedAt *metav1.Time `json:"startedAt,omitempty"`
@@ -188,7 +188,7 @@ type RestoreStatus struct {
 // +kubebuilder:object:root=true
 // +kubebuilder:subresource:status
 // +kubebuilder:resource:shortName=rs;rst
-// +kubebuilder:printcolumn:name="Instance",type="string",JSONPath=".spec.instanceName"
+// +kubebuilder:printcolumn:name="Instance",type="string",JSONPath=".spec.instanceRef.name"
 // +kubebuilder:printcolumn:name="State",type="string",JSONPath=".status.state"
 
 // Restore is the Schema for the restores API.
