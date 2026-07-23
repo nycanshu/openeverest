@@ -1905,17 +1905,19 @@ type Instance struct {
 		} `json:"components,omitempty"`
 
 		// DataSource DataSource allows populating a new Instance with data from an existing
-		// Backup CR (type=Backup) or an external backup source (type=External).
+		// Backup CR (type=Backup), an external backup managed by the provider
+		// (type=ProviderManagedImport), or a Job-based import (type=JobImport).
 		//
 		// For type=Backup: The referenced Backup must be in the same namespace, in
 		// Succeeded state, and its BackupClass must list the Instance's provider in
 		// SupportedProviders. Only ProviderManaged BackupClasses are supported.
 		//
-		// For type=External: The Instance imports data from an external source
-		// (e.g., S3 path).
+		// For type=ProviderManagedImport: The Instance imports data from an external
+		// backup (e.g. Percona Backup for MongoDB in S3) using provider-native restore.
+		// Requires backup.enabled=true, backup.classRef.name, and a matching storage entry.
 		//
-		// Both types require the Instance to have backup enabled with at least one
-		// storage entry so the provider can access the backup data.
+		// For type=JobImport: The Instance imports data via an external Job defined
+		// by the BackupClass's jobImport configuration.
 		DataSource *struct {
 			// Backup Backup references an existing Backup CR in the same namespace.
 			// Required when type=Backup.
@@ -2908,17 +2910,19 @@ type InstancePreset struct {
 		} `json:"components,omitempty"`
 
 		// DataSource DataSource allows populating a new Instance with data from an existing
-		// Backup CR (type=Backup) or an external backup source (type=External).
+		// Backup CR (type=Backup), an external backup managed by the provider
+		// (type=ProviderManagedImport), or a Job-based import (type=JobImport).
 		//
 		// For type=Backup: The referenced Backup must be in the same namespace, in
 		// Succeeded state, and its BackupClass must list the Instance's provider in
 		// SupportedProviders. Only ProviderManaged BackupClasses are supported.
 		//
-		// For type=External: The Instance imports data from an external source
-		// (e.g., S3 path).
+		// For type=ProviderManagedImport: The Instance imports data from an external
+		// backup (e.g. Percona Backup for MongoDB in S3) using provider-native restore.
+		// Requires backup.enabled=true, backup.classRef.name, and a matching storage entry.
 		//
-		// Both types require the Instance to have backup enabled with at least one
-		// storage entry so the provider can access the backup data.
+		// For type=JobImport: The Instance imports data via an external Job defined
+		// by the BackupClass's jobImport configuration.
 		DataSource *struct {
 			// Backup Backup references an existing Backup CR in the same namespace.
 			// Required when type=Backup.

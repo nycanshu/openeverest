@@ -903,7 +903,7 @@ func (c *Context) DataSourceStorage() (*backupv1alpha1.BackupStorage, error) {
 //
 // Supported dataSource types:
 //   - Backup: Restore from an existing Backup CR in the same namespace
-//   - ProviderManagedImport: Import from external backup (e.g., PBM in S3)
+//   - ProviderManagedImport: Import from external backup (e.g. Percona Backup for MongoDB in S3)
 //   - JobImport: Import using a Job-mode BackupClass
 //
 // The method validates preconditions for each type, creates a Restore CR
@@ -996,6 +996,8 @@ func (c *Context) ReconcileDataSource() (DataSourceStatus, error) {
 // Returns (_, true, nil) if all preconditions are met and processing should continue.
 // Returns (status, false, nil) if a precondition failed and processing should stop.
 // Returns (_, _, error) if a non-transient error occurred.
+//
+//nolint:funlen // validation logic benefits from being in one place
 func (c *Context) checkDataSourceBackup() (DataSourceStatus, bool, error) {
 	ds := c.in.Spec.DataSource
 	backupName := ds.Backup.BackupRef.Name
