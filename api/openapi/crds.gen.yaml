@@ -2873,6 +2873,15 @@ components:
           - message: spec.dataSource.type=ProviderManagedImport requires spec.backup.enabled=true
             rule: '!has(self.dataSource) || self.dataSource.type != ''ProviderManagedImport''
               || (has(self.backup) && self.backup.enabled)'
+          - message: spec.dataSource.type=ProviderManagedImport requires spec.backup.classRef.name
+            rule: '!has(self.dataSource) || self.dataSource.type != ''ProviderManagedImport''
+              || (has(self.backup) && has(self.backup.classRef) && size(self.backup.classRef.name)
+              > 0)'
+          - message: spec.dataSource.providerManagedImport.storageRef.name must match
+              an entry in spec.backup.storages
+            rule: '!has(self.dataSource) || self.dataSource.type != ''ProviderManagedImport''
+              || !has(self.backup.storages) || self.backup.storages.exists(s, s.storageRef.name
+              == self.dataSource.providerManagedImport.storageRef.name)'
           - message: spec.dataSource is immutable once set
             rule: '!has(oldSelf.dataSource) || (has(self.dataSource) && self.dataSource
               == oldSelf.dataSource)'
@@ -4622,6 +4631,15 @@ components:
           - message: spec.dataSource.type=ProviderManagedImport requires spec.backup.enabled=true
             rule: '!has(self.dataSource) || self.dataSource.type != ''ProviderManagedImport''
               || (has(self.backup) && self.backup.enabled)'
+          - message: spec.dataSource.type=ProviderManagedImport requires spec.backup.classRef.name
+            rule: '!has(self.dataSource) || self.dataSource.type != ''ProviderManagedImport''
+              || (has(self.backup) && has(self.backup.classRef) && size(self.backup.classRef.name)
+              > 0)'
+          - message: spec.dataSource.providerManagedImport.storageRef.name must match
+              an entry in spec.backup.storages
+            rule: '!has(self.dataSource) || self.dataSource.type != ''ProviderManagedImport''
+              || !has(self.backup.storages) || self.backup.storages.exists(s, s.storageRef.name
+              == self.dataSource.providerManagedImport.storageRef.name)'
           - message: spec.dataSource is immutable once set
             rule: '!has(oldSelf.dataSource) || (has(self.dataSource) && self.dataSource
               == oldSelf.dataSource)'

@@ -269,6 +269,9 @@ func (r *ProviderReconciler) setupServer(p providerAdapter) error {
 			return err
 		}
 		inCtx := controller.NewContext(ctx, c, in, p.Name())
+		if err := inCtx.ValidateDataSource(); err != nil {
+			return err
+		}
 		return p.Validate(inCtx)
 	}
 
@@ -419,6 +422,14 @@ func (r *ProviderReconciler) Reconcile(ctx context.Context, req reconcile.Reques
 			logger.Error(updateErr, "Failed to update status after backup config violation")
 		}
 		return reconcile.Result{}, nil
+	}
+	if err := inCtx.ValidateDataSource(); err != nil {
+		logger.Error(err, "DataSource validation failed")
+		in.Status.Phase = v1alpha1.InstancePhaseFailed
+		if updateErr := r.Client.Status().Update(ctx, in); updateErr != nil {
+			logger.Error(updateErr, "Failed to update status after dataSource validation error")
+		}
+		return reconcile.Result{}, err
 	}
 	if err := r.provider.Validate(inCtx); err != nil {
 		logger.Error(err, "Validation failed")

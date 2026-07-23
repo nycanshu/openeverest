@@ -29,6 +29,8 @@ import (
 // InstanceSpec defines the desired state of Instance
 // +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'Backup' || (has(self.backup) && self.backup.enabled)",message="spec.dataSource.type=Backup requires spec.backup.enabled=true with at least one storage so the provider can read the source backup"
 // +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'ProviderManagedImport' || (has(self.backup) && self.backup.enabled)",message="spec.dataSource.type=ProviderManagedImport requires spec.backup.enabled=true"
+// +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'ProviderManagedImport' || (has(self.backup) && has(self.backup.classRef) && size(self.backup.classRef.name) > 0)",message="spec.dataSource.type=ProviderManagedImport requires spec.backup.classRef.name"
+// +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'ProviderManagedImport' || !has(self.backup.storages) || self.backup.storages.exists(s, s.storageRef.name == self.dataSource.providerManagedImport.storageRef.name)",message="spec.dataSource.providerManagedImport.storageRef.name must match an entry in spec.backup.storages"
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.dataSource) || (has(self.dataSource) && self.dataSource == oldSelf.dataSource)",message="spec.dataSource is immutable once set"
 type InstanceSpec struct {
 	// ProviderRef references the cluster-scoped Provider that manages this
