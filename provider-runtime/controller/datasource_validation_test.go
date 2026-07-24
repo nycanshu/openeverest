@@ -46,7 +46,7 @@ func TestValidateDataSource(t *testing.T) {
 			},
 		},
 		{
-			name: "providerManagedImport without supportsImport",
+			name: "import without classRef and supportsImport",
 			instance: &corev1alpha1.Instance{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-instance"},
 				Spec: corev1alpha1.InstanceSpec{
@@ -59,8 +59,8 @@ func TestValidateDataSource(t *testing.T) {
 						},
 					},
 					DataSource: &backupv1alpha1.DataSource{
-						Type: backupv1alpha1.DataSourceTypeProviderManagedImport,
-						ProviderManagedImport: &backupv1alpha1.DataSourceProviderManagedImport{
+						Type: backupv1alpha1.DataSourceTypeImport,
+						Import: &backupv1alpha1.DataSourceImport{
 							StorageRef: commonv1alpha1.ObjectRef{Name: "my-storage"},
 							Parameters: &runtime.RawExtension{Raw: []byte(`{"path": "/backup"}`)},
 						},
@@ -70,7 +70,7 @@ func TestValidateDataSource(t *testing.T) {
 			expectErr: `BackupClass "provider-managed-no-import" does not support import`,
 		},
 		{
-			name: "providerManagedImport with supportsImport",
+			name: "import without classRef with supportsImport",
 			instance: &corev1alpha1.Instance{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-instance"},
 				Spec: corev1alpha1.InstanceSpec{
@@ -83,8 +83,8 @@ func TestValidateDataSource(t *testing.T) {
 						},
 					},
 					DataSource: &backupv1alpha1.DataSource{
-						Type: backupv1alpha1.DataSourceTypeProviderManagedImport,
-						ProviderManagedImport: &backupv1alpha1.DataSourceProviderManagedImport{
+						Type: backupv1alpha1.DataSourceTypeImport,
+						Import: &backupv1alpha1.DataSourceImport{
 							StorageRef: commonv1alpha1.ObjectRef{Name: "my-storage"},
 							Parameters: &runtime.RawExtension{Raw: []byte(`{"path": "/backup"}`)},
 						},
@@ -93,15 +93,15 @@ func TestValidateDataSource(t *testing.T) {
 			},
 		},
 		{
-			name: "jobImport without job.import defined",
+			name: "import with classRef without job.import defined",
 			instance: &corev1alpha1.Instance{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-instance"},
 				Spec: corev1alpha1.InstanceSpec{
 					ProviderRef: commonv1alpha1.ObjectRef{Name: "psmdb"},
 					DataSource: &backupv1alpha1.DataSource{
-						Type: backupv1alpha1.DataSourceTypeJobImport,
-						JobImport: &backupv1alpha1.DataSourceJobImport{
-							ClassRef:   commonv1alpha1.ObjectRef{Name: "job-mode-no-import"},
+						Type: backupv1alpha1.DataSourceTypeImport,
+						Import: &backupv1alpha1.DataSourceImport{
+							ClassRef:   &commonv1alpha1.ObjectRef{Name: "job-mode-no-import"},
 							StorageRef: commonv1alpha1.ObjectRef{Name: "my-storage"},
 							Parameters: &runtime.RawExtension{Raw: []byte(`{"path": "/backup"}`)},
 						},
@@ -111,15 +111,15 @@ func TestValidateDataSource(t *testing.T) {
 			expectErr: `BackupClass "job-mode-no-import" does not have job.import defined`,
 		},
 		{
-			name: "jobImport with job.import defined",
+			name: "import with classRef with job.import defined",
 			instance: &corev1alpha1.Instance{
 				ObjectMeta: metav1.ObjectMeta{Name: "test-instance"},
 				Spec: corev1alpha1.InstanceSpec{
 					ProviderRef: commonv1alpha1.ObjectRef{Name: "psmdb"},
 					DataSource: &backupv1alpha1.DataSource{
-						Type: backupv1alpha1.DataSourceTypeJobImport,
-						JobImport: &backupv1alpha1.DataSourceJobImport{
-							ClassRef:   commonv1alpha1.ObjectRef{Name: "job-mode-with-import"},
+						Type: backupv1alpha1.DataSourceTypeImport,
+						Import: &backupv1alpha1.DataSourceImport{
+							ClassRef:   &commonv1alpha1.ObjectRef{Name: "job-mode-with-import"},
 							StorageRef: commonv1alpha1.ObjectRef{Name: "my-storage"},
 							Parameters: &runtime.RawExtension{Raw: []byte(`{"path": "/backup"}`)},
 						},

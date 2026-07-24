@@ -28,9 +28,9 @@ import (
 
 // InstanceSpec defines the desired state of Instance
 // +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'Backup' || (has(self.backup) && self.backup.enabled)",message="spec.dataSource.type=Backup requires spec.backup.enabled=true with at least one storage so the provider can read the source backup"
-// +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'ProviderManagedImport' || (has(self.backup) && self.backup.enabled)",message="spec.dataSource.type=ProviderManagedImport requires spec.backup.enabled=true"
-// +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'ProviderManagedImport' || (has(self.backup) && has(self.backup.classRef) && size(self.backup.classRef.name) > 0)",message="spec.dataSource.type=ProviderManagedImport requires spec.backup.classRef.name"
-// +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'ProviderManagedImport' || !has(self.backup.storages) || self.backup.storages.exists(s, s.storageRef.name == self.dataSource.providerManagedImport.storageRef.name)",message="spec.dataSource.providerManagedImport.storageRef.name must match an entry in spec.backup.storages"
+// +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'Import' || has(self.dataSource.import.classRef) || (has(self.backup) && self.backup.enabled)",message="spec.dataSource.type=Import without classRef requires spec.backup.enabled=true"
+// +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'Import' || has(self.dataSource.import.classRef) || (has(self.backup) && has(self.backup.classRef) && size(self.backup.classRef.name) > 0)",message="spec.dataSource.type=Import without classRef requires spec.backup.classRef.name"
+// +kubebuilder:validation:XValidation:rule="!has(self.dataSource) || self.dataSource.type != 'Import' || has(self.dataSource.import.classRef) || !has(self.backup.storages) || self.backup.storages.exists(s, s.storageRef.name == self.dataSource.import.storageRef.name)",message="spec.dataSource.import.storageRef.name must match an entry in spec.backup.storages when classRef is not set"
 // +kubebuilder:validation:XValidation:rule="!has(oldSelf.dataSource) || (has(self.dataSource) && self.dataSource == oldSelf.dataSource)",message="spec.dataSource is immutable once set"
 type InstanceSpec struct {
 	// ProviderRef references the cluster-scoped Provider that manages this
@@ -96,19 +96,16 @@ type InstanceSpec struct {
 	DeletionPolicy InstanceDeletionPolicy `json:"deletionPolicy,omitempty"`
 
 	// DataSource allows populating a new Instance with data from an existing
-	// Backup CR (type=Backup), an external backup managed by the provider
-	// (type=ProviderManagedImport), or a Job-based import (type=JobImport).
+	// Backup CR (type=Backup) or by importing from external storage (type=Import).
 	//
 	// For type=Backup: The referenced Backup must be in the same namespace, in
 	// Succeeded state, and its BackupClass must list the Instance's provider in
 	// SupportedProviders. Only ProviderManaged BackupClasses are supported.
 	//
-	// For type=ProviderManagedImport: The Instance imports data from an external
-	// backup (e.g. Percona Backup for MongoDB in S3) using provider-native restore.
-	// Requires backup.enabled=true, backup.classRef.name, and a matching storage entry.
-	//
-	// For type=JobImport: The Instance imports data via an external Job defined
-	// by the BackupClass's jobImport configuration.
+	// For type=Import: The Instance imports data from external storage.
+	// If classRef is not specified, the Instance's backup class (spec.backup.classRef)
+	// is used and backup must be enabled. If classRef is specified, that BackupClass
+	// is used directly (useful for Job-mode import classes).
 	// +optional
 	DataSource *backupv1alpha1.DataSource `json:"dataSource,omitempty"`
 }

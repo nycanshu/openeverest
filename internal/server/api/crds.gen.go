@@ -172,9 +172,8 @@ func (e InstalledExtensionStatusPhase) Valid() bool {
 
 // Defines values for InstanceSpecDataSourceType.
 const (
-	InstanceSpecDataSourceTypeBackup                InstanceSpecDataSourceType = "Backup"
-	InstanceSpecDataSourceTypeJobImport             InstanceSpecDataSourceType = "JobImport"
-	InstanceSpecDataSourceTypeProviderManagedImport InstanceSpecDataSourceType = "ProviderManagedImport"
+	InstanceSpecDataSourceTypeBackup InstanceSpecDataSourceType = "Backup"
+	InstanceSpecDataSourceTypeImport InstanceSpecDataSourceType = "Import"
 )
 
 // Valid indicates whether the value is a known member of the InstanceSpecDataSourceType enum.
@@ -182,9 +181,7 @@ func (e InstanceSpecDataSourceType) Valid() bool {
 	switch e {
 	case InstanceSpecDataSourceTypeBackup:
 		return true
-	case InstanceSpecDataSourceTypeJobImport:
-		return true
-	case InstanceSpecDataSourceTypeProviderManagedImport:
+	case InstanceSpecDataSourceTypeImport:
 		return true
 	default:
 		return false
@@ -259,9 +256,8 @@ func (e InstanceStatusPhase) Valid() bool {
 
 // Defines values for InstancePresetSpecDataSourceType.
 const (
-	InstancePresetSpecDataSourceTypeBackup                InstancePresetSpecDataSourceType = "Backup"
-	InstancePresetSpecDataSourceTypeJobImport             InstancePresetSpecDataSourceType = "JobImport"
-	InstancePresetSpecDataSourceTypeProviderManagedImport InstancePresetSpecDataSourceType = "ProviderManagedImport"
+	InstancePresetSpecDataSourceTypeBackup InstancePresetSpecDataSourceType = "Backup"
+	InstancePresetSpecDataSourceTypeImport InstancePresetSpecDataSourceType = "Import"
 )
 
 // Valid indicates whether the value is a known member of the InstancePresetSpecDataSourceType enum.
@@ -269,9 +265,7 @@ func (e InstancePresetSpecDataSourceType) Valid() bool {
 	switch e {
 	case InstancePresetSpecDataSourceTypeBackup:
 		return true
-	case InstancePresetSpecDataSourceTypeJobImport:
-		return true
-	case InstancePresetSpecDataSourceTypeProviderManagedImport:
+	case InstancePresetSpecDataSourceTypeImport:
 		return true
 	default:
 		return false
@@ -358,9 +352,8 @@ func (e ProviderStatusConditionsStatus) Valid() bool {
 
 // Defines values for RestoreSpecDataSourceType.
 const (
-	RestoreSpecDataSourceTypeBackup                RestoreSpecDataSourceType = "Backup"
-	RestoreSpecDataSourceTypeJobImport             RestoreSpecDataSourceType = "JobImport"
-	RestoreSpecDataSourceTypeProviderManagedImport RestoreSpecDataSourceType = "ProviderManagedImport"
+	RestoreSpecDataSourceTypeBackup RestoreSpecDataSourceType = "Backup"
+	RestoreSpecDataSourceTypeImport RestoreSpecDataSourceType = "Import"
 )
 
 // Valid indicates whether the value is a known member of the RestoreSpecDataSourceType enum.
@@ -368,9 +361,7 @@ func (e RestoreSpecDataSourceType) Valid() bool {
 	switch e {
 	case RestoreSpecDataSourceTypeBackup:
 		return true
-	case RestoreSpecDataSourceTypeJobImport:
-		return true
-	case RestoreSpecDataSourceTypeProviderManagedImport:
+	case RestoreSpecDataSourceTypeImport:
 		return true
 	default:
 		return false
@@ -597,8 +588,7 @@ type BackupClass struct {
 
 		// ImportParametersSchema ImportParametersSchema declares the OpenAPI v3 schema describing the import-time
 		// parameters accepted by this class. Validated against:
-		// - Instance.spec.dataSource.providerManagedImport.parameters (for ProviderManaged classes)
-		// - Instance.spec.dataSource.jobImport.parameters (for Job classes)
+		// - Instance.spec.dataSource.import.parameters
 		ImportParametersSchema *struct {
 			// OpenAPIV3Schema OpenAPIV3Schema is the OpenAPI v3 schema describing the accepted
 			// parameters payload.
@@ -684,7 +674,7 @@ type BackupClass struct {
 				} `json:"permissions,omitempty"`
 			} `json:"backup,omitempty"`
 
-			// Import Import describes the job spawned for JobImport data sources.
+			// Import Import describes the job spawned for Import data sources when using Job mode.
 			Import *struct {
 				// CleanupJobSpec CleanupJobSpec is the optional specification of a cleanup job that runs
 				// when the parent Backup or Restore CR is deleted.
@@ -867,7 +857,7 @@ type BackupClass struct {
 			} `json:"pitrParametersSchema,omitempty"`
 
 			// SupportsImport SupportsImport indicates whether this ProviderManaged class supports
-			// importing from external data sources (Instance.spec.dataSource.type=ProviderManagedImport).
+			// importing from external data sources (Instance.spec.dataSource.type=Import).
 			// When true, the provider handles imports by creating operator-native
 			// restore resources (e.g., PerconaServerMongoDBRestore) directly, without
 			// spawning a wrapper Job. The import configuration is validated against
@@ -1905,19 +1895,16 @@ type Instance struct {
 		} `json:"components,omitempty"`
 
 		// DataSource DataSource allows populating a new Instance with data from an existing
-		// Backup CR (type=Backup), an external backup managed by the provider
-		// (type=ProviderManagedImport), or a Job-based import (type=JobImport).
+		// Backup CR (type=Backup) or by importing from external storage (type=Import).
 		//
 		// For type=Backup: The referenced Backup must be in the same namespace, in
 		// Succeeded state, and its BackupClass must list the Instance's provider in
 		// SupportedProviders. Only ProviderManaged BackupClasses are supported.
 		//
-		// For type=ProviderManagedImport: The Instance imports data from an external
-		// backup (e.g. Percona Backup for MongoDB in S3) using provider-native restore.
-		// Requires backup.enabled=true, backup.classRef.name, and a matching storage entry.
-		//
-		// For type=JobImport: The Instance imports data via an external Job defined
-		// by the BackupClass's jobImport configuration.
+		// For type=Import: The Instance imports data from external storage.
+		// If classRef is not specified, the Instance's backup class (spec.backup.classRef)
+		// is used and backup must be enabled. If classRef is specified, that BackupClass
+		// is used directly (useful for Job-mode import classes).
 		DataSource *struct {
 			// Backup Backup references an existing Backup CR in the same namespace.
 			// Required when type=Backup.
@@ -1940,14 +1927,16 @@ type Instance struct {
 				} `json:"pitr,omitempty"`
 			} `json:"backup,omitempty"`
 
-			// JobImport JobImport imports from external storage using an independent Job-mode BackupClass.
-			// Required when type=JobImport.
-			JobImport *struct {
-				// ClassRef ClassRef references a Job-mode BackupClass with job.import configured.
-				ClassRef struct {
+			// Import Import imports from external storage.
+			// Required when type=Import.
+			Import *struct {
+				// ClassRef ClassRef references a BackupClass. Required for Job mode.
+				// ProviderManaged mode uses the Instance's backup class (spec.backup.classRef)
+				// and backup must be enabled.
+				ClassRef *struct {
 					// Name Name of the referenced object.
 					Name string `json:"name"`
-				} `json:"classRef"`
+				} `json:"classRef,omitempty"`
 
 				// Parameters Parameters contains all import configuration including path and credentials.
 				// Validated against BackupClass.spec.importParameterSchema.
@@ -1958,22 +1947,7 @@ type Instance struct {
 					// Name Name of the referenced object.
 					Name string `json:"name"`
 				} `json:"storageRef"`
-			} `json:"jobImport,omitempty"`
-
-			// ProviderManagedImport ProviderManagedImport imports from external storage using backup infrastructure.
-			// Required when type=ProviderManagedImport.
-			ProviderManagedImport *struct {
-				// Parameters Parameters contains all import configuration including path and credentials.
-				// Validated against BackupClass.spec.importParameterSchema.
-				Parameters map[string]interface{} `json:"parameters"`
-
-				// StorageRef StorageRef references a BackupStorage by name.
-				// Must match an entry in spec.backup.storages.
-				StorageRef struct {
-					// Name Name of the referenced object.
-					Name string `json:"name"`
-				} `json:"storageRef"`
-			} `json:"providerManagedImport,omitempty"`
+			} `json:"import,omitempty"`
 
 			// Type Type selects the data source kind.
 			Type InstanceSpecDataSourceType `json:"type"`
@@ -2910,19 +2884,16 @@ type InstancePreset struct {
 		} `json:"components,omitempty"`
 
 		// DataSource DataSource allows populating a new Instance with data from an existing
-		// Backup CR (type=Backup), an external backup managed by the provider
-		// (type=ProviderManagedImport), or a Job-based import (type=JobImport).
+		// Backup CR (type=Backup) or by importing from external storage (type=Import).
 		//
 		// For type=Backup: The referenced Backup must be in the same namespace, in
 		// Succeeded state, and its BackupClass must list the Instance's provider in
 		// SupportedProviders. Only ProviderManaged BackupClasses are supported.
 		//
-		// For type=ProviderManagedImport: The Instance imports data from an external
-		// backup (e.g. Percona Backup for MongoDB in S3) using provider-native restore.
-		// Requires backup.enabled=true, backup.classRef.name, and a matching storage entry.
-		//
-		// For type=JobImport: The Instance imports data via an external Job defined
-		// by the BackupClass's jobImport configuration.
+		// For type=Import: The Instance imports data from external storage.
+		// If classRef is not specified, the Instance's backup class (spec.backup.classRef)
+		// is used and backup must be enabled. If classRef is specified, that BackupClass
+		// is used directly (useful for Job-mode import classes).
 		DataSource *struct {
 			// Backup Backup references an existing Backup CR in the same namespace.
 			// Required when type=Backup.
@@ -2945,14 +2916,16 @@ type InstancePreset struct {
 				} `json:"pitr,omitempty"`
 			} `json:"backup,omitempty"`
 
-			// JobImport JobImport imports from external storage using an independent Job-mode BackupClass.
-			// Required when type=JobImport.
-			JobImport *struct {
-				// ClassRef ClassRef references a Job-mode BackupClass with job.import configured.
-				ClassRef struct {
+			// Import Import imports from external storage.
+			// Required when type=Import.
+			Import *struct {
+				// ClassRef ClassRef references a BackupClass. Required for Job mode.
+				// ProviderManaged mode uses the Instance's backup class (spec.backup.classRef)
+				// and backup must be enabled.
+				ClassRef *struct {
 					// Name Name of the referenced object.
 					Name string `json:"name"`
-				} `json:"classRef"`
+				} `json:"classRef,omitempty"`
 
 				// Parameters Parameters contains all import configuration including path and credentials.
 				// Validated against BackupClass.spec.importParameterSchema.
@@ -2963,22 +2936,7 @@ type InstancePreset struct {
 					// Name Name of the referenced object.
 					Name string `json:"name"`
 				} `json:"storageRef"`
-			} `json:"jobImport,omitempty"`
-
-			// ProviderManagedImport ProviderManagedImport imports from external storage using backup infrastructure.
-			// Required when type=ProviderManagedImport.
-			ProviderManagedImport *struct {
-				// Parameters Parameters contains all import configuration including path and credentials.
-				// Validated against BackupClass.spec.importParameterSchema.
-				Parameters map[string]interface{} `json:"parameters"`
-
-				// StorageRef StorageRef references a BackupStorage by name.
-				// Must match an entry in spec.backup.storages.
-				StorageRef struct {
-					// Name Name of the referenced object.
-					Name string `json:"name"`
-				} `json:"storageRef"`
-			} `json:"providerManagedImport,omitempty"`
+			} `json:"import,omitempty"`
 
 			// Type Type selects the data source kind.
 			Type InstancePresetSpecDataSourceType `json:"type"`
@@ -3561,14 +3519,16 @@ type Restore struct {
 				} `json:"pitr,omitempty"`
 			} `json:"backup,omitempty"`
 
-			// JobImport JobImport imports from external storage using an independent Job-mode BackupClass.
-			// Required when type=JobImport.
-			JobImport *struct {
-				// ClassRef ClassRef references a Job-mode BackupClass with job.import configured.
-				ClassRef struct {
+			// Import Import imports from external storage.
+			// Required when type=Import.
+			Import *struct {
+				// ClassRef ClassRef references a BackupClass. Required for Job mode.
+				// ProviderManaged mode uses the Instance's backup class (spec.backup.classRef)
+				// and backup must be enabled.
+				ClassRef *struct {
 					// Name Name of the referenced object.
 					Name string `json:"name"`
-				} `json:"classRef"`
+				} `json:"classRef,omitempty"`
 
 				// Parameters Parameters contains all import configuration including path and credentials.
 				// Validated against BackupClass.spec.importParameterSchema.
@@ -3579,22 +3539,7 @@ type Restore struct {
 					// Name Name of the referenced object.
 					Name string `json:"name"`
 				} `json:"storageRef"`
-			} `json:"jobImport,omitempty"`
-
-			// ProviderManagedImport ProviderManagedImport imports from external storage using backup infrastructure.
-			// Required when type=ProviderManagedImport.
-			ProviderManagedImport *struct {
-				// Parameters Parameters contains all import configuration including path and credentials.
-				// Validated against BackupClass.spec.importParameterSchema.
-				Parameters map[string]interface{} `json:"parameters"`
-
-				// StorageRef StorageRef references a BackupStorage by name.
-				// Must match an entry in spec.backup.storages.
-				StorageRef struct {
-					// Name Name of the referenced object.
-					Name string `json:"name"`
-				} `json:"storageRef"`
-			} `json:"providerManagedImport,omitempty"`
+			} `json:"import,omitempty"`
 
 			// Type Type selects the data source kind.
 			Type RestoreSpecDataSourceType `json:"type"`

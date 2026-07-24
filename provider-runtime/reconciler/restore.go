@@ -208,8 +208,12 @@ func backupClassNameForRestore(ctx context.Context, c client.Client, restore *ba
 		}
 		return backup.Spec.ClassRef.Name, nil
 
-	case backupv1alpha1.DataSourceTypeProviderManagedImport:
-		// For ProviderManagedImport, get the BackupClass from the Instance's backup config.
+	case backupv1alpha1.DataSourceTypeImport:
+		// For Import, use classRef if set, otherwise get from Instance's backup config.
+		if ds.Import != nil && ds.Import.ClassRef != nil && ds.Import.ClassRef.Name != "" {
+			return ds.Import.ClassRef.Name, nil
+		}
+		// Fall back to Instance's backup.classRef
 		instance := &corev1alpha1.Instance{}
 		if err := c.Get(ctx, client.ObjectKey{
 			Namespace: restore.Namespace,
@@ -224,13 +228,6 @@ func backupClassNameForRestore(ctx context.Context, c client.Client, restore *ba
 			return "", nil
 		}
 		return instance.Spec.Backup.ClassRef.Name, nil
-
-	case backupv1alpha1.DataSourceTypeJobImport:
-		// For JobImport, get the BackupClass from the dataSource's classRef.
-		if ds.JobImport == nil || ds.JobImport.ClassRef.Name == "" {
-			return "", nil
-		}
-		return ds.JobImport.ClassRef.Name, nil
 
 	default:
 		return "", nil

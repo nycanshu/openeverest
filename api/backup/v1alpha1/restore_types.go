@@ -41,20 +41,15 @@ type RestoreSpec struct {
 // DataSourceType selects the kind of data source for initial seeding or
 // restore operations.
 //
-// +kubebuilder:validation:Enum=Backup;ProviderManagedImport;JobImport
+// +kubebuilder:validation:Enum=Backup;Import
 type DataSourceType string
 
 const (
 	// DataSourceTypeBackup seeds from an existing Backup CR in the same
 	// namespace.
 	DataSourceTypeBackup DataSourceType = "Backup"
-	// DataSourceTypeProviderManagedImport seeds from an external storage
-	// location using the backup infrastructure (spec.backup.classRef).
-	// Requires backup to be enabled.
-	DataSourceTypeProviderManagedImport DataSourceType = "ProviderManagedImport"
-	// DataSourceTypeJobImport seeds from an external storage location using
-	// an independent Job-mode BackupClass. Does not require backup to be enabled.
-	DataSourceTypeJobImport DataSourceType = "JobImport"
+	// DataSourceTypeImport seeds from an external storage location.
+	DataSourceTypeImport DataSourceType = "Import"
 )
 
 // DataSourceBackup references an existing Backup CR as the data source.
@@ -89,8 +84,7 @@ type DataSourcePITR struct {
 // source-specific block is populated.
 //
 // +kubebuilder:validation:XValidation:rule="self.type == 'Backup' ? has(self.backup) : true",message="backup must be set when type is Backup"
-// +kubebuilder:validation:XValidation:rule="self.type == 'ProviderManagedImport' ? has(self.providerManagedImport) : true",message="providerManagedImport must be set when type is ProviderManagedImport"
-// +kubebuilder:validation:XValidation:rule="self.type == 'JobImport' ? has(self.jobImport) : true",message="jobImport must be set when type is JobImport"
+// +kubebuilder:validation:XValidation:rule="self.type == 'Import' ? has(self.import) : true",message="import must be set when type is Import"
 type DataSource struct {
 	// Type selects the data source kind.
 	// +kubebuilder:validation:Required
@@ -99,40 +93,19 @@ type DataSource struct {
 	// Required when type=Backup.
 	// +optional
 	Backup *DataSourceBackup `json:"backup,omitempty"`
-	// ProviderManagedImport imports from external storage using backup infrastructure.
-	// Required when type=ProviderManagedImport.
+	// Import imports from external storage.
+	// Required when type=Import.
 	// +optional
-	ProviderManagedImport *DataSourceProviderManagedImport `json:"providerManagedImport,omitempty"`
-	// JobImport imports from external storage using an independent Job-mode BackupClass.
-	// Required when type=JobImport.
-	// +optional
-	JobImport *DataSourceJobImport `json:"jobImport,omitempty"`
+	Import *DataSourceImport `json:"import,omitempty"`
 }
 
-// DataSourceProviderManagedImport imports from external storage using the
-// Instance's backup infrastructure. The BackupClass is resolved from
-// spec.backup.classRef (single source of truth), backup must be enabled,
-// and StorageRef must match an entry in spec.backup.storages. The provider
-// creates an operator-native restore CR (e.g., PerconaServerMongoDBRestore).
-type DataSourceProviderManagedImport struct {
-	// StorageRef references a BackupStorage by name.
-	// Must match an entry in spec.backup.storages.
-	// +kubebuilder:validation:Required
-	StorageRef common.ObjectRef `json:"storageRef"`
-	// Parameters contains all import configuration including path and credentials.
-	// Validated against BackupClass.spec.importParameterSchema.
-	// +kubebuilder:pruning:PreserveUnknownFields
-	// +kubebuilder:validation:Required
-	Parameters *runtime.RawExtension `json:"parameters"`
-}
-
-// DataSourceJobImport imports from external storage using an independent
-// Job-mode BackupClass. Does not require backup to be enabled on the Instance.
-// The provider spawns an import Job using the BackupClass config.
-type DataSourceJobImport struct {
-	// ClassRef references a Job-mode BackupClass with job.import configured.
-	// +kubebuilder:validation:Required
-	ClassRef common.ObjectRef `json:"classRef"`
+// DataSourceImport imports data from external storage.
+type DataSourceImport struct {
+	// ClassRef references a BackupClass. Required for Job mode.
+	// ProviderManaged mode uses the Instance's backup class (spec.backup.classRef)
+	// and backup must be enabled.
+	// +optional
+	ClassRef *common.ObjectRef `json:"classRef,omitempty"`
 	// StorageRef references a BackupStorage by name.
 	// +kubebuilder:validation:Required
 	StorageRef common.ObjectRef `json:"storageRef"`

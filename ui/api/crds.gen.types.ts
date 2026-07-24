@@ -208,8 +208,7 @@ export interface components {
                 /**
                  * @description ImportParametersSchema declares the OpenAPI v3 schema describing the import-time
                  *     parameters accepted by this class. Validated against:
-                 *     - Instance.spec.dataSource.providerManagedImport.parameters (for ProviderManaged classes)
-                 *     - Instance.spec.dataSource.jobImport.parameters (for Job classes)
+                 *     - Instance.spec.dataSource.import.parameters
                  */
                 importParametersSchema?: {
                     /**
@@ -302,7 +301,7 @@ export interface components {
                             verbs: string[];
                         }[];
                     };
-                    /** @description Import describes the job spawned for JobImport data sources. */
+                    /** @description Import describes the job spawned for Import data sources when using Job mode. */
                     import?: {
                         /**
                          * @description CleanupJobSpec is the optional specification of a cleanup job that runs
@@ -504,7 +503,7 @@ export interface components {
                     };
                     /**
                      * @description SupportsImport indicates whether this ProviderManaged class supports
-                     *     importing from external data sources (Instance.spec.dataSource.type=ProviderManagedImport).
+                     *     importing from external data sources (Instance.spec.dataSource.type=Import).
                      *     When true, the provider handles imports by creating operator-native
                      *     restore resources (e.g., PerconaServerMongoDBRestore) directly, without
                      *     spawning a wrapper Job. The import configuration is validated against
@@ -1688,19 +1687,16 @@ export interface components {
                 };
                 /**
                  * @description DataSource allows populating a new Instance with data from an existing
-                 *     Backup CR (type=Backup), an external backup managed by the provider
-                 *     (type=ProviderManagedImport), or a Job-based import (type=JobImport).
+                 *     Backup CR (type=Backup) or by importing from external storage (type=Import).
                  *
                  *     For type=Backup: The referenced Backup must be in the same namespace, in
                  *     Succeeded state, and its BackupClass must list the Instance's provider in
                  *     SupportedProviders. Only ProviderManaged BackupClasses are supported.
                  *
-                 *     For type=ProviderManagedImport: The Instance imports data from an external
-                 *     backup (e.g. Percona Backup for MongoDB in S3) using provider-native restore.
-                 *     Requires backup.enabled=true, backup.classRef.name, and a matching storage entry.
-                 *
-                 *     For type=JobImport: The Instance imports data via an external Job defined
-                 *     by the BackupClass's jobImport configuration.
+                 *     For type=Import: The Instance imports data from external storage.
+                 *     If classRef is not specified, the Instance's backup class (spec.backup.classRef)
+                 *     is used and backup must be enabled. If classRef is specified, that BackupClass
+                 *     is used directly (useful for Job-mode import classes).
                  */
                 dataSource?: {
                     /**
@@ -1729,12 +1725,16 @@ export interface components {
                         };
                     };
                     /**
-                     * @description JobImport imports from external storage using an independent Job-mode BackupClass.
-                     *     Required when type=JobImport.
+                     * @description Import imports from external storage.
+                     *     Required when type=Import.
                      */
-                    jobImport?: {
-                        /** @description ClassRef references a Job-mode BackupClass with job.import configured. */
-                        classRef: {
+                    import?: {
+                        /**
+                         * @description ClassRef references a BackupClass. Required for Job mode.
+                         *     ProviderManaged mode uses the Instance's backup class (spec.backup.classRef)
+                         *     and backup must be enabled.
+                         */
+                        classRef?: {
                             /** @description Name of the referenced object. */
                             name: string;
                         };
@@ -1750,29 +1750,10 @@ export interface components {
                         };
                     };
                     /**
-                     * @description ProviderManagedImport imports from external storage using backup infrastructure.
-                     *     Required when type=ProviderManagedImport.
-                     */
-                    providerManagedImport?: {
-                        /**
-                         * @description Parameters contains all import configuration including path and credentials.
-                         *     Validated against BackupClass.spec.importParameterSchema.
-                         */
-                        parameters: Record<string, never>;
-                        /**
-                         * @description StorageRef references a BackupStorage by name.
-                         *     Must match an entry in spec.backup.storages.
-                         */
-                        storageRef: {
-                            /** @description Name of the referenced object. */
-                            name: string;
-                        };
-                    };
-                    /**
                      * @description Type selects the data source kind.
                      * @enum {string}
                      */
-                    type: "Backup" | "ProviderManagedImport" | "JobImport";
+                    type: "Backup" | "Import";
                 };
                 /**
                  * @description DeletionPolicy controls what happens to Backup and Restore CRs that
@@ -2812,19 +2793,16 @@ export interface components {
                 };
                 /**
                  * @description DataSource allows populating a new Instance with data from an existing
-                 *     Backup CR (type=Backup), an external backup managed by the provider
-                 *     (type=ProviderManagedImport), or a Job-based import (type=JobImport).
+                 *     Backup CR (type=Backup) or by importing from external storage (type=Import).
                  *
                  *     For type=Backup: The referenced Backup must be in the same namespace, in
                  *     Succeeded state, and its BackupClass must list the Instance's provider in
                  *     SupportedProviders. Only ProviderManaged BackupClasses are supported.
                  *
-                 *     For type=ProviderManagedImport: The Instance imports data from an external
-                 *     backup (e.g. Percona Backup for MongoDB in S3) using provider-native restore.
-                 *     Requires backup.enabled=true, backup.classRef.name, and a matching storage entry.
-                 *
-                 *     For type=JobImport: The Instance imports data via an external Job defined
-                 *     by the BackupClass's jobImport configuration.
+                 *     For type=Import: The Instance imports data from external storage.
+                 *     If classRef is not specified, the Instance's backup class (spec.backup.classRef)
+                 *     is used and backup must be enabled. If classRef is specified, that BackupClass
+                 *     is used directly (useful for Job-mode import classes).
                  */
                 dataSource?: {
                     /**
@@ -2853,12 +2831,16 @@ export interface components {
                         };
                     };
                     /**
-                     * @description JobImport imports from external storage using an independent Job-mode BackupClass.
-                     *     Required when type=JobImport.
+                     * @description Import imports from external storage.
+                     *     Required when type=Import.
                      */
-                    jobImport?: {
-                        /** @description ClassRef references a Job-mode BackupClass with job.import configured. */
-                        classRef: {
+                    import?: {
+                        /**
+                         * @description ClassRef references a BackupClass. Required for Job mode.
+                         *     ProviderManaged mode uses the Instance's backup class (spec.backup.classRef)
+                         *     and backup must be enabled.
+                         */
+                        classRef?: {
                             /** @description Name of the referenced object. */
                             name: string;
                         };
@@ -2874,29 +2856,10 @@ export interface components {
                         };
                     };
                     /**
-                     * @description ProviderManagedImport imports from external storage using backup infrastructure.
-                     *     Required when type=ProviderManagedImport.
-                     */
-                    providerManagedImport?: {
-                        /**
-                         * @description Parameters contains all import configuration including path and credentials.
-                         *     Validated against BackupClass.spec.importParameterSchema.
-                         */
-                        parameters: Record<string, never>;
-                        /**
-                         * @description StorageRef references a BackupStorage by name.
-                         *     Must match an entry in spec.backup.storages.
-                         */
-                        storageRef: {
-                            /** @description Name of the referenced object. */
-                            name: string;
-                        };
-                    };
-                    /**
                      * @description Type selects the data source kind.
                      * @enum {string}
                      */
-                    type: "Backup" | "ProviderManagedImport" | "JobImport";
+                    type: "Backup" | "Import";
                 };
                 /**
                  * @description DeletionPolicy controls what happens to Backup and Restore CRs that
@@ -3501,12 +3464,16 @@ export interface components {
                         };
                     };
                     /**
-                     * @description JobImport imports from external storage using an independent Job-mode BackupClass.
-                     *     Required when type=JobImport.
+                     * @description Import imports from external storage.
+                     *     Required when type=Import.
                      */
-                    jobImport?: {
-                        /** @description ClassRef references a Job-mode BackupClass with job.import configured. */
-                        classRef: {
+                    import?: {
+                        /**
+                         * @description ClassRef references a BackupClass. Required for Job mode.
+                         *     ProviderManaged mode uses the Instance's backup class (spec.backup.classRef)
+                         *     and backup must be enabled.
+                         */
+                        classRef?: {
                             /** @description Name of the referenced object. */
                             name: string;
                         };
@@ -3522,29 +3489,10 @@ export interface components {
                         };
                     };
                     /**
-                     * @description ProviderManagedImport imports from external storage using backup infrastructure.
-                     *     Required when type=ProviderManagedImport.
-                     */
-                    providerManagedImport?: {
-                        /**
-                         * @description Parameters contains all import configuration including path and credentials.
-                         *     Validated against BackupClass.spec.importParameterSchema.
-                         */
-                        parameters: Record<string, never>;
-                        /**
-                         * @description StorageRef references a BackupStorage by name.
-                         *     Must match an entry in spec.backup.storages.
-                         */
-                        storageRef: {
-                            /** @description Name of the referenced object. */
-                            name: string;
-                        };
-                    };
-                    /**
                      * @description Type selects the data source kind.
                      * @enum {string}
                      */
-                    type: "Backup" | "ProviderManagedImport" | "JobImport";
+                    type: "Backup" | "Import";
                 };
                 /**
                  * @description InstanceRef references the Instance to restore into. The Instance

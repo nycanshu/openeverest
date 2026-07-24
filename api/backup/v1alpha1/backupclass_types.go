@@ -80,8 +80,7 @@ type BackupClassSpec struct {
 	RestoreParametersSchema common.ParametersSchema `json:"restoreParametersSchema,omitempty"`
 	// ImportParametersSchema declares the OpenAPI v3 schema describing the import-time
 	// parameters accepted by this class. Validated against:
-	// - Instance.spec.dataSource.providerManagedImport.parameters (for ProviderManaged classes)
-	// - Instance.spec.dataSource.jobImport.parameters (for Job classes)
+	// - Instance.spec.dataSource.import.parameters
 	// +optional
 	ImportParametersSchema common.ParametersSchema `json:"importParametersSchema,omitempty"`
 	// InstanceConstraints defines compatibility requirements that must be
@@ -121,7 +120,7 @@ type JobModeSpec struct {
 	// are not supported by this class. Requires Backup to be set.
 	// +optional
 	Restore *JobExecution `json:"restore,omitempty"`
-	// Import describes the job spawned for JobImport data sources.
+	// Import describes the job spawned for Import data sources when using Job mode.
 	// +optional
 	Import *JobExecution `json:"import,omitempty"`
 }
@@ -156,7 +155,7 @@ type ProviderManagedSpec struct {
 	SupportsPITR bool `json:"supportsPITR,omitempty"`
 
 	// SupportsImport indicates whether this ProviderManaged class supports
-	// importing from external data sources (Instance.spec.dataSource.type=ProviderManagedImport).
+	// importing from external data sources (Instance.spec.dataSource.type=Import).
 	// When true, the provider handles imports by creating operator-native
 	// restore resources (e.g., PerconaServerMongoDBRestore) directly, without
 	// spawning a wrapper Job. The import configuration is validated against

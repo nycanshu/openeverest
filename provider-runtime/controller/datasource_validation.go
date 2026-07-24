@@ -31,18 +31,16 @@ func (c *Context) ValidateDataSource() error {
 	switch ds.Type {
 	case backupv1alpha1.DataSourceTypeBackup:
 		return nil
-	case backupv1alpha1.DataSourceTypeProviderManagedImport:
-		return c.validateProviderManagedImport()
-	case backupv1alpha1.DataSourceTypeJobImport:
-		return c.validateJobImport()
+	case backupv1alpha1.DataSourceTypeImport:
+		return c.validateImport()
 	default:
 		return nil
 	}
 }
 
-// validateProviderManagedImport validates ProviderManagedImport constraints that are
-// not enforced by kubebuilder CEL validation.
-func (c *Context) validateProviderManagedImport() error {
+// validateImport validates Import constraints that are not enforced by
+// kubebuilder CEL validation.
+func (c *Context) validateImport() error {
 	bc, err := c.DataSourceBackupClass()
 	if err != nil {
 		return err
@@ -52,43 +50,22 @@ func (c *Context) validateProviderManagedImport() error {
 		return fmt.Errorf("BackupClass %q does not support provider %q", bc.Name, c.providerName)
 	}
 
-	if bc.Spec.ExecutionMode != backupv1alpha1.BackupExecutionModeProviderManaged {
-		return fmt.Errorf("ProviderManagedImport requires a ProviderManaged BackupClass, got %q", bc.Spec.ExecutionMode)
+	// Validate based on execution mode
+	switch bc.Spec.ExecutionMode {
+	case backupv1alpha1.BackupExecutionModeProviderManaged:
+		if bc.Spec.ProviderManaged == nil || !bc.Spec.ProviderManaged.SupportsImport {
+			return fmt.Errorf("BackupClass %q does not support import", bc.Name)
+		}
+	case backupv1alpha1.BackupExecutionModeJob:
+		if bc.Spec.Job == nil || bc.Spec.Job.Import == nil {
+			return fmt.Errorf("BackupClass %q does not have job.import defined", bc.Name)
+		}
+	default:
+		return fmt.Errorf("BackupClass %q has unsupported execution mode %q", bc.Name, bc.Spec.ExecutionMode)
 	}
 
-	if bc.Spec.ProviderManaged == nil || !bc.Spec.ProviderManaged.SupportsImport {
-		return fmt.Errorf("BackupClass %q does not support import", bc.Name)
-	}
-
-	if err := bc.Spec.ImportParametersSchema.Validate(c.in.Spec.DataSource.ProviderManagedImport.Parameters); err != nil {
-		return fmt.Errorf("spec.dataSource.providerManagedImport.parameters validation failed: %w", err)
-	}
-
-	return nil
-}
-
-// validateJobImport validates JobImport constraints that are not
-// enforced by kubebuilder CEL validation.
-func (c *Context) validateJobImport() error {
-	bc, err := c.DataSourceBackupClass()
-	if err != nil {
-		return err
-	}
-
-	if !bc.Spec.SupportedProviders.Has(c.providerName) {
-		return fmt.Errorf("BackupClass %q does not support provider %q", bc.Name, c.providerName)
-	}
-
-	if bc.Spec.ExecutionMode != backupv1alpha1.BackupExecutionModeJob {
-		return fmt.Errorf("JobImport requires a Job-mode BackupClass, got %q", bc.Spec.ExecutionMode)
-	}
-
-	if bc.Spec.Job == nil || bc.Spec.Job.Import == nil {
-		return fmt.Errorf("BackupClass %q does not have job.import defined", bc.Name)
-	}
-
-	if err := bc.Spec.ImportParametersSchema.Validate(c.in.Spec.DataSource.JobImport.Parameters); err != nil {
-		return fmt.Errorf("spec.dataSource.jobImport.parameters validation failed: %w", err)
+	if err := bc.Spec.ImportParametersSchema.Validate(c.in.Spec.DataSource.Import.Parameters); err != nil {
+		return fmt.Errorf("spec.dataSource.import.parameters validation failed: %w", err)
 	}
 
 	return nil

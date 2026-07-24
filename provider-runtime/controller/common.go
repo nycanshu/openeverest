@@ -832,8 +832,7 @@ func (c *Context) GetDataSourceStatus() *DataSourceStatus {
 
 // DataSourceBackupClass returns the BackupClass for the current dataSource.
 //   - Backup: Returns the classRef from the referenced Backup CR.
-//   - ProviderManagedImport: Returns spec.backup.classRef (Instance's backup config).
-//   - JobImport: Returns spec.dataSource.jobImport.classRef.
+//   - Import: Returns spec.dataSource.import.classRef if set, otherwise spec.backup.classRef.
 //
 // Returns an error if the dataSource is not set or the BackupClass cannot be resolved.
 func (c *Context) DataSourceBackupClass() (*backupv1alpha1.BackupClass, error) {
@@ -851,12 +850,13 @@ func (c *Context) DataSourceBackupClass() (*backupv1alpha1.BackupClass, error) {
 			return nil, fmt.Errorf("failed to get source Backup %q: %w", ds.Backup.BackupRef.Name, err)
 		}
 		classRefName = backup.Spec.ClassRef.Name
-	case backupv1alpha1.DataSourceTypeProviderManagedImport:
-		// ProviderManagedImport uses the Instance's backup.classRef
-		classRefName = c.in.Spec.Backup.ClassRef.Name
-	case backupv1alpha1.DataSourceTypeJobImport:
-		// JobImport uses its own classRef
-		classRefName = ds.JobImport.ClassRef.Name
+	case backupv1alpha1.DataSourceTypeImport:
+		// Import type: Use classRef if set, otherwise fall back to Instance's backup.classRef
+		if ds.Import != nil && ds.Import.ClassRef != nil && ds.Import.ClassRef.Name != "" {
+			classRefName = ds.Import.ClassRef.Name
+		} else {
+			classRefName = c.in.Spec.Backup.ClassRef.Name
+		}
 	default:
 		return nil, fmt.Errorf("unknown dataSource type %q", ds.Type)
 	}
@@ -866,8 +866,7 @@ func (c *Context) DataSourceBackupClass() (*backupv1alpha1.BackupClass, error) {
 
 // DataSourceStorage returns the BackupStorage for the current dataSource.
 //   - Backup: Returns the storageRef from the referenced Backup CR.
-//   - ProviderManagedImport: Returns spec.dataSource.providerManagedImport.storageRef.
-//   - JobImport: Returns spec.dataSource.jobImport.storageRef.
+//   - Import: Returns spec.dataSource.import.storageRef.
 //
 // Returns an error if the dataSource is not set or the BackupStorage cannot be resolved.
 func (c *Context) DataSourceStorage() (*backupv1alpha1.BackupStorage, error) {
@@ -885,10 +884,8 @@ func (c *Context) DataSourceStorage() (*backupv1alpha1.BackupStorage, error) {
 			return nil, fmt.Errorf("failed to get source Backup %q: %w", ds.Backup.BackupRef.Name, err)
 		}
 		storageRefName = backup.Spec.StorageRef.Name
-	case backupv1alpha1.DataSourceTypeProviderManagedImport:
-		storageRefName = ds.ProviderManagedImport.StorageRef.Name
-	case backupv1alpha1.DataSourceTypeJobImport:
-		storageRefName = ds.JobImport.StorageRef.Name
+	case backupv1alpha1.DataSourceTypeImport:
+		storageRefName = ds.Import.StorageRef.Name
 	default:
 		return nil, fmt.Errorf("unknown dataSource type %q", ds.Type)
 	}
@@ -903,8 +900,7 @@ func (c *Context) DataSourceStorage() (*backupv1alpha1.BackupStorage, error) {
 //
 // Supported dataSource types:
 //   - Backup: Restore from an existing Backup CR in the same namespace
-//   - ProviderManagedImport: Import from external backup (e.g. Percona Backup for MongoDB in S3)
-//   - JobImport: Import using a Job-mode BackupClass
+//   - Import: Import from external storage (uses classRef if set, otherwise Instance's backup class)
 //
 // The method validates preconditions for each type, creates a Restore CR
 // named "{instance}-datasource", and translates the Restore status into a
