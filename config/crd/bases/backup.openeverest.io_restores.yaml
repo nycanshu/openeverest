@@ -125,7 +125,7 @@ spec:
                         x-kubernetes-map-type: atomic
                       parameters:
                         description: |-
-                          Parameters contains all import configuration including path and credentials.
+                          Parameters contains all import configuration.
                           Validated against BackupClass.spec.importParameterSchema.
                         type: object
                         x-kubernetes-preserve-unknown-fields: true

@@ -1900,11 +1900,15 @@ type Instance struct {
 		// For type=Backup: The referenced Backup must be in the same namespace, in
 		// Succeeded state, and its BackupClass must list the Instance's provider in
 		// SupportedProviders. Only ProviderManaged BackupClasses are supported.
+		// Instance must have backup enabled and include a storage that matches the
+		// storage used by the source Backup so the provider can access the data.
 		//
 		// For type=Import: The Instance imports data from external storage.
-		// If classRef is not specified, the Instance's backup class (spec.backup.classRef)
-		// is used and backup must be enabled. If classRef is specified, that BackupClass
-		// is used directly (useful for Job-mode import classes).
+		// If classRef is not specified, the Instance's ProviderManaged BackupClass
+		// (spec.backup.classRef) is used and backup must be enabled and include
+		// a storage used by spec.dataSource.import.storageRef.
+		// If classRef is specified, that BackupClass is used directly using Job
+		// execution mode.
 		DataSource *struct {
 			// Backup Backup references an existing Backup CR in the same namespace.
 			// Required when type=Backup.
@@ -1938,7 +1942,7 @@ type Instance struct {
 					Name string `json:"name"`
 				} `json:"classRef,omitempty"`
 
-				// Parameters Parameters contains all import configuration including path and credentials.
+				// Parameters Parameters contains all import configuration.
 				// Validated against BackupClass.spec.importParameterSchema.
 				Parameters map[string]interface{} `json:"parameters"`
 
@@ -2889,11 +2893,15 @@ type InstancePreset struct {
 		// For type=Backup: The referenced Backup must be in the same namespace, in
 		// Succeeded state, and its BackupClass must list the Instance's provider in
 		// SupportedProviders. Only ProviderManaged BackupClasses are supported.
+		// Instance must have backup enabled and include a storage that matches the
+		// storage used by the source Backup so the provider can access the data.
 		//
 		// For type=Import: The Instance imports data from external storage.
-		// If classRef is not specified, the Instance's backup class (spec.backup.classRef)
-		// is used and backup must be enabled. If classRef is specified, that BackupClass
-		// is used directly (useful for Job-mode import classes).
+		// If classRef is not specified, the Instance's ProviderManaged BackupClass
+		// (spec.backup.classRef) is used and backup must be enabled and include
+		// a storage used by spec.dataSource.import.storageRef.
+		// If classRef is specified, that BackupClass is used directly using Job
+		// execution mode.
 		DataSource *struct {
 			// Backup Backup references an existing Backup CR in the same namespace.
 			// Required when type=Backup.
@@ -2927,7 +2935,7 @@ type InstancePreset struct {
 					Name string `json:"name"`
 				} `json:"classRef,omitempty"`
 
-				// Parameters Parameters contains all import configuration including path and credentials.
+				// Parameters Parameters contains all import configuration.
 				// Validated against BackupClass.spec.importParameterSchema.
 				Parameters map[string]interface{} `json:"parameters"`
 
@@ -3530,7 +3538,7 @@ type Restore struct {
 					Name string `json:"name"`
 				} `json:"classRef,omitempty"`
 
-				// Parameters Parameters contains all import configuration including path and credentials.
+				// Parameters Parameters contains all import configuration.
 				// Validated against BackupClass.spec.importParameterSchema.
 				Parameters map[string]interface{} `json:"parameters"`
 
