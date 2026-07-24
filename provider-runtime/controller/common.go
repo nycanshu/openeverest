@@ -1002,7 +1002,7 @@ func (c *Context) ReconcileDataSource() (DataSourceStatus, error) {
 	return s, nil
 }
 
-// checkDataSourceBackup checks that source Backup Backup exists, Succeeded,
+// checkDataSourceBackup checks that source Backup exists, Succeeded,
 // BackupClass is provider managed, and the target Instance has the backup storage
 // that includes the source Backup's storage.
 // Returns (_, true, nil) if all checks are met and processing should continue.
@@ -1113,6 +1113,8 @@ func hasBackupStorage(b *v1alpha1.InstanceBackupSpec, name string) bool {
 // Returns (_, true, nil) if all checks are met and processing should continue.
 // Returns (status, false, nil) if a check failed and processing should stop.
 // Returns (_, _, error) if a non-transient error occurred.
+//
+//nolint:funlen // validation logic benefits from being in one place
 func (c *Context) checkDataSourceImport() (DataSourceStatus, bool, error) {
 	ds := c.in.Spec.DataSource
 
