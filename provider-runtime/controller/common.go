@@ -900,11 +900,15 @@ func (c *Context) DataSourceStorage() (*backupv1alpha1.BackupStorage, error) {
 //
 // Supported dataSource types:
 //   - Backup: Restore from an existing Backup CR in the same namespace
-//   - Import: Import from external storage (uses classRef if set, otherwise Instance's backup class)
+//   - Import: Import from external storage using classRef if set,
+//     otherwise Instance's backup class
 //
-// The method validates preconditions for each type, creates a Restore CR
-// named "{instance}-datasource", and translates the Restore status into a
-// DataSourceStatus that is staged on the Context for the reconciler to flush.
+// The method validates conditions for each dataSource, creates a Restore CR
+// named "{instance}-datasource" owned by instance, with .spec.instanceRef
+// pointing at the target Instance and .spec.dataSource pointing at
+// Instance's .spec.dataSource.
+// It reads .status.state on Restore and translate it into a DataSourceStatus.
+// The returnedDataSourceStatus is staged on the Context for the reconciler to flush.
 //
 // Done=true means the Instance no longer needs to be held in the Restoring
 // phase — either no DataSource is configured, or the restore reached a
@@ -921,6 +925,17 @@ func (c *Context) ReconcileDataSource() (DataSourceStatus, error) {
 	// For Backup type, check additional preconditions that may be transient
 	if ds.Type == backupv1alpha1.DataSourceTypeBackup {
 		status, ok, err := c.checkDataSourceBackup()
+		if err != nil {
+			return DataSourceStatus{}, err
+		}
+		if !ok {
+			return status, nil
+		}
+	}
+
+	// For Import type, check BackupClass and parameters validation
+	if ds.Type == backupv1alpha1.DataSourceTypeImport {
+		status, ok, err := c.checkDataSourceImport()
 		if err != nil {
 			return DataSourceStatus{}, err
 		}
@@ -987,10 +1002,11 @@ func (c *Context) ReconcileDataSource() (DataSourceStatus, error) {
 	return s, nil
 }
 
-// checkDataSourceBackup checks transient preconditions for Backup
-// dataSource (source Backup exists/Succeeded, BackupClass valid, storage matches).
-// Returns (_, true, nil) if all preconditions are met and processing should continue.
-// Returns (status, false, nil) if a precondition failed and processing should stop.
+// checkDataSourceBackup checks that source Backup Backup exists, Succeeded,
+// BackupClass is provider managed, and the target Instance has the backup storage
+// that includes the source Backup's storage.
+// Returns (_, true, nil) if all checks are met and processing should continue.
+// Returns (status, false, nil) if a check failed and processing should stop.
 // Returns (_, _, error) if a non-transient error occurred.
 //
 //nolint:funlen // validation logic benefits from being in one place
@@ -1090,6 +1106,92 @@ func hasBackupStorage(b *v1alpha1.InstanceBackupSpec, name string) bool {
 		}
 	}
 	return false
+}
+
+// checkDataSourceImport checks that BackupClass exists and supports this provider,
+// BackupClass supports import, and import parameters are valid.
+// Returns (_, true, nil) if all checks are met and processing should continue.
+// Returns (status, false, nil) if a check failed and processing should stop.
+// Returns (_, _, error) if a non-transient error occurred.
+func (c *Context) checkDataSourceImport() (DataSourceStatus, bool, error) {
+	ds := c.in.Spec.DataSource
+
+	// BackupClass must exist
+	bc, err := c.DataSourceBackupClass()
+	if err != nil {
+		if apierrors.IsNotFound(err) {
+			s := DataSourceStatus{
+				Done:    false,
+				State:   DataSourceStateWaiting,
+				Reason:  v1alpha1.ReasonDataSourceClassUnsupported,
+				Message: fmt.Sprintf("BackupClass for import not found: %v", err),
+			}
+			c.SetDataSourceStatus(s)
+			return s, false, nil
+		}
+		return DataSourceStatus{}, false, fmt.Errorf("get BackupClass for import: %w", err)
+	}
+
+	// BackupClass must support this provider
+	if !bc.Spec.SupportedProviders.Has(c.providerName) {
+		s := DataSourceStatus{
+			Done:    true,
+			State:   DataSourceStateFailed,
+			Reason:  v1alpha1.ReasonDataSourceClassUnsupported,
+			Message: fmt.Sprintf("BackupClass %q does not list provider %q in SupportedProviders", bc.Name, c.providerName),
+		}
+		c.SetDataSourceStatus(s)
+		return s, false, nil
+	}
+
+	// Validate based on execution mode
+	switch bc.Spec.ExecutionMode {
+	case backupv1alpha1.BackupExecutionModeProviderManaged:
+		if bc.Spec.ProviderManaged == nil || !bc.Spec.ProviderManaged.SupportsImport {
+			s := DataSourceStatus{
+				Done:    true,
+				State:   DataSourceStateFailed,
+				Reason:  v1alpha1.ReasonDataSourceClassUnsupported,
+				Message: fmt.Sprintf("BackupClass %q does not support import", bc.Name),
+			}
+			c.SetDataSourceStatus(s)
+			return s, false, nil
+		}
+	case backupv1alpha1.BackupExecutionModeJob:
+		if bc.Spec.Job == nil || bc.Spec.Job.Import == nil {
+			s := DataSourceStatus{
+				Done:    true,
+				State:   DataSourceStateFailed,
+				Reason:  v1alpha1.ReasonDataSourceClassUnsupported,
+				Message: fmt.Sprintf("BackupClass %q does not have job.import defined", bc.Name),
+			}
+			c.SetDataSourceStatus(s)
+			return s, false, nil
+		}
+	default:
+		s := DataSourceStatus{
+			Done:    true,
+			State:   DataSourceStateFailed,
+			Reason:  v1alpha1.ReasonDataSourceClassUnsupported,
+			Message: fmt.Sprintf("BackupClass %q has unsupported execution mode %q", bc.Name, bc.Spec.ExecutionMode),
+		}
+		c.SetDataSourceStatus(s)
+		return s, false, nil
+	}
+
+	// Validate import parameters against schema
+	if err := bc.Spec.ImportParametersSchema.Validate(ds.Import.Parameters); err != nil {
+		s := DataSourceStatus{
+			Done:    true,
+			State:   DataSourceStateFailed,
+			Reason:  v1alpha1.ReasonDataSourceFailed,
+			Message: fmt.Sprintf("spec.dataSource.import.parameters validation failed: %v", err),
+		}
+		c.SetDataSourceStatus(s)
+		return s, false, nil
+	}
+
+	return DataSourceStatus{}, true, nil
 }
 
 // =============================================================================

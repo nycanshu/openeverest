@@ -101,11 +101,15 @@ type InstanceSpec struct {
 	// For type=Backup: The referenced Backup must be in the same namespace, in
 	// Succeeded state, and its BackupClass must list the Instance's provider in
 	// SupportedProviders. Only ProviderManaged BackupClasses are supported.
+	// Instance must have backup enabled and include a storage that matches the
+	// storage used by the source Backup so the provider can access the data.
 	//
 	// For type=Import: The Instance imports data from external storage.
-	// If classRef is not specified, the Instance's backup class (spec.backup.classRef)
-	// is used and backup must be enabled. If classRef is specified, that BackupClass
-	// is used directly (useful for Job-mode import classes).
+	// If classRef is not specified, the Instance's ProviderManaged BackupClass
+	// (spec.backup.classRef) is used and backup must be enabled and include
+	// a storage used by spec.dataSource.import.storageRef.
+	// If classRef is specified, that BackupClass is used directly using Job
+	// execution mode.
 	// +optional
 	DataSource *backupv1alpha1.DataSource `json:"dataSource,omitempty"`
 }

@@ -109,7 +109,7 @@ type DataSourceImport struct {
 	// StorageRef references a BackupStorage by name.
 	// +kubebuilder:validation:Required
 	StorageRef common.ObjectRef `json:"storageRef"`
-	// Parameters contains all import configuration including path and credentials.
+	// Parameters contains all import configuration.
 	// Validated against BackupClass.spec.importParameterSchema.
 	// +kubebuilder:pruning:PreserveUnknownFields
 	// +kubebuilder:validation:Required
