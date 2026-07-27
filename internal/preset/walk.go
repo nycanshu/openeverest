@@ -21,10 +21,10 @@ import (
 )
 
 // WalkSpec visits every resolvable resource reference in the spec. Structured
-// fields (Config.SecretRef, Config.ConfigMapRef, Storage.StorageClass) and
-// customSpec entries are all surfaced as FieldRef values. Mutations performed by
-// the visitor via FieldRef.Set are written back into the spec, including
-// re-marshalling any customSpec whose contents changed.
+// fields (Backup.ClassRef, Backup.Storages[].StorageRef, Storage.StorageClass)
+// and Parameters entries are all surfaced as FieldRef values. Mutations performed
+// by the visitor via FieldRef.Set are written back into the spec, including
+// re-marshalling any Parameters whose contents changed.
 func WalkSpec(spec *corev1alpha1.InstanceSpec, visit func(FieldRef) error) error {
 	if spec == nil {
 		return nil
@@ -42,18 +42,6 @@ func WalkSpec(spec *corev1alpha1.InstanceSpec, visit func(FieldRef) error) error
 // walkComponent surfaces the typed struct references and the customSpec entries
 // of a single component.
 func walkComponent(name string, component *corev1alpha1.ComponentSpec, visit func(FieldRef) error) error {
-	if component.Config != nil {
-		structured := []FieldRef{
-			nameRef{meta: newMeta(name, KindSecret, "config.secretRef.name"), value: &component.Config.SecretRef.Name},
-			nameRef{meta: newMeta(name, KindConfigMap, "config.configMapRef.name"), value: &component.Config.ConfigMapRef.Name},
-		}
-		for _, ref := range structured {
-			if err := visit(ref); err != nil {
-				return err
-			}
-		}
-	}
-
 	if component.Storage != nil {
 		ref := storageClassRef{meta: newMeta(name, KindStorageClass, "storage.storageClass"), storage: component.Storage}
 		if err := visit(ref); err != nil {
@@ -61,17 +49,17 @@ func walkComponent(name string, component *corev1alpha1.ComponentSpec, visit fun
 		}
 	}
 
-	if component.CustomSpec == nil || len(component.CustomSpec.Raw) == 0 {
+	if component.Parameters == nil || len(component.Parameters.Raw) == 0 {
 		return nil
 	}
 
 	var data map[string]any
-	if err := json.Unmarshal(component.CustomSpec.Raw, &data); err != nil {
+	if err := json.Unmarshal(component.Parameters.Raw, &data); err != nil {
 		return err
 	}
 
 	var dirty bool
-	if err := walkCustomSpec(name, data, &dirty, visit); err != nil {
+	if err := walkParameters(name, data, &dirty, visit); err != nil {
 		return err
 	}
 
@@ -80,16 +68,16 @@ func walkComponent(name string, component *corev1alpha1.ComponentSpec, visit fun
 		if err != nil {
 			return err
 		}
-		component.CustomSpec.Raw = raw
+		component.Parameters.Raw = raw
 	}
 
 	return nil
 }
 
-// walkCustomSpec recursively surfaces known reference fields within a customSpec
+// walkParameters recursively surfaces known reference fields within a Parameters
 // object. A key that matches a registered alias is treated as a reference (even
 // when its value is an object); any other object value is descended into.
-func walkCustomSpec(component string, data map[string]any, dirty *bool, visit func(FieldRef) error) error {
+func walkParameters(component string, data map[string]any, dirty *bool, visit func(FieldRef) error) error {
 	for key, value := range data {
 		if rk, ok := aliasKind(key); ok {
 			ref := customRef{
@@ -105,7 +93,7 @@ func walkCustomSpec(component string, data map[string]any, dirty *bool, visit fu
 		}
 
 		if nested, ok := value.(map[string]any); ok {
-			if err := walkCustomSpec(component, nested, dirty, visit); err != nil {
+			if err := walkParameters(component, nested, dirty, visit); err != nil {
 				return err
 			}
 		}

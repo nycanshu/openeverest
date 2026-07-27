@@ -22,7 +22,6 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	corev1 "k8s.io/api/core/v1"
 	"k8s.io/apimachinery/pkg/api/resource"
 	"k8s.io/apimachinery/pkg/runtime"
 	"k8s.io/utils/ptr"
@@ -60,11 +59,11 @@ func TestEnsureNamespaceRefsEmpty(t *testing.T) {
 			spec: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"engine": {
-						Config: &corev1alpha1.Config{
-							SecretRef: corev1.LocalObjectReference{
-								Name: "my-secret",
+						Parameters: mustRawExt(t, map[string]any{
+							"secretRef": map[string]any{
+								"name": "my-secret",
 							},
-						},
+						}),
 					},
 				},
 			},
@@ -75,11 +74,11 @@ func TestEnsureNamespaceRefsEmpty(t *testing.T) {
 			spec: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"proxy": {
-						Config: &corev1alpha1.Config{
-							ConfigMapRef: corev1.LocalObjectReference{
-								Name: "my-config",
+						Parameters: mustRawExt(t, map[string]any{
+							"objectRef": map[string]any{
+								"name": "my-config",
 							},
-						},
+						}),
 					},
 				},
 			},
@@ -90,7 +89,7 @@ func TestEnsureNamespaceRefsEmpty(t *testing.T) {
 			spec: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"monitoring": {
-						CustomSpec: mustRawExt(t, map[string]any{
+						Parameters: mustRawExt(t, map[string]any{
 							"monitoringConfigName": "pmm-config",
 						}),
 					},
@@ -103,7 +102,7 @@ func TestEnsureNamespaceRefsEmpty(t *testing.T) {
 			spec: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"monitoring": {
-						CustomSpec: mustRawExt(t, map[string]any{
+						Parameters: mustRawExt(t, map[string]any{
 							"secretRef": map[string]any{
 								"name": "",
 							},
@@ -117,7 +116,7 @@ func TestEnsureNamespaceRefsEmpty(t *testing.T) {
 			spec: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"pmm": {
-						CustomSpec: mustRawExt(t, map[string]any{
+						Parameters: mustRawExt(t, map[string]any{
 							"nested": map[string]any{
 								"monitoringConfigName": "config",
 							},
@@ -163,15 +162,15 @@ func TestClearNamespaceRefs(t *testing.T) {
 			input: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"engine": {
-						Config: &corev1alpha1.Config{
-							SecretRef: corev1.LocalObjectReference{
-								Name: "my-secret",
+						Parameters: mustRawExt(t, map[string]any{
+							"secretRef": map[string]any{
+								"name": "my-secret",
 							},
-							ConfigMapRef: corev1.LocalObjectReference{
-								Name: "my-config",
+							"objectRef": map[string]any{
+								"name": "my-config",
 							},
-							Key: "data.conf",
-						},
+							"key": "data.conf",
+						}),
 						Storage: &corev1alpha1.Storage{
 							Size:         resource.MustParse("10Gi"),
 							StorageClass: ptr.To("fast-ssd"),
@@ -182,11 +181,11 @@ func TestClearNamespaceRefs(t *testing.T) {
 			expected: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"engine": {
-						Config: &corev1alpha1.Config{
-							SecretRef:    corev1.LocalObjectReference{Name: ""},
-							ConfigMapRef: corev1.LocalObjectReference{Name: ""},
-							Key:          "data.conf",
-						},
+						Parameters: mustRawExt(t, map[string]any{
+							"secretRef":    map[string]any{"name": ""},
+							"configMapRef": map[string]any{"name": ""},
+							"key":          "data.conf",
+						}),
 						Storage: &corev1alpha1.Storage{
 							Size:         resource.MustParse("10Gi"),
 							StorageClass: ptr.To("fast-ssd"),
@@ -200,7 +199,7 @@ func TestClearNamespaceRefs(t *testing.T) {
 			input: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"monitoring": {
-						CustomSpec: mustRawExt(t, map[string]any{
+						Parameters: mustRawExt(t, map[string]any{
 							"monitoringConfigName": "pmm-config",
 							"secretRef": map[string]any{
 								"name": "pmm-secret",
@@ -213,7 +212,7 @@ func TestClearNamespaceRefs(t *testing.T) {
 			expected: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"monitoring": {
-						CustomSpec: mustRawExt(t, map[string]any{
+						Parameters: mustRawExt(t, map[string]any{
 							"monitoringConfigName": "",
 							"secretRef": map[string]any{
 								"name": "",
@@ -233,11 +232,11 @@ func TestClearNamespaceRefs(t *testing.T) {
 							Size:         resource.MustParse("25Gi"),
 							StorageClass: ptr.To("premium-rwo"),
 						},
-						Config: &corev1alpha1.Config{
-							SecretRef: corev1.LocalObjectReference{
-								Name: "creds",
+						Parameters: mustRawExt(t, map[string]any{
+							"secretRef": map[string]any{
+								"name": "creds",
 							},
-						},
+						}),
 					},
 				},
 			},
@@ -248,9 +247,11 @@ func TestClearNamespaceRefs(t *testing.T) {
 							Size:         resource.MustParse("25Gi"),
 							StorageClass: ptr.To("premium-rwo"),
 						},
-						Config: &corev1alpha1.Config{
-							SecretRef: corev1.LocalObjectReference{Name: ""},
-						},
+						Parameters: mustRawExt(t, map[string]any{
+							"secretRef": map[string]any{
+								"name": "",
+							},
+						}),
 					},
 				},
 			},
@@ -260,7 +261,7 @@ func TestClearNamespaceRefs(t *testing.T) {
 			input: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"pmm": {
-						CustomSpec: mustRawExt(t, map[string]any{
+						Parameters: mustRawExt(t, map[string]any{
 							"nested": map[string]any{
 								"monitoringConfigName": "config",
 								"other":                "value",
@@ -272,7 +273,7 @@ func TestClearNamespaceRefs(t *testing.T) {
 			expected: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"pmm": {
-						CustomSpec: mustRawExt(t, map[string]any{
+						Parameters: mustRawExt(t, map[string]any{
 							"nested": map[string]any{
 								"monitoringConfigName": "",
 								"other":                "value",
@@ -318,9 +319,11 @@ func TestResolveNamespaceRefs(t *testing.T) {
 			input: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"engine": {
-						Config: &corev1alpha1.Config{
-							SecretRef: corev1.LocalObjectReference{},
-						},
+						Parameters: mustRawExt(t, map[string]any{
+							"secretRef": map[string]any{
+								"name": "",
+							},
+						}),
 					},
 				},
 			},
@@ -333,9 +336,11 @@ func TestResolveNamespaceRefs(t *testing.T) {
 			expected: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"engine": {
-						Config: &corev1alpha1.Config{
-							SecretRef: corev1.LocalObjectReference{Name: "default-secret"},
-						},
+						Parameters: mustRawExt(t, map[string]any{
+							"secretRef": map[string]any{
+								"name": "default-secret",
+							},
+						}),
 					},
 				},
 			},
@@ -345,9 +350,11 @@ func TestResolveNamespaceRefs(t *testing.T) {
 			input: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"proxy": {
-						Config: &corev1alpha1.Config{
-							ConfigMapRef: corev1.LocalObjectReference{},
-						},
+						Parameters: mustRawExt(t, map[string]any{
+							"configMapRef": map[string]any{
+								"name": "",
+							},
+						}),
 					},
 				},
 			},
@@ -360,9 +367,11 @@ func TestResolveNamespaceRefs(t *testing.T) {
 			expected: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"proxy": {
-						Config: &corev1alpha1.Config{
-							ConfigMapRef: corev1.LocalObjectReference{Name: "default-config"},
-						},
+						Parameters: mustRawExt(t, map[string]any{
+							"configMapRef": map[string]any{
+								"name": "default-config",
+							},
+						}),
 					},
 				},
 			},
@@ -400,7 +409,7 @@ func TestResolveNamespaceRefs(t *testing.T) {
 			input: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"monitoring": {
-						CustomSpec: mustRawExt(t, map[string]any{
+						Parameters: mustRawExt(t, map[string]any{
 							"monitoringConfigName": "",
 							"interval":             "30s",
 						}),
@@ -416,7 +425,7 @@ func TestResolveNamespaceRefs(t *testing.T) {
 			expected: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"monitoring": {
-						CustomSpec: mustRawExt(t, map[string]any{
+						Parameters: mustRawExt(t, map[string]any{
 							"monitoringConfigName": "pmm-config",
 							"interval":             "30s",
 						}),
@@ -458,9 +467,11 @@ func TestResolveNamespaceRefs(t *testing.T) {
 			input: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"engine": {
-						Config: &corev1alpha1.Config{
-							SecretRef: corev1.LocalObjectReference{},
-						},
+						Parameters: mustRawExt(t, map[string]any{
+							"secretRef": map[string]any{
+								"name": "",
+							},
+						}),
 					},
 				},
 			},
@@ -475,7 +486,7 @@ func TestResolveNamespaceRefs(t *testing.T) {
 			input: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"pmm": {
-						CustomSpec: mustRawExt(t, map[string]any{
+						Parameters: mustRawExt(t, map[string]any{
 							"nested": map[string]any{
 								"monitoringConfigName": "",
 							},
@@ -492,7 +503,7 @@ func TestResolveNamespaceRefs(t *testing.T) {
 			expected: &corev1alpha1.InstanceSpec{
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"pmm": {
-						CustomSpec: mustRawExt(t, map[string]any{
+						Parameters: mustRawExt(t, map[string]any{
 							"nested": map[string]any{
 								"monitoringConfigName": "pmm-config",
 							},

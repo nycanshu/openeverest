@@ -15,6 +15,7 @@
 package preset
 
 import (
+	common "github.com/openeverest/openeverest/v2/api/common/v1alpha1"
 	corev1alpha1 "github.com/openeverest/openeverest/v2/api/core/v1alpha1"
 )
 
@@ -82,6 +83,38 @@ func (r storageClassRef) IsEmpty() bool {
 
 func (r storageClassRef) Set(name string) {
 	r.storage.StorageClass = &name
+}
+
+// objectRef references a common.ObjectRef field.
+type objectRef struct {
+	meta
+	ref *common.ObjectRef
+}
+
+func (r objectRef) IsEmpty() bool {
+	return r.ref == nil || r.ref.Name == ""
+}
+
+func (r objectRef) Set(name string) {
+	if r.ref != nil {
+		r.ref.Name = name
+	}
+}
+
+// secretRef references a common.SecretRef field.
+type secretRef struct {
+	meta
+	ref *common.SecretRef
+}
+
+func (r secretRef) IsEmpty() bool {
+	return r.ref == nil || r.ref.Name == ""
+}
+
+func (r secretRef) Set(name string) {
+	if r.ref != nil {
+		r.ref.Name = name
+	}
 }
 
 // customRef references a customSpec entry. The value may be a plain string or a
