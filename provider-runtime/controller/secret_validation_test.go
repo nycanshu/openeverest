@@ -22,6 +22,7 @@ import (
 	apiextensionsv1 "k8s.io/apiextensions-apiserver/pkg/apis/apiextensions/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 
+	commonv1alpha1 "github.com/openeverest/openeverest/v2/api/common/v1alpha1"
 	corev1alpha1 "github.com/openeverest/openeverest/v2/api/core/v1alpha1"
 	"github.com/openeverest/openeverest/v2/pkg/common"
 )
@@ -41,7 +42,9 @@ func TestValidateSecretSchema(t *testing.T) {
 	providerSpec := &corev1alpha1.ProviderSpec{
 		Secrets: map[string]corev1alpha1.SecretDefinition{
 			"database-credentials": {
-				OpenAPIV3Schema: schema,
+				ParametersSchema: &commonv1alpha1.ParametersSchema{
+					OpenAPIV3Schema: schema,
+				},
 			},
 		},
 	}
