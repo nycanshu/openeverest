@@ -19,14 +19,17 @@ package controller
 // This file implements the generic, provider-agnostic checks that decide
 // whether upgrading a provider release would strand a running Instance:
 //
-//   - Catalog membership (R1): is each Instance's effective engine version
+//   - Catalog membership: is each Instance's effective engine version
 //     still present — and not removed — in the target provider's catalog?
-//   - Upgrade path (R2): is the release jump itself within the target's
+//   - Upgrade path: is the release jump itself within the target's
 //     declared minUpgradableFrom floor?
 //
 // The checks run inside the provider chart's Helm pre-upgrade hook, before
 // any of the release's resources are applied. Providers with rules a version
 // floor cannot capture implement the optional UpgradeProvider interface.
+//
+// Design background: spec 009 (provider upgrades) in the openeverest/specs
+// repository, which labels these two risks R1 and R2.
 
 import (
 	"fmt"
@@ -96,7 +99,7 @@ func HasBlockingIssues(issues []UpgradeIssue) bool {
 }
 
 // RunUpgradePreflight runs the full generic preflight — the upgrade-path
-// floor check (R2) and the catalog-membership check (R1) — and appends any
+// floor check and the catalog-membership check — and appends any
 // provider-specific issues from the optional UpgradeProvider interface.
 //
 // current is the spec of the installed Provider CR (nil when none is
@@ -112,7 +115,7 @@ func RunUpgradePreflight(c *Context, provider ProviderInterface, current, target
 }
 
 // CheckUpgradePath validates the release jump against the target's
-// minUpgradableFrom floor (R2). It returns nothing when the target declares
+// minUpgradableFrom floor. It returns nothing when the target declares
 // no floor, an UpgradeError when the installed release is below the floor,
 // and an UpgradeWarning when the path cannot be verified.
 func CheckUpgradePath(current, target *v1alpha1.ProviderSpec) []UpgradeIssue {
@@ -166,7 +169,7 @@ func pathUnparseableIssue(what, value string) UpgradeIssue {
 }
 
 // PreflightUpgrade runs the generic catalog-membership and deprecation check
-// (R1) for every Instance against the target provider spec.
+// for every Instance against the target provider spec.
 //
 // For each Instance the effective engine version of every component is
 // resolved exactly as the reconciler resolves it: the component's explicit
