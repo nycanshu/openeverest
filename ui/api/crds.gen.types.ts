@@ -3133,7 +3133,19 @@ export interface components {
                     [key: string]: {
                         versions?: {
                             default?: boolean;
+                            /**
+                             * @description Deprecated marks a version as still supported but scheduled for
+                             *     removal. Instances running on it get a proactive warning with a
+                             *     remediation runway instead of a blocked upgrade.
+                             */
+                            deprecated?: boolean;
                             image?: string;
+                            /**
+                             * @description RemovedInVersion is the provider version (P) in which this engine
+                             *     version is dropped. Upgrading the provider to >= this version while
+                             *     an Instance still uses this engine version is a blocking error.
+                             */
+                            removedInVersion?: string;
                             version?: string;
                         }[];
                     };
@@ -3154,6 +3166,21 @@ export interface components {
                         type?: string;
                     };
                 };
+                /** @description ConfigMaps defines ConfigMap types this provider supports. */
+                configMaps?: {
+                    [key: string]: {
+                        /** @description ParametersSchema declares the OpenAPI v3 schema for validating configmap data/binaryData. */
+                        parametersSchema?: {
+                            /**
+                             * @description OpenAPIV3Schema is the OpenAPI v3 schema describing the accepted
+                             *     parameters payload.
+                             */
+                            openAPIV3Schema?: unknown;
+                        };
+                        /** @description UISchema holds UI rendering hints for the configmap creation form. */
+                        uiSchema?: Record<string, never>;
+                    };
+                };
                 /**
                  * @description ParametersSchema declares the OpenAPI v3 schema for the instance-wide
                  *     parameters payload (Instance.spec.parameters).
@@ -3164,6 +3191,26 @@ export interface components {
                      *     parameters payload.
                      */
                     openAPIV3Schema?: unknown;
+                };
+                /**
+                 * @description Release identifies this provider release — the shipped unit of
+                 *     controller, bundled operator, and version catalog — and its
+                 *     upgrade-path constraints. It is read by the pre-upgrade preflight.
+                 */
+                release?: {
+                    /**
+                     * @description MinUpgradableFrom is the lowest provider release version from which a
+                     *     single-step upgrade to this release is permitted; a lower installed
+                     *     version is blocked and must step through intermediate releases.
+                     *     Empty means no floor.
+                     */
+                    minUpgradableFrom?: string;
+                    /**
+                     * @description Version is the provider release version (P), populated from the chart
+                     *     appVersion (e.g. "0.3"). Named distinctly from ProviderSpec.Versions
+                     *     (the engine bundle catalog).
+                     */
+                    version?: string;
                 };
                 /** @description Secrets defines Secret types this provider supports. */
                 secrets?: {
