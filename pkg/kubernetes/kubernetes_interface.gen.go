@@ -82,6 +82,8 @@ type KubernetesConnector interface {
 	CreateConfigMap(ctx context.Context, config *corev1.ConfigMap) (*corev1.ConfigMap, error)
 	// UpdateConfigMap updates k8s configmap.
 	UpdateConfigMap(ctx context.Context, config *corev1.ConfigMap) (*corev1.ConfigMap, error)
+	// DeleteConfigMap deletes a configmap.
+	DeleteConfigMap(ctx context.Context, obj *corev1.ConfigMap) error
 	// GetClusterServiceVersion retrieves a ClusterServiceVersion that matches the criteria.
 	GetClusterServiceVersion(ctx context.Context, key ctrlclient.ObjectKey) (*olmv1alpha1.ClusterServiceVersion, error)
 	// ListClusterServiceVersion list all CSVs that match the criteria.

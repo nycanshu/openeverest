@@ -54,3 +54,8 @@ func (k *Kubernetes) UpdateConfigMap(ctx context.Context, config *corev1.ConfigM
 	}
 	return config, nil
 }
+
+// DeleteConfigMap deletes a configmap.
+func (k *Kubernetes) DeleteConfigMap(ctx context.Context, obj *corev1.ConfigMap) error {
+	return k.k8sClient.Delete(ctx, obj)
+}

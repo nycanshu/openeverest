@@ -16,6 +16,7 @@ package preset
 
 import (
 	"encoding/json"
+	"strings"
 
 	corev1alpha1 "github.com/openeverest/openeverest/v2/api/core/v1alpha1"
 )
@@ -59,7 +60,7 @@ func walkComponent(name string, component *corev1alpha1.ComponentSpec, visit fun
 	}
 
 	var dirty bool
-	if err := walkParameters(name, data, &dirty, visit); err != nil {
+	if err := walkParameters(name, data, "parameters", &dirty, visit); err != nil {
 		return err
 	}
 
@@ -77,11 +78,12 @@ func walkComponent(name string, component *corev1alpha1.ComponentSpec, visit fun
 // walkParameters recursively surfaces known reference fields within a Parameters
 // object. A key that matches a registered alias is treated as a reference (even
 // when its value is an object); any other object value is descended into.
-func walkParameters(component string, data map[string]any, dirty *bool, visit func(FieldRef) error) error {
+func walkParameters(component string, data map[string]any, path string, dirty *bool, visit func(FieldRef) error) error {
 	for key, value := range data {
+		path = strings.Join([]string{path, key}, ".")
 		if rk, ok := aliasKind(key); ok {
-			ref := customRef{
-				meta:   meta{component: component, kind: rk.kind, scope: rk.scope, path: key},
+			ref := parametersRef{
+				meta:   meta{component: component, kind: rk.kind, scope: rk.scope, path: path},
 				parent: data,
 				key:    key,
 				dirty:  dirty,
@@ -93,7 +95,7 @@ func walkParameters(component string, data map[string]any, dirty *bool, visit fu
 		}
 
 		if nested, ok := value.(map[string]any); ok {
-			if err := walkParameters(component, nested, dirty, visit); err != nil {
+			if err := walkParameters(component, nested, path, dirty, visit); err != nil {
 				return err
 			}
 		}

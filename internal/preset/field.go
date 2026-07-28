@@ -59,6 +59,7 @@ func newMeta(component string, kind ResourceKind, path string) meta {
 // nameRef references a required string field such as LocalObjectReference.Name.
 type nameRef struct {
 	meta
+
 	value *string
 }
 
@@ -74,6 +75,7 @@ func (r nameRef) Set(name string) {
 // be nil and therefore needs allocation on write.
 type storageClassRef struct {
 	meta
+
 	storage *corev1alpha1.Storage
 }
 
@@ -88,6 +90,7 @@ func (r storageClassRef) Set(name string) {
 // objectRef references a common.ObjectRef field.
 type objectRef struct {
 	meta
+
 	ref *common.ObjectRef
 }
 
@@ -104,6 +107,7 @@ func (r objectRef) Set(name string) {
 // secretRef references a common.SecretRef field.
 type secretRef struct {
 	meta
+
 	ref *common.SecretRef
 }
 
@@ -117,17 +121,17 @@ func (r secretRef) Set(name string) {
 	}
 }
 
-// customRef references a customSpec entry. The value may be a plain string or a
+// parametersRef references a customSpec entry. The value may be a plain string or a
 // ref-like object such as {"name": ""}; both shapes are handled transparently.
 // Writes flip the shared dirty flag so the traversal knows to re-marshal.
-type customRef struct {
+type parametersRef struct {
 	meta
 	parent map[string]any
 	key    string
 	dirty  *bool
 }
 
-func (r customRef) IsEmpty() bool {
+func (r parametersRef) IsEmpty() bool {
 	switch value := r.parent[r.key].(type) {
 	case string:
 		return value == ""
@@ -144,7 +148,7 @@ func (r customRef) IsEmpty() bool {
 	return false
 }
 
-func (r customRef) Set(name string) {
+func (r parametersRef) Set(name string) {
 	if obj, ok := r.parent[r.key].(map[string]any); ok {
 		obj["name"] = name
 	} else {

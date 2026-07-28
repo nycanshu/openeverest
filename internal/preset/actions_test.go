@@ -67,7 +67,7 @@ func TestEnsureNamespaceRefsEmpty(t *testing.T) {
 					},
 				},
 			},
-			wantErr: `component "engine": config.secretRef.name must be empty in preset`,
+			wantErr: `component "engine": parameters.secretRef must be empty in preset`,
 		},
 		{
 			name: "configmap ref must be empty",
@@ -82,7 +82,7 @@ func TestEnsureNamespaceRefsEmpty(t *testing.T) {
 					},
 				},
 			},
-			wantErr: `component "proxy": config.configMapRef.name must be empty in preset`,
+			wantErr: `component "proxy": parameters.objectRef must be empty in preset`,
 		},
 		{
 			name: "customSpec monitoringConfigName must be empty",
@@ -95,7 +95,7 @@ func TestEnsureNamespaceRefsEmpty(t *testing.T) {
 					},
 				},
 			},
-			wantErr: `component "monitoring": monitoringConfigName must be empty in preset`,
+			wantErr: `component "monitoring": parameters.monitoringConfigName must be empty in preset`,
 		},
 		{
 			name: "empty secretRef object is valid",
@@ -124,7 +124,7 @@ func TestEnsureNamespaceRefsEmpty(t *testing.T) {
 					},
 				},
 			},
-			wantErr: `component "pmm": monitoringConfigName must be empty in preset`,
+			wantErr: `component "pmm": parameters.nested.monitoringConfigName must be empty in preset`,
 		},
 	}
 
@@ -182,9 +182,9 @@ func TestClearNamespaceRefs(t *testing.T) {
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"engine": {
 						Parameters: mustRawExt(t, map[string]any{
-							"secretRef":    map[string]any{"name": ""},
-							"configMapRef": map[string]any{"name": ""},
-							"key":          "data.conf",
+							"secretRef": map[string]any{"name": ""},
+							"objectRef": map[string]any{"name": ""},
+							"key":       "data.conf",
 						}),
 						Storage: &corev1alpha1.Storage{
 							Size:         resource.MustParse("10Gi"),
@@ -351,7 +351,7 @@ func TestResolveNamespaceRefs(t *testing.T) {
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"proxy": {
 						Parameters: mustRawExt(t, map[string]any{
-							"configMapRef": map[string]any{
+							"objectRef": map[string]any{
 								"name": "",
 							},
 						}),
@@ -368,7 +368,7 @@ func TestResolveNamespaceRefs(t *testing.T) {
 				Components: map[string]corev1alpha1.ComponentSpec{
 					"proxy": {
 						Parameters: mustRawExt(t, map[string]any{
-							"configMapRef": map[string]any{
+							"objectRef": map[string]any{
 								"name": "default-config",
 							},
 						}),

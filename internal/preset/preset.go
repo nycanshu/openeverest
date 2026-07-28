@@ -78,7 +78,7 @@ var registry = []refKind{
 	{
 		kind:    KindConfigMap,
 		scope:   ScopeNamespace,
-		aliases: []string{"configMap", "configMapRef", "configMapName"},
+		aliases: []string{"objectRef"},
 	},
 	{
 		kind:    KindMonitoringConfig,
